@@ -1,0 +1,148 @@
+﻿Operators: [
+  {
+    "fullName": "O─şuzhan Ataman",
+    "employeeId": "OP-01",
+    "dept": "Cnc ├£retim",
+    "deptCode": "DP-01"
+  },
+  {
+    "fullName": "Bekircan Aydo─şdu",
+    "employeeId": "OP-02",
+    "dept": "Cnc ├£retim",
+    "deptCode": "DP-01"
+  },
+  {
+    "fullName": "O─şuzhan ├ça─şlayan",
+    "employeeId": "OP-03",
+    "dept": "Cnc ├£retim",
+    "deptCode": "DP-01"
+  },
+  {
+    "fullName": "Emir Yi─şit ├ça─şl─▒",
+    "employeeId": "OP-04",
+    "dept": "Cnc ├£retim",
+    "deptCode": "DP-01"
+  },
+  {
+    "fullName": "Yi─şit ├ûzt├╝rk",
+    "employeeId": "OP-05",
+    "dept": "Cnc ├£retim",
+    "deptCode": "DP-01"
+  },
+  {
+    "fullName": "─░smail Onat",
+    "employeeId": "OP-06",
+    "dept": "Cnc ├£retim",
+    "deptCode": "DP-01"
+  },
+  {
+    "fullName": "H├╝seyin Erdo─şan",
+    "employeeId": "OK-03",
+    "dept": "├ûn Kalite",
+    "deptCode": "DP-02"
+  },
+  {
+    "fullName": "├ûmer Fatih ┼Şahin",
+    "employeeId": "OK-01",
+    "dept": "├ûn Kalite",
+    "deptCode": "DP-02"
+  },
+  {
+    "fullName": "Ali Y├╝ce",
+    "employeeId": "OK-02",
+    "dept": "├ûn Kalite",
+    "deptCode": "DP-02"
+  },
+  {
+    "fullName": "Damla ├ûzt├╝rk",
+    "employeeId": "OK-04",
+    "dept": "├ûn Kalite",
+    "deptCode": "DP-02"
+  },
+  {
+    "fullName": "Aziz Mert",
+    "employeeId": "MA-02",
+    "dept": "Mekanik At├Âlye",
+    "deptCode": "DP-04"
+  },
+  {
+    "fullName": "Yal├ğ─▒n ┼Şahin",
+    "employeeId": "MA-01",
+    "dept": "Mekanik At├Âlye",
+    "deptCode": "DP-04"
+  }
+]
+Departments: [
+  {
+    "id": "4d4edf64-20f1-481f-830b-7c9e44716576",
+    "name": "Cnc ├£retim",
+    "code": "DP-01"
+  },
+  {
+    "id": "980d78df-74a9-4d37-80fa-4c9f35ae9738",
+    "name": "├ûn Kalite",
+    "code": "DP-02"
+  },
+  {
+    "id": "5baa1ad3-dd03-4b1f-aa1b-b2627680e08b",
+    "name": "├ûn Y─▒kama",
+    "code": "DP-03"
+  },
+  {
+    "id": "a54ffdc8-66c2-41b9-9d40-a7b4b9598c3d",
+    "name": "Mekanik At├Âlye",
+    "code": "DP-04"
+  },
+  {
+    "id": "2eae8014-95ee-4751-8356-f49a5224d605",
+    "name": "Yar─▒ Mam├╝l",
+    "code": "DP-05"
+  },
+  {
+    "id": "45115cf8-06a4-4960-9962-a464cf3bb196",
+    "name": "Kalite Kontrol II",
+    "code": "DP-06"
+  },
+  {
+    "id": "50ac897a-389f-4db7-85df-3b3e8cd887fd",
+    "name": "Kumlama",
+    "code": "DP-07"
+  },
+  {
+    "id": "5c076157-dc18-408e-8ad7-146135c313bb",
+    "name": "Temiz Oda",
+    "code": "DP-08"
+  },
+  {
+    "id": "02d4fad5-5b19-4239-a74e-8e078527f94c",
+    "name": "Paketleme",
+    "code": "DP-09"
+  },
+  {
+    "id": "d26bcb22-8008-4800-8498-748b9bb6a262",
+    "name": "Mam├╝l Depo",
+    "code": "DP-10"
+  }
+]
+Shifts: [
+  {
+    "id": "2fa90e31-1999-4170-aa0f-f49774bf8005",
+    "name": "G├╝nd├╝z",
+    "code": "V-01"
+  },
+  {
+    "id": "8e319850-8a12-44eb-a634-330bfa5d433a",
+    "name": "G├╝nd├╝z (Vardiya)",
+    "code": "V-02"
+  },
+  {
+    "id": "1a65c202-c6de-44f1-8d49-e8e9cef146d2",
+    "name": "Gece (Vardiya)",
+    "code": "V-03"
+  },
+  {
+    "id": "68380cce-9973-421a-ba78-52c9f535d797",
+    "name": "G├╝nd├╝z (Mesai)",
+    "code": "V-04"
+  }
+]

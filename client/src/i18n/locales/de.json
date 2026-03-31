@@ -1,0 +1,22 @@
+{
+  "sidebar": {
+    "dashboard": "ARMATURENBRETT",
+    "definitions": "DEFINITIONEN",
+    "records": "PRODUKTIONSAUFZEICHNUNGEN",
+    "overtime": "ÜBERSTUNDEN",
+    "reports": "BERICHTE",
+    "analytics": "ANALYTIK",
+    "settings": "EINSTELLUNGEN",
+    "users": "BENUTZER",
+    "profile": "PROFIL"
+  },
+  "dashboard": {
+    "greeting": "Willkommen zurück,",
+    "summary": "Ihre Fabrikübersicht für heute.",
+    "add_record": "NEUE AUFZEICHNUNG",
+    "total_production": "PRODUKTION GESAMT",
+    "average_oee": "DURCHSCHNITTLICHER OEE",
+    "total_downtime": "AUSFALLZEIT GESAMT",
+    "active_machines": "AKTIVE MASCHINEN"
+  }
+}

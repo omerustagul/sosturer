@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sosturer</title>
+    <script>
+      (function() {
+        try {
+          var systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var defaultMode = systemPrefersDark ? 'dark' : 'light';
+
+          var theme = localStorage.getItem('sosturer_theme') || defaultMode;
+          var colorMode = localStorage.getItem('sosturer_color_mode') || defaultMode;
+          var density = localStorage.getItem('sosturer_density') || 'large';
+          var animations = localStorage.getItem('sosturer_animations') || 'true';
+          
+          document.documentElement.setAttribute('data-theme', theme);
+          document.documentElement.setAttribute('data-color-mode', colorMode);
+          document.documentElement.setAttribute('data-density', density);
+          document.documentElement.setAttribute('data-animations', animations);
+        } catch (e) {
+          console.error('Theme preloader failed', e);
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

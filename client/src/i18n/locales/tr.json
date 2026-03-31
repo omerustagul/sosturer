@@ -1,0 +1,22 @@
+{
+  "sidebar": {
+    "dashboard": "KONTROL PANELİ",
+    "definitions": "SİSTEM TANIMLARI",
+    "records": "ÜRETİM KAYITLARI",
+    "overtime": "FAZLA MESAİ",
+    "reports": "RAPORLAR",
+    "analytics": "ANALİZ",
+    "settings": "AYARLAR",
+    "users": "KULLANICILAR",
+    "profile": "PROFİL"
+  },
+  "dashboard": {
+    "greeting": "Hoş geldin,",
+    "summary": "İşte fabrikanızın bugünlük özeti.",
+    "add_record": "YENİ KAYIT EKLE",
+    "total_production": "TOPLAM ÜRETİM",
+    "average_oee": "ORTALAMA OEE",
+    "total_downtime": "TOPLAM DURUŞ",
+    "active_machines": "AKTİF TEZGAHLAR"
+  }
+}

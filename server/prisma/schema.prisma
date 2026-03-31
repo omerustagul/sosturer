@@ -1,0 +1,344 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Company {
+  id                String             @id
+  name              String
+  companyAddress    String?            @map("company_address")
+  taxOffice         String?            @map("tax_office")
+  taxNumber         String?            @map("tax_number")
+  sicilNo           String?            @map("sicil_no")
+  mersisNo          String?            @map("mersis_no")
+  kepAddress        String?            @map("kep_address")
+  companyPhone      String?            @map("company_phone")
+  companyEmail      String?            @map("company_email")
+  website           String?
+  sector            String?
+  employees         String?
+  founded           String?
+  logoUrl           String?            @map("logo_url")
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+  appSettings       AppSettings?
+  departmentRoles   DepartmentRole[]
+  departments       Department[]
+  importHistory     ImportHistory[]
+  machines          Machine[]
+  operators         Operator[]
+  overtimePlans     OvertimePlan[]
+  productionRecords ProductionRecord[]
+  products          Product[]
+  shifts            Shift[]
+  users             User[]
+
+  @@map("companies")
+}
+
+model User {
+  id              String          @id @default(uuid())
+  email           String          @unique
+  password        String
+  fullName        String          @map("full_name")
+  role            String          @default("user")
+  status          String          @default("active")
+  avatarUrl       String?         @map("avatar_url")
+  tc              String?
+  gender          String?
+  nationality     String?
+  birthDate       String?         @map("birth_date")
+  personalPhone   String?         @map("personal_phone")
+  personalAddress String?         @map("personal_address")
+  memberSince     String?         @map("member_since")
+  companyId       String?         @map("company_id")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+  importHistory   ImportHistory[]
+  company         Company?        @relation(fields: [companyId], references: [id])
+
+  @@map("users")
+}
+
+model Machine {
+  id                      String             @id @default(uuid())
+  companyId               String             @map("company_id")
+  code                    String
+  name                    String
+  brand                   String?
+  model                   String?
+  installedDate           DateTime?          @map("installed_date")
+  status                  String             @default("active")
+  capacityPerShift        Int?               @map("capacity_per_shift")
+  notes                   String?
+  displayOrder            Int                @default(0) @map("display_order")
+  createdAt               DateTime           @default(now()) @map("created_at")
+  updatedAt               DateTime           @updatedAt @map("updated_at")
+  company                 Company            @relation(fields: [companyId], references: [id])
+  backupOvertimePlanItems OvertimePlanItem[] @relation("BackupMachine")
+  overtimePlanItems       OvertimePlanItem[] @relation("MainMachine")
+  productionRecords       ProductionRecord[]
+
+  @@unique([companyId, code])
+  @@map("machines")
+}
+
+model Operator {
+  id                String             @id @default(uuid())
+  companyId         String             @map("company_id")
+  employeeId        String             @map("employee_id")
+  fullName          String             @map("full_name")
+  departmentId      String?            @map("department_id")
+  roleId            String?            @map("role_id")
+  phone             String?
+  email             String?
+  status            String             @default("active")
+  hireDate          DateTime?          @map("hire_date")
+  experienceYears   Int?               @map("experience_years")
+  certifications    String?
+  displayOrder      Int                @default(0) @map("display_order")
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+  role              DepartmentRole?    @relation(fields: [roleId], references: [id])
+  department        Department?        @relation(fields: [departmentId], references: [id])
+  company           Company            @relation(fields: [companyId], references: [id])
+  overtimePlanItems OvertimePlanItem[]
+  productionRecords ProductionRecord[]
+
+  @@unique([companyId, employeeId])
+  @@map("operators")
+}
+
+model Shift {
+  id                String             @id @default(uuid())
+  companyId         String             @map("company_id")
+  shiftCode         String             @map("shift_code")
+  shiftName         String             @map("shift_name")
+  startTime         String             @map("start_time")
+  endTime           String             @map("end_time")
+  durationMinutes   Int                @map("duration_minutes")
+  status            String             @default("active")
+  colorCode         String?            @map("color_code")
+  displayOrder      Int                @default(0) @map("display_order")
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+  overtimePlans     OvertimePlan[]
+  productionRecords ProductionRecord[]
+  company           Company            @relation(fields: [companyId], references: [id])
+
+  @@unique([companyId, shiftCode])
+  @@map("shifts")
+}
+
+model Department {
+  id           String           @id @default(uuid())
+  companyId    String           @map("company_id")
+  name         String
+  code         String?
+  status       String           @default("active")
+  displayOrder Int              @default(0) @map("display_order")
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
+  roles        DepartmentRole[]
+  company      Company          @relation(fields: [companyId], references: [id])
+  operators    Operator[]
+
+  @@unique([companyId, name])
+  @@map("departments")
+}
+
+model DepartmentRole {
+  id           String     @id @default(uuid())
+  companyId    String     @map("company_id")
+  departmentId String     @map("department_id")
+  name         String
+  status       String     @default("active")
+  displayOrder Int        @default(0) @map("display_order")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  company      Company    @relation(fields: [companyId], references: [id])
+  operators    Operator[]
+
+  @@unique([departmentId, name])
+  @@map("department_roles")
+}
+
+model Product {
+  id                String             @id @default(uuid())
+  companyId         String             @map("company_id")
+  productCode       String             @map("product_code")
+  productName       String             @map("product_name")
+  brand             String?
+  productGroup      String?            @map("product_group")
+  description       String?
+  unitOfMeasure     String?            @map("unit_of_measure")
+  category          String?
+  cycleTimeSeconds  Float              @default(30) @map("cycle_time_seconds")
+  status            String             @default("active")
+  displayOrder      Int                @default(0) @map("display_order")
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+  overtimePlanItems OvertimePlanItem[]
+  productionRecords ProductionRecord[]
+  company           Company            @relation(fields: [companyId], references: [id])
+
+  @@unique([companyId, productCode])
+  @@map("products")
+}
+
+model ProductionRecord {
+  id                         String   @id @default(uuid())
+  companyId                  String   @map("company_id")
+  productionDate             DateTime @map("production_date")
+  shiftId                    String   @map("shift_id")
+  machineId                  String   @map("machine_id")
+  operatorId                 String   @map("operator_id")
+  productId                  String   @map("product_id")
+  producedQuantity           Int      @map("produced_quantity")
+  actualDurationMinutes      Float?   @map("actual_duration_minutes")
+  cycleTimeSeconds           Float    @map("cycle_time_seconds")
+  plannedDurationMinutes     Float?   @map("planned_duration_minutes")
+  cncReportedDurationMinutes Float?   @map("cnc_reported_duration_minutes")
+  plannedDowntimeMinutes     Float    @default(0) @map("planned_downtime_minutes")
+  unplannedDowntimeMinutes   Float?   @default(0) @map("unplanned_downtime_minutes")
+  downtimeMinutes            Float?   @default(0) @map("downtime_minutes")
+  availability               Float?
+  performance                Float?
+  quality                    Float?
+  oee                        Float?
+  defectQuantity             Int      @default(0) @map("defect_quantity")
+  plannedQuantity            Int?     @map("planned_quantity")
+  notes                      String?
+  qualityIssues              String?  @map("quality_issues")
+  createdAt                  DateTime @default(now()) @map("created_at")
+  updatedAt                  DateTime @updatedAt @map("updated_at")
+  shift                      Shift    @relation(fields: [shiftId], references: [id])
+  machine                    Machine  @relation(fields: [machineId], references: [id])
+  operator                   Operator @relation(fields: [operatorId], references: [id])
+  product                    Product  @relation(fields: [productId], references: [id])
+  company                    Company  @relation(fields: [companyId], references: [id])
+
+  @@index([companyId, productionDate])
+  @@index([machineId, productionDate])
+  @@index([operatorId, productionDate])
+  @@index([shiftId, productionDate])
+  @@index([productId, productionDate])
+  @@map("production_records")
+}
+
+model AppSettings {
+  id                    String   @id @default(uuid())
+  companyId             String   @unique @map("company_id")
+  language              String   @default("tr")
+  timezone              String   @default("Europe/Istanbul")
+  dataRetentionMonths   Int      @default(24) @map("data_retention_months")
+  autoBackup            String   @default("daily") @map("auto_backup")
+  theme                 String   @default("dark")
+  tableDensity          String   @default("large") @map("table_density")
+  animationsEnabled     Boolean  @default(true) @map("animations_enabled")
+  notificationsEnabled  Boolean  @default(true) @map("notifications_enabled")
+  colorMode             String   @default("dark") @map("color_mode")
+  twoFactorEnabled      Boolean  @default(false) @map("two_factor_enabled")
+  ipRestrictionEnabled  Boolean  @default(false) @map("ip_restriction_enabled")
+  allowSupportAccess    Boolean  @default(false) @map("allow_support_access")
+  sapIntegrationEnabled Boolean  @default(false) @map("sap_integration_enabled")
+  webhooksEnabled       Boolean  @default(false) @map("webhooks_enabled")
+  dashboardLayout       String   @default("[]") @map("dashboard_layout")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+  company               Company  @relation(fields: [companyId], references: [id])
+
+  @@map("app_settings")
+}
+
+model Report {
+  id         String   @id @default(uuid())
+  reportName String   @map("report_name")
+  reportType String   @map("report_type")
+  filters    String?
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@map("reports")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  tableName String   @map("table_name")
+  recordId  String   @map("record_id")
+  action    String
+  oldValues String?  @map("old_values")
+  newValues String?  @map("new_values")
+  changedBy String?  @map("changed_by")
+  changedAt DateTime @default(now()) @map("changed_at")
+  isRead    Boolean  @default(false) @map("is_read")
+
+  @@map("audit_log")
+}
+
+model ImportHistory {
+  id               String   @id @default(uuid())
+  companyId        String   @map("company_id")
+  importType       String   @map("import_type")
+  fileName         String   @map("file_name")
+  status           String   @default("validated")
+  totalRows        Int      @map("total_rows")
+  successCount     Int      @default(0) @map("success_count")
+  errorCount       Int      @default(0) @map("error_count")
+  warningsCount    Int      @default(0) @map("warnings_count")
+  errors           Json?
+  warnings         Json?
+  createdRecordIds Json?    @map("created_record_ids")
+  createdByUserId  String?  @map("created_by_user_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  createdBy        User?    @relation(fields: [createdByUserId], references: [id])
+  company          Company  @relation(fields: [companyId], references: [id])
+
+  @@index([companyId, importType, createdAt])
+  @@map("import_history")
+}
+
+model OvertimePlan {
+  id        String             @id @default(uuid())
+  companyId String             @map("company_id")
+  planName  String             @map("plan_name")
+  startDate DateTime           @map("start_date")
+  endDate   DateTime           @map("end_date")
+  shiftId   String             @map("shift_id")
+  notes     String?
+  status    String             @default("planned")
+  createdBy String?            @map("created_by")
+  createdAt DateTime           @default(now()) @map("created_at")
+  updatedAt DateTime           @updatedAt @map("updated_at")
+  items     OvertimePlanItem[]
+  shift     Shift              @relation(fields: [shiftId], references: [id])
+  company   Company            @relation(fields: [companyId], references: [id])
+
+  @@index([companyId, startDate])
+  @@map("overtime_plans")
+}
+
+model OvertimePlanItem {
+  id              String       @id @default(uuid())
+  planId          String       @map("plan_id")
+  date            DateTime
+  machineId       String?      @map("machine_id")
+  backupMachineId String?      @map("backup_machine_id")
+  operatorId      String       @map("operator_id")
+  productId       String?      @map("product_id")
+  targetQuantity  Int?         @map("target_quantity")
+  notes           String?
+  product         Product?     @relation(fields: [productId], references: [id])
+  operator        Operator     @relation(fields: [operatorId], references: [id])
+  backupMachine   Machine?     @relation("BackupMachine", fields: [backupMachineId], references: [id])
+  machine         Machine?     @relation("MainMachine", fields: [machineId], references: [id])
+  plan            OvertimePlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@index([planId])
+  @@map("overtime_plan_items")
+}

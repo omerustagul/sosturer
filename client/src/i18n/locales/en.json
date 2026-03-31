@@ -1,0 +1,22 @@
+{
+  "sidebar": {
+    "dashboard": "DASHBOARD",
+    "definitions": "DEFINITIONS",
+    "records": "PRODUCTION RECORDS",
+    "overtime": "OVERTIME",
+    "reports": "REPORTS",
+    "analytics": "ANALYTICS",
+    "settings": "SETTINGS",
+    "users": "USERS",
+    "profile": "PROFILE"
+  },
+  "dashboard": {
+    "greeting": "Welcome back,",
+    "summary": "Here is your factory summary for today.",
+    "add_record": "ADD NEW RECORD",
+    "total_production": "TOTAL PRODUCTION",
+    "average_oee": "AVERAGE OEE",
+    "total_downtime": "TOTAL DOWNTIME",
+    "active_machines": "ACTIVE MACHINES"
+  }
+}

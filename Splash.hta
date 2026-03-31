@@ -1,0 +1,112 @@
+<html>
+<head>
+<title>Sosturer Smart Manufacturing</title>
+<meta http-equiv="x-ua-compatible" content="ie=edge" />
+<style>
+    body {
+        background-color: #0f172a;
+        color: #f8fafc;
+        font-family: 'Segoe UI', sans-serif;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        border: 1px solid #1e293b;
+    }
+    .card {
+        text-align: center;
+        padding: 40px;
+        background: linear-gradient(145deg, #1e293b, #0f172a);
+        border-radius: 24px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        width: 320px;
+    }
+    .logo {
+        width: 80px;
+        height: 80px;
+        margin-bottom: 24px;
+        filter: drop-shadow(0 0 15px rgba(56, 189, 248, 0.4));
+    }
+    .title {
+        font-size: 24px;
+        font-weight: 900;
+        letter-spacing: -0.025em;
+        margin-bottom: 8px;
+        background: linear-gradient(to right, #38bdf8, #818cf8);
+        -webkit-background-clip: text;
+        color: #38bdf8;
+    }
+    .subtitle {
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.2em;
+        color: #94a3b8;
+        text-transform: uppercase;
+        margin-bottom: 32px;
+    }
+    .loader-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+    }
+    .spinner {
+        width: 24px;
+        height: 24px;
+        border: 3px solid rgba(56, 189, 248, 0.1);
+        border-top: 3px solid #38bdf8;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    .status {
+        font-size: 12px;
+        color: #64748b;
+        font-weight: 600;
+    }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
+<hta:application 
+    id="oHTA" 
+    applicationname="SosturerSplash" 
+    border="none" 
+    caption="no" 
+    contextmenu="no" 
+    innerborder="no" 
+    maximizebutton="no" 
+    minimizebutton="no" 
+    navigable="no" 
+    scroll="no" 
+    selection="no" 
+    showintaskbar="no" 
+    singleinstance="yes" 
+    sysmenu="no" 
+    windowstate="normal" />
+
+<script language="javascript">
+    window.resizeTo(400, 400);
+    window.moveTo((screen.width - 400) / 2, (screen.height - 400) / 2);
+    
+    // Auto-close after 5 seconds as a fallback
+    setTimeout(function() { window.close(); }, 8000);
+</script>
+</head>
+<body>
+    <div class="card">
+        <img src="C:\Users\ZBook\Desktop\Sosturer\client\public\logo.png" class="logo">
+        <div class="title">SOSTURER</div>
+        <div class="subtitle">Smart Manufacturing</div>
+        
+        <div class="loader-container">
+            <div class="spinner"></div>
+            <div class="status">Sistem Başlatılıyor...</div>
+        </div>
+    </div>
+</body>
+</html>
