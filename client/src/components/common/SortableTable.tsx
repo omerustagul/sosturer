@@ -17,14 +17,16 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical } from 'lucide-react';
+import { cn } from '../../lib/utils';
 
 interface SortableRowProps {
   id: string;
   children: React.ReactNode;
   className: string;
+  onClick?: (e: React.MouseEvent) => void;
 }
 
-export function SortableRow({ id, children, className }: SortableRowProps) {
+export function SortableRow({ id, children, className, onClick }: SortableRowProps) {
   const {
     attributes,
     listeners,
@@ -43,8 +45,13 @@ export function SortableRow({ id, children, className }: SortableRowProps) {
   };
 
   return (
-    <tr ref={setNodeRef} style={style} className={`${className} ${isDragging ? 'bg-theme-primary/10' : ''}`}>
-      <td className="w-10 pl-4 py-5">
+    <tr 
+      ref={setNodeRef} 
+      style={style} 
+      className={cn(className, isDragging && 'bg-theme-primary/10')}
+      onClick={onClick}
+    >
+      <td className="w-2 px-2 py-3 border-b border-theme/30">
         <button
           {...attributes}
           {...listeners}
@@ -83,7 +90,7 @@ export function SortableTableProvider({ items, onReorder, children }: SortableTa
     if (over && active.id !== over.id) {
       const oldIndex = items.findIndex((item) => item.id === active.id);
       const newIndex = items.findIndex((item) => item.id === over.id);
-      
+
       onReorder(arrayMove(items, oldIndex, newIndex));
     }
   }
@@ -107,13 +114,20 @@ export function SortableTableProvider({ items, onReorder, children }: SortableTa
 interface SortableTableBodyProps {
   items: any[];
   renderRow: (item: any) => React.ReactNode;
+  onRowClick?: (item: any, e: React.MouseEvent) => void;
+  rowClassName?: (item: any) => string;
 }
 
-export function SortableTableBody({ items, renderRow }: SortableTableBodyProps) {
+export function SortableTableBody({ items, renderRow, onRowClick, rowClassName }: SortableTableBodyProps) {
   return (
     <tbody className="divide-y divide-slate-800/50">
       {items.map((item) => (
-        <SortableRow key={item.id} id={item.id} className="hover:bg-theme-primary/5 transition-colors group">
+        <SortableRow 
+          key={item.id} 
+          id={item.id} 
+          className={cn("hover:bg-theme-primary/5 transition-colors group cursor-pointer", rowClassName?.(item))}
+          onClick={(e) => onRowClick?.(item, e)}
+        >
           {renderRow(item)}
         </SortableRow>
       ))}

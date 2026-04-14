@@ -7,6 +7,7 @@ export interface OEEDataInput {
   plannedDowntimeMinutes?: number;
   defectQuantity?: number;
   shiftDurationMinutes: number; // ◄─ Vardiya süresi (Dakika)
+  effectiveDurationMinutes?: number;
 }
 
 export interface OEEResult {
@@ -19,7 +20,7 @@ export interface OEEResult {
   performance: number;
   quality: number;
   oee: number;
-  plannedDurationMinutes: number;
+  plannedDurationMinutes?: number;
 }
 
 /**
@@ -33,29 +34,42 @@ export async function calculateOEE(data: OEEDataInput): Promise<Partial<OEEResul
       cycleTimeSeconds,
       plannedDowntimeMinutes = 0,
       defectQuantity = 0,
-      shiftDurationMinutes
+      shiftDurationMinutes,
+      effectiveDurationMinutes
     } = data;
 
     if (!cycleTimeSeconds || cycleTimeSeconds <= 0 || !shiftDurationMinutes || shiftDurationMinutes <= 0) {
       return {};
     }
 
-    // 1. Planlanan Adet (Max Kapasite) = (Vardiya Süresi * 60) / Birim Süre
-    const plannedQuantity = Math.floor((shiftDurationMinutes * 60) / cycleTimeSeconds);
+    const hasManualEffectiveDuration =
+      typeof effectiveDurationMinutes === 'number' &&
+      effectiveDurationMinutes > 0 &&
+      effectiveDurationMinutes < shiftDurationMinutes;
+    const safeEffectiveDuration = hasManualEffectiveDuration
+      ? effectiveDurationMinutes
+      : shiftDurationMinutes;
 
-    // 2. Gerçek Çalışma Süresi (Dakika) = (Üretilen Adet * Birim Süre) / 60
-    // Not: Bu üretim adeti için tezgahın "aktif üretimde" geçirmesi gereken süredir.
-    const actualDurationMinutes = (producedQuantity * cycleTimeSeconds) / 60;
+    // 1. Planlanan Adet (Max Kapasite) = (Etkin Süre * 60) / Birim Süre
+    const plannedQuantity = Math.floor((safeEffectiveDuration * 60) / cycleTimeSeconds);
 
-    // 3. Toplam Duruş (Dakika) = Vardiya Süresi - Çalışma Süresi
-    const downtimeMinutes = Math.max(0, shiftDurationMinutes - actualDurationMinutes);
+    // 2. Teorik Çalışma Süresi (Dakika) = (Üretilen Adet * Birim Süre) / 60
+    const theoreticalDurationMinutes = (producedQuantity * cycleTimeSeconds) / 60;
+    // 3. Gerçek Çalışma Süresi: manuel girildiyse onu, aksi halde teorik süreyi kullan
+    const actualDurationMinutes =
+      typeof effectiveDurationMinutes === 'number' && effectiveDurationMinutes > 0
+        ? Math.min(effectiveDurationMinutes, shiftDurationMinutes)
+        : theoreticalDurationMinutes;
 
-    // 4. Plansız Duruş = Toplam Duruş - Planlı Duruş
+    // 4. Toplam Duruş (Dakika) = Etkin Süre - Çalışma Süresi
+    const downtimeMinutes = Math.max(0, safeEffectiveDuration - actualDurationMinutes);
+
+    // 5. Plansız Duruş = Toplam Duruş - Planlı Duruş
     const unplannedDowntimeMinutes = Math.max(0, downtimeMinutes - plannedDowntimeMinutes);
 
-    // 5. OEE Bileşenleri
+    // 6. OEE Bileşenleri
     // Planned Production Time (PPT) = Net Müsait Süre
-    const ppt = shiftDurationMinutes - plannedDowntimeMinutes;
+    const ppt = safeEffectiveDuration - plannedDowntimeMinutes;
 
     // Availability = Çalışılan Süre / (Vardiya Süresi - Planlı Duruş)
     let availability = 0;
@@ -85,7 +99,7 @@ export async function calculateOEE(data: OEEDataInput): Promise<Partial<OEEResul
       plannedDowntimeMinutes,
       unplannedDowntimeMinutes: Number(unplannedDowntimeMinutes.toFixed(2)),
       downtimeMinutes: Number(downtimeMinutes.toFixed(2)),
-      plannedDurationMinutes: Number(actualDurationMinutes.toFixed(2)), // Teorik çalışma = beklenen süre
+      plannedDurationMinutes: hasManualEffectiveDuration ? Number(safeEffectiveDuration.toFixed(2)) : undefined,
       availability: Number(availability.toFixed(2)),
       performance: Number(performance.toFixed(2)),
       quality: Number(quality.toFixed(2)),
@@ -131,22 +145,43 @@ export async function rebalanceShift(productionDate: Date, machineId: string, sh
 
   const shift = records[0].shift;
   const shiftDuration = shift.durationMinutes;
+  const manualOverrides = records
+    .map((r) => r.plannedDurationMinutes || 0)
+    .filter((v) => v > 0 && v < shiftDuration);
+  const effectiveDuration = manualOverrides.length > 0
+    ? Math.min(...manualOverrides)
+    : shiftDuration;
+
+  const getRecordActualMinutes = (record: any) => {
+    const hasManualOverride =
+      typeof record.plannedDurationMinutes === 'number' &&
+      record.plannedDurationMinutes > 0 &&
+      record.plannedDurationMinutes < shiftDuration;
+    if (hasManualOverride) {
+      return Math.min(record.plannedDurationMinutes, shiftDuration);
+    }
+    const safeCycleTime = record.cycleTimeSeconds > 0 ? record.cycleTimeSeconds : 1;
+    return (record.producedQuantity * safeCycleTime) / 60;
+  };
 
   // 1. Calculate Aggregates
-  const totalActual = records.reduce((acc, r) => acc + (r.producedQuantity * r.cycleTimeSeconds) / 60, 0);
+  const totalActual = records.reduce(
+    (acc, r) => acc + getRecordActualMinutes(r),
+    0
+  );
   const totalPlannedDowntime = records.reduce((acc, r) => acc + (r.plannedDowntimeMinutes || 0), 0);
   
-  const ppt = shiftDuration - totalPlannedDowntime;
+  const ppt = effectiveDuration - totalPlannedDowntime;
   const availability = ppt > 0 ? Math.min(100, (totalActual / ppt) * 100) : 0;
   
   // Total downtime is the remaining time in the shift not spent producing
-  const totalDowntime = Math.max(0, shiftDuration - totalActual);
+  const totalDowntime = Math.max(0, effectiveDuration - totalActual);
   const totalUnplanned = Math.max(0, totalDowntime - totalPlannedDowntime);
 
   // 2. Distribute and Update
   for (const record of records) {
     const safeCycleTime = record.cycleTimeSeconds > 0 ? record.cycleTimeSeconds : 1;
-    const recordActual = (record.producedQuantity * safeCycleTime) / 60;
+    const recordActual = getRecordActualMinutes(record);
     
     // Proportional distribution of unplanned downtime
     const share = totalActual > 0 ? recordActual / totalActual : 1 / records.length;
@@ -162,7 +197,7 @@ export async function rebalanceShift(productionDate: Date, machineId: string, sh
     const oee = (availability / 100) * (performance / 100) * (quality / 100) * 100;
     
     // Recalculate Planned Quantity based on potentially updated cycleTimeSeconds
-    const recordPlannedQuantity = Math.floor((shiftDuration * 60) / safeCycleTime);
+    const recordPlannedQuantity = Math.floor((effectiveDuration * 60) / safeCycleTime);
 
     const recordId = record.id;
     await (prisma.productionRecord as any).update({

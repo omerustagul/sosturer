@@ -64,7 +64,7 @@ router.get('/excel/oee-trend', authenticateToken, async (req: AuthRequest, res) 
 });
 
 // ==========================================
-// EXCEL EXPORT - Tezgah Verimlilik Özeti
+// EXCEL EXPORT - Makine Verimlilik Özeti
 // ==========================================
 router.get('/excel/machine-efficiency', authenticateToken, async (req: AuthRequest, res) => {
   try {
@@ -73,13 +73,13 @@ router.get('/excel/machine-efficiency', authenticateToken, async (req: AuthReque
     const workbook = await ReportService.generateKPIExcel(companyId, startDate as string, endDate as string);
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename=tezgah_verimlilik_analizi_${new Date().getTime()}.xlsx`);
+    res.setHeader('Content-Disposition', `attachment; filename=makine_verimlilik_analizi_${new Date().getTime()}.xlsx`);
 
     await workbook.xlsx.write(res);
     res.status(200).end();
   } catch (error) {
     console.error('Machine Efficiency Export Error:', error);
-    res.status(500).json({ error: 'Tezgah ozeti disari aktarilirken hata olustu.' });
+    res.status(500).json({ error: 'Makine ozeti disari aktarilirken hata olustu.' });
   }
 });
 
@@ -90,14 +90,14 @@ router.get('/excel/template', authenticateToken, async (req: AuthRequest, res) =
   try {
     const companyId = req.user.companyId;
     const workbook = new exceljs.Workbook();
-    
+
     // 1. Data Sheet (Kayıtların girileceği sayfa)
     const dataSheet = workbook.addWorksheet('Veri Girisi');
-    
+
     dataSheet.columns = [
       { header: 'Uretim Tarihi (YYYY-MM-DD)', key: 'date', width: 25 },
       { header: 'Vardiya Kodu', key: 'shift', width: 15 },
-      { header: 'Tezgah Kodu', key: 'machine', width: 15 },
+      { header: 'Makine Kodu', key: 'machine', width: 15 },
       { header: 'Operator Sicil No', key: 'operator', width: 20 },
       { header: 'Urun Kodu', key: 'product', width: 15 },
       { header: 'Uretim Adeti', key: 'produced', width: 15 },
@@ -126,7 +126,7 @@ router.get('/excel/template', authenticateToken, async (req: AuthRequest, res) =
 
     // 2. Reference Sheet (ID ve Kodların olduğu referans sayfası)
     const refSheet = workbook.addWorksheet('Referans Kodlari');
-    
+
     const [machines, operators, products, shifts] = await Promise.all([
       prisma.machine.findMany({ where: { companyId }, select: { code: true, name: true } }),
       prisma.operator.findMany({ where: { companyId }, select: { employeeId: true, fullName: true } }),
@@ -135,7 +135,7 @@ router.get('/excel/template', authenticateToken, async (req: AuthRequest, res) =
     ]);
 
     refSheet.columns = [
-      { header: 'Tezgah Kodlari', key: 'machines', width: 20 },
+      { header: 'Makine Kodlari', key: 'machines', width: 20 },
       { header: 'Operator Kodlari', key: 'operators', width: 20 },
       { header: 'Urun Kodlari', key: 'products', width: 20 },
       { header: 'Vardiya Kodlari', key: 'shifts', width: 20 },
@@ -144,12 +144,12 @@ router.get('/excel/template', authenticateToken, async (req: AuthRequest, res) =
 
     const maxRows = Math.max(machines.length, operators.length, products.length, shifts.length);
     for (let i = 0; i < maxRows; i++) {
-        refSheet.addRow({
-            machines: machines[i] ? `${machines[i].code} (${machines[i].name})` : '',
-            operators: operators[i] ? `${operators[i].employeeId} (${operators[i].fullName})` : '',
-            products: products[i] ? `${products[i].productCode} (${products[i].productName})` : '',
-            shifts: shifts[i] ? `${shifts[i].shiftCode} (${shifts[i].shiftName})` : '',
-        });
+      refSheet.addRow({
+        machines: machines[i] ? `${machines[i].code} (${machines[i].name})` : '',
+        operators: operators[i] ? `${operators[i].employeeId} (${operators[i].fullName})` : '',
+        products: products[i] ? `${products[i].productCode} (${products[i].productName})` : '',
+        shifts: shifts[i] ? `${shifts[i].shiftCode} (${shifts[i].shiftName})` : '',
+      });
     }
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -210,7 +210,7 @@ router.post('/excel/import', authenticateToken, upload.single('file'), async (re
         if (!dateVal && !shiftCode && !machineCode) return;
         isError = true;
         errorDetails = `Satır ${rowNumber}: Zorunlu alanlardan biri eksik.`;
-        return; 
+        return;
       }
 
       const foundMachine = dbMachines.find(m => m.code === machineCode);
@@ -255,9 +255,9 @@ router.post('/excel/import', authenticateToken, upload.single('file'), async (re
       insertedCount++;
     }
 
-    res.status(200).json({ 
-      success: true, 
-      message: `${insertedCount} adet kayıt başarıyla içe aktarıldı.` 
+    res.status(200).json({
+      success: true,
+      message: `${insertedCount} adet kayıt başarıyla içe aktarıldı.`
     });
 
   } catch (error) {

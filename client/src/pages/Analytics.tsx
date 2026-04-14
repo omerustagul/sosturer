@@ -4,8 +4,9 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   AreaChart, Area
 } from 'recharts';
-import { Activity, TrendingDown, ArrowUpDown, ArrowUp, ArrowDown, XCircle, Calendar, BarChart3, Target } from 'lucide-react';
+import { Activity, TrendingDown, ArrowUpDown, ArrowUp, ArrowDown, XCircle, Calendar, BarChart3, Target, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Loading } from '../components/common/Loading';
+import { CustomSelect } from '../components/common/CustomSelect';
 
 export function Analytics() {
   const [loading, setLoading] = useState(true);
@@ -21,6 +22,8 @@ export function Analytics() {
     key: 'producedQuantity',
     dir: 'desc',
   });
+  const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(0);
 
   const buildQuery = () => {
     const params = new URLSearchParams();
@@ -39,8 +42,8 @@ export function Analytics() {
           api.get(`/analytics/oee-trend${q ? `?${q}` : ''}`),
           api.get(`/analytics/machine-efficiency${q ? `?${q}` : ''}`)
         ]);
-        setOeeTrend(trendRes);
-        setMachineEff(effRes);
+        setOeeTrend(Array.isArray(trendRes) ? trendRes : []);
+        setMachineEff(Array.isArray(effRes) ? effRes : []);
       } catch (e) {
         console.error('Failed to load analytics', e);
       } finally {
@@ -52,18 +55,19 @@ export function Analytics() {
 
   if (loading) return <Loading size="lg" fullScreen />;
 
-  const totalProduced = machineEff.reduce((sum, m) => sum + (m.producedQuantity || 0), 0);
-  const totalDowntime = machineEff.reduce((sum, m) => sum + (m.downtimeMinutes || 0), 0);
-  const totalPlanned = machineEff.reduce((sum, m) => sum + (m.plannedQuantity || 0), 0);
-  const totalRecordCount = machineEff.reduce((sum, m) => sum + (m.recordCount || 0), 0);
-  const totalOeeSum = machineEff.reduce((sum, m) => sum + (m.oeeSum || 0), 0);
+  const safeEff = Array.isArray(machineEff) ? machineEff : [];
+  const totalProduced = safeEff.reduce((sum, m) => sum + (m.producedQuantity || 0), 0);
+  const totalDowntime = safeEff.reduce((sum, m) => sum + (m.downtimeMinutes || 0), 0);
+  const totalPlanned = safeEff.reduce((sum, m) => sum + (m.plannedQuantity || 0), 0);
+  const totalRecordCount = safeEff.reduce((sum, m) => sum + (m.recordCount || 0), 0);
+  const totalOeeSum = safeEff.reduce((sum, m) => sum + (m.oeeSum || 0), 0);
   const totalAvgOee = totalRecordCount > 0 ? (totalOeeSum / totalRecordCount) : 0;
   const totalAchievement = totalPlanned > 0 ? (totalProduced / totalPlanned) * 100 : 0;
   const dateLabel = (startDate || endDate)
     ? `${startDate || endDate} → ${endDate || startDate}`
     : `Son ${timeRange} gün`;
 
-  const reportRows = machineEff
+  const reportRows = safeEff
     .slice()
     .sort((a: any, b: any) => {
       const { key, dir } = reportSort;
@@ -82,6 +86,13 @@ export function Analytics() {
       return dir === 'asc' ? (na - nb) : (nb - na);
     });
 
+  const paginatedRows = reportRows.slice(
+    currentPage * pageSize,
+    (currentPage + 1) * pageSize
+  );
+
+  const pageCount = Math.ceil(reportRows.length / pageSize);
+
   const toggleReportSort = (key: typeof reportSort.key) => {
     setReportSort(prev => (prev.key === key ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' }));
   };
@@ -94,18 +105,18 @@ export function Analytics() {
   };
 
   return (
-    <div className="p-6 lg:p-10 w-full min-h-screen bg-theme-base space-y-10 animate-in fade-in duration-700">
+    <div className="p-4 lg:p-6 w-full min-h-screen bg-theme-base space-y-10 animate-in fade-in duration-700">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
         <div>
-          <h2 className="text-4xl font-black text-theme-main tracking-tight uppercase flex items-center gap-4">
-            <BarChart3 className="w-12 h-12 text-theme-primary" /> GELİŞMİŞ ANALİTİK
+          <h2 className="text-xl font-black text-theme-main tracking-tight uppercase flex items-center gap-2">
+            <BarChart3 className="w-6 h-6 text-theme-primary" /> GELİŞMİŞ ANALİTİK
           </h2>
-          <p className="text-theme-dim text-xs font-bold uppercase tracking-widest mt-2 opacity-60">PERFORMANS, VERİMLİLİK VE TREND ANALİZ PLATFORMU</p>
+          <p className="text-theme-dim text-xs font-bold mt-1">Performans, Verimlilik ve Trend Analiz Platformu</p>
         </div>
 
         {/* Filter Container */}
-        <div className="bg-theme-card backdrop-blur-2xl border border-theme rounded-2xl p-2 shadow-2xl ring-1 ring-white/5">
+        <div className="modern-glass-card p-1 border border-theme-main-20">
           <div className="flex flex-col sm:flex-row items-stretch gap-3">
             <div className="flex bg-theme-base rounded-2xl p-1 gap-1">
               {[7, 14, 30].map(days => (
@@ -157,14 +168,14 @@ export function Analytics() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* OEE Trend Chart */}
-        <div className="bg-theme-card backdrop-blur-3xl border border-theme rounded-2xl p-8 shadow-2xl ring-1 ring-white/5 min-h-[450px] flex flex-col">
+        <div className="modern-glass-card min-h-[450px] flex flex-col">
           <div className="flex items-center gap-4 mb-8">
-            <div className="p-3 bg-theme-primary/10 rounded-2xl border border-theme-primary/10">
-              <Activity className="w-6 h-6 text-theme-primary" />
+            <div className="p-2 bg-theme-primary/10 rounded-lg border border-theme-primary/10">
+              <Activity className="w-4 h-4 text-theme-primary" />
             </div>
             <div>
-              <h3 className="text-xl font-black text-theme-main uppercase tracking-tight">Genel OEE Trendi</h3>
-              <p className="text-[10px] text-theme-dim font-bold uppercase tracking-widest opacity-50 mt-1">{dateLabel}</p>
+              <h3 className="text-md font-black text-theme-main uppercase tracking-tight">Genel OEE Trendi</h3>
+              <p className="text-[12px] text-theme-dim font-bold opacity-50 mt-0.2">{dateLabel}</p>
             </div>
           </div>
 
@@ -192,14 +203,14 @@ export function Analytics() {
         </div>
 
         {/* Pareto / Machine Downtime Chart */}
-        <div className="bg-theme-card backdrop-blur-3xl border border-theme rounded-2xl p-8 shadow-2xl ring-1 ring-white/5 min-h-[450px] flex flex-col">
+        <div className="modern-glass-card min-h-[450px] flex flex-col">
           <div className="flex items-center gap-4 mb-8">
-            <div className="p-3 bg-theme-danger/10 rounded-2xl border border-theme-danger/10">
-              <TrendingDown className="w-6 h-6 text-theme-danger" />
+            <div className="p-2 bg-theme-danger/10 rounded-lg border border-theme-danger/10">
+              <TrendingDown className="w-4 h-4 text-theme-danger" />
             </div>
             <div>
-              <h3 className="text-xl font-black text-theme-main uppercase tracking-tight">Duruş Analizi (Pareto)</h3>
-              <p className="text-[10px] text-theme-dim font-bold uppercase tracking-widest opacity-50 mt-1">En çok duruş yapan tezgahlar (Dakika)</p>
+              <h3 className="text-md font-black text-theme-main uppercase tracking-tight">Duruş Analizi (Pareto)</h3>
+              <p className="text-[12px] text-theme-dim font-bold opacity-50 mt-0.2">En çok duruş yapan makineler (Dakika)</p>
             </div>
           </div>
 
@@ -222,64 +233,64 @@ export function Analytics() {
       </div>
 
       {/* Detailed Analysis Table */}
-      <div className="bg-theme-card backdrop-blur-3xl border border-theme rounded-2xl overflow-hidden shadow-22 shadow-black/5 ring-1 ring-white/5">
-        <div className="p-8 border-b border-theme bg-theme-surface/30 flex items-center justify-between">
-          <h3 className="text-xl font-black text-theme-main uppercase tracking-tight flex items-center gap-4">
+      <div className="modern-glass-card p-0">
+        <div className="p-4 border-b border-theme bg-theme-surface/30 flex items-center justify-between">
+          <h3 className="text-md font-black text-theme-main uppercase tracking-tight flex items-center gap-4">
             <Target className="w-6 h-6 text-theme-primary" /> Detaylı Performans Matrisi
           </h3>
-          <span className="text-[10px] font-black text-theme-primary bg-theme-primary/10 px-4 py-2 rounded-full border border-theme-primary/20 uppercase tracking-[0.2em]">
-            {machineEff.length} AKTİF TEZGAH ANALİZ EDİLİYOR
+          <span className="text-[10px] font-black text-theme-primary bg-theme-primary/10 px-4 py-2 rounded-full border border-theme-primary/20">
+            {machineEff.length} AKTİF MAKİNE ANALİZ EDİLİYOR
           </span>
         </div>
         <div className="overflow-x-auto text-left">
           <table className="w-full border-collapse table-fixed">
             <thead>
               <tr className="bg-theme-surface/20 text-theme-dim text-[10px] font-black uppercase tracking-widest">
-                <th className="px-8 py-6 w-1/5">
+                <th className="px-4 py-4 w-1/5">
                   <button onClick={() => toggleReportSort('machine')} className="flex items-center gap-2 hover:text-theme-main transition-colors">
-                    TEZGAH <SortIcon col="machine" />
+                    MAKİNE <SortIcon col="machine" />
                   </button>
                 </th>
-                <th className="px-8 py-6 w-1/5 text-right">
-                  <button onClick={() => toggleReportSort('plannedQuantity')} className="flex items-center justify-end gap-2 hover:text-theme-main transition-colors w-full">
+                <th className="px-4 py-4 w-1/5 text-left">
+                  <button onClick={() => toggleReportSort('plannedQuantity')} className="flex items-center justify-start gap-2 hover:text-theme-main transition-colors w-full">
                     PLANLANAN <SortIcon col="plannedQuantity" />
                   </button>
                 </th>
-                <th className="px-8 py-6 w-1/5 text-right">
-                  <button onClick={() => toggleReportSort('producedQuantity')} className="flex items-center justify-end gap-2 hover:text-theme-main transition-colors w-full">
+                <th className="px-4 py-4 w-1/5 text-left">
+                  <button onClick={() => toggleReportSort('producedQuantity')} className="flex items-center justify-start gap-2 hover:text-theme-main transition-colors w-full">
                     ÜRETİM <SortIcon col="producedQuantity" />
                   </button>
                 </th>
-                <th className="px-8 py-6 w-1/5 text-right">
-                  <button onClick={() => toggleReportSort('downtimeMinutes')} className="flex items-center justify-end gap-2 hover:text-theme-main transition-colors w-full">
+                <th className="px-4 py-4 w-1/5 text-left">
+                  <button onClick={() => toggleReportSort('downtimeMinutes')} className="flex items-center justify-start gap-2 hover:text-theme-main transition-colors w-full">
                     DURUŞ (DK) <SortIcon col="downtimeMinutes" />
                   </button>
                 </th>
-                <th className="px-8 py-6 w-1/5 text-right">
-                  <button onClick={() => toggleReportSort('averageOee')} className="flex items-center justify-end gap-2 hover:text-theme-main transition-colors w-full">
+                <th className="px-4 py-4 w-1/5 text-left">
+                  <button onClick={() => toggleReportSort('averageOee')} className="flex items-center justify-start gap-2 hover:text-theme-main transition-colors w-full">
                     OEE % <SortIcon col="averageOee" />
                   </button>
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-theme/30 font-bold">
-              {reportRows.map((m: any, idx) => (
+              {paginatedRows.map((m: any, idx) => (
                 <tr key={idx} className="group hover:bg-theme-primary/5 transition-all">
-                  <td className="px-8 py-6">
+                  <td className="px-2 py-2">
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-theme-base border border-theme rounded-xl flex items-center justify-center font-black text-theme-primary text-xs shadow-sm group-hover:bg-theme-primary group-hover:text-white transition-all">
+                      <div className="w-8 h-8 bg-theme-base border border-theme rounded-xl flex items-center justify-center font-black text-theme-primary text-xs shadow-sm group-hover:bg-theme-primary group-hover:text-white transition-all">
                         {m.machine.substring(0, 2)}
                       </div>
-                      <span className="text-theme-main font-black tracking-tight">{m.machine}</span>
+                      <span className="text-theme-main text-xs font-black tracking-tight">{m.machine}</span>
                     </div>
                   </td>
-                  <td className="px-8 py-6 text-right text-theme-dim">{m.plannedQuantity?.toLocaleString()}</td>
-                  <td className="px-8 py-6 text-right text-theme-success">{(m.producedQuantity || 0).toLocaleString()}</td>
-                  <td className="px-8 py-6 text-right text-theme-danger font-black">{m.downtimeMinutes?.toLocaleString()} <span className="text-[10px] opacity-40">dk</span></td>
-                  <td className="px-8 py-6 text-right">
-                    <span className={`px-4 py-1.5 rounded-xl font-black text-xs border tracking-tighter shadow-sm ${m.averageOee >= 80 ? 'bg-theme-success/10 text-theme-success border-theme-success/20' :
+                  <td className="px-4 py-4 text-xs text-left text-theme-dim">{m.plannedQuantity?.toLocaleString()}</td>
+                  <td className="px-4 py-4 text-xs text-left text-theme-success">{(m.producedQuantity || 0).toLocaleString()}</td>
+                  <td className="px-4 py-4 text-xs text-left text-theme-danger font-black">{m.downtimeMinutes?.toLocaleString()} <span className="text-[10px] opacity-40">dk</span></td>
+                  <td className="px-4 py-4 text-xs text-left">
+                    <span className={`px-2 py-1 rounded-xl font-black text-xs border tracking-tighter shadow-sm ${m.averageOee >= 80 ? 'bg-theme-success/10 text-theme-success border-theme-success/20' :
                       m.averageOee >= 60 ? 'bg-theme-warning/10 text-theme-warning border-theme-warning/20' :
-                        'bg-theme-danger/10 text-theme-danger border-theme-danger/20'
+                        'bg-theme-danger/10 text-xs text-theme-danger border-theme-danger/20'
                       }`}>
                       %{m.averageOee.toFixed(1)}
                     </span>
@@ -288,6 +299,65 @@ export function Analytics() {
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Pagination Controls */}
+        <div className="p-4 border-t border-theme bg-theme-base/20 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-6 order-2 md:order-1">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-black text-theme-dim whitespace-nowrap uppercase tracking-widest">SAYFADA:</span>
+              <div className="w-24">
+                <CustomSelect
+                  options={[
+                    { id: 10, label: '10' },
+                    { id: 50, label: '50' },
+                    { id: 250, label: '250' },
+                    { id: 500, label: '500' },
+                    { id: 1000, label: '1000' },
+                    { id: 999999, label: 'Tümü' }
+                  ]}
+                  value={pageSize}
+                  onChange={value => {
+                    setPageSize(Number(value));
+                    setCurrentPage(0);
+                  }}
+                  searchable={false}
+                />
+              </div>
+            </div>
+            <div className="h-4 w-px bg-theme hidden md:block" />
+            <span className="text-[11px] font-black text-theme-dim uppercase tracking-widest">
+              TOPLAM <span className="text-theme-primary">{reportRows.length}</span> KAYIT
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3 order-1 md:order-2">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
+              disabled={currentPage === 0}
+              className="p-3 rounded-xl bg-theme-base border border-theme text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+            >
+              <ChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
+            </button>
+
+            <div className="flex items-center gap-2 px-4 py-2 bg-theme-base border border-theme rounded-2xl">
+              <span className="text-theme-primary font-black text-sm min-w-[20px] text-center">
+                {currentPage + 1}
+              </span>
+              <span className="text-theme-dim font-bold text-xs uppercase tracking-widest">/</span>
+              <span className="text-theme-muted font-black text-sm min-w-[20px] text-center">
+                {pageCount || 1}
+              </span>
+            </div>
+
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(pageCount - 1, prev + 1))}
+              disabled={currentPage >= pageCount - 1}
+              className="p-3 rounded-xl bg-theme-base border border-theme text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+            >
+              <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -303,7 +373,7 @@ function KpiBox({ label, value, color }: { label: string, value: string, color: 
   };
 
   return (
-    <div className={`backdrop-blur-xl border-2 ${colors[color]} p-6 rounded-2xl shadow-xl hover:scale-105 transition-all duration-300 group overflow-hidden relative`}>
+    <div className={`modern-glass-card ${colors[color]} hover:scale-105 transition-all duration-300 group overflow-hidden relative`}>
       <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full blur-2xl -mr-12 -mt-12 group-hover:scale-150 transition-transform"></div>
       <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60 mb-2">{label}</p>
       <p className="text-2xl font-black text-theme-main tracking-tighter">{value}</p>

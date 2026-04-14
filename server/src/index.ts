@@ -27,7 +27,12 @@ import appSettingsRoutes from './routes/settings';
 import overtimeRoutes from './routes/overtime';
 import departmentRoutes from './routes/departments';
 import departmentRoleRoutes from './routes/departmentRoles';
+import notificationRoutes from './routes/notifications';
+import inventoryRoutes from './routes/inventory';
+import salesRoutes from './routes/sales';
+import planningRoutes from './routes/planning';
 import { authenticateToken } from './middleware/auth';
+import { startScheduler } from './services/scheduler';
 
 dotenv.config();
 
@@ -37,6 +42,9 @@ const httpServer = createServer(app);
 
 // Initialize Socket.io
 initSocket(httpServer);
+
+// Start Background Scheduler
+startScheduler();
 
 // Middleware
 app.use(helmet({
@@ -86,6 +94,11 @@ app.use('/api/app-settings', appSettingsRoutes);
 app.use('/api/overtime', overtimeRoutes);
 app.use('/api/departments', departmentRoutes);
 app.use('/api/department-roles', departmentRoleRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/inventory', inventoryRoutes);
+app.use('/api/sales', salesRoutes);
+app.use('/api/planning', planningRoutes);
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 const clientDistPath = path.resolve(__dirname, '../../client/dist');
 const hasClientDist = fs.existsSync(clientDistPath) && fs.existsSync(path.join(clientDistPath, 'index.html'));

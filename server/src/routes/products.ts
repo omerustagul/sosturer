@@ -7,12 +7,18 @@ const getCompanyId = (req: AuthRequest) => req.user?.companyId as string;
 
 router.get('/', async (req: AuthRequest, res) => {
   try {
+    const companyId = getCompanyId(req);
+    if (!companyId) return res.json([]);
+
     const products = await prisma.product.findMany({
-      where: { companyId: getCompanyId(req) },
+      where: { companyId },
       orderBy: [{ displayOrder: 'asc' }, { productCode: 'asc' }],
     });
     res.json(products);
-  } catch (error) { res.status(500).json({ error: 'Failed to fetch products' }); }
+  } catch (error) { 
+    console.error('[Products] Fetch error:', error);
+    res.status(500).json({ error: 'Failed to fetch products' }); 
+  }
 });
 
 router.get('/:id', async (req: AuthRequest, res) => {

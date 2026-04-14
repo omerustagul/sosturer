@@ -1,35 +1,71 @@
 import { useEffect, useState } from 'react';
+import { cn } from '../lib/utils';
 import { api } from '../lib/api';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
+  BarChart, Bar, Cell, AreaChart, Area
 } from 'recharts';
 import { io, Socket } from 'socket.io-client';
 import {
   Activity, Settings, Clock, Factory, BarChart3,
   Plus, ChevronRight, Layout as LayoutIcon,
-  X, Check, Save
+  Check, Save, TrendingUp, Package, Columns2, Square
 } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Loading } from '../components/common/Loading';
 import { useSettingsStore } from '../store/settingsStore';
 import { useTranslation } from 'react-i18next';
 import { notify } from '../store/notificationStore';
+import { DashboardWidget } from '../components/dashboard/DashboardWidget';
+import { MissingProductionInsight } from '../components/dashboard/MissingProductionInsight';
+
+// dnd-kit imports
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 
 // Widget Types
-type WidgetId = 'kpis' | 'performance_chart' | 'machine_status' | 'recent_records';
+type WidgetId = 'kpis' | 'performance_chart' | 'machine_status' | 'recent_records' | 'stock_summary' | 'sales_trend';
+type GridMode = 'single' | 'double';
 
-interface Widget {
+interface LayoutItem {
   id: WidgetId;
-  title: string;
-  description: string;
-  icon: any;
+  fullWidth: boolean;
 }
 
-const AVAILABLE_WIDGETS: Widget[] = [
-  { id: 'kpis', title: 'Temel Göstergeler (KPI)', description: 'Toplam tezgah, OEE ve duruş süreleri', icon: Activity },
-  { id: 'performance_chart', title: 'Performans Haritası', description: 'Tezgahlara göre OEE ve verimlilik grafiği', icon: BarChart3 },
-  { id: 'machine_status', title: 'Tezgah Durumları', description: 'Canlı tezgah çalışma ve arıza bilgileri', icon: Settings },
-  { id: 'recent_records', title: 'Son Kayıtlar', description: 'Sisteme girilen en yeni üretim verileri', icon: Clock },
+interface DashboardConfig {
+  items: LayoutItem[];
+  gridMode: GridMode;
+  equalHeight?: boolean;
+}
+
+interface WidgetDef {
+  id: WidgetId;
+  title: string;
+  subtitle: string;
+  icon: any;
+  defaultFullWidth?: boolean;
+}
+
+const AVAILABLE_WIDGETS: WidgetDef[] = [
+  { id: 'kpis', title: 'Temel Göstergeler (KPI)', subtitle: 'Giriş: Toplam makine, OEE ve duruş süreleri', icon: Activity, defaultFullWidth: true },
+  { id: 'performance_chart', title: 'OEE Performans Haritası', subtitle: 'Makine bazlı verimlilik grafiği', icon: BarChart3, defaultFullWidth: true },
+  { id: 'machine_status', title: 'Canlı Makine Durumları', subtitle: 'Anlık operasyonel durum verileri', icon: Settings },
+  { id: 'stock_summary', title: 'Stok Durum Özeti', subtitle: 'En çok stoklanan 10 ürünün takibi', icon: Package },
+  { id: 'sales_trend', title: 'Satış & Sipariş Analizi', subtitle: 'Son 30 günlük trend grafiği', icon: TrendingUp, defaultFullWidth: true },
+  { id: 'recent_records', title: 'Son Üretim Kayıtları', subtitle: 'Sisteme girilen en yeni veri girişleri', icon: Clock },
 ];
 
 function Dashboard() {
@@ -37,37 +73,77 @@ function Dashboard() {
   const { settings, updateSettings } = useSettingsStore();
   const [machines, setMachines] = useState<any[]>([]);
   const [records, setRecords] = useState<any[]>([]);
+  const [stockSummary, setStockSummary] = useState<any[]>([]);
+  const [salesTrend, setSalesTrend] = useState<any[]>([]);
+  const [missingProduction, setMissingProduction] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const [showAddOptions, setShowAddOptions] = useState(false);
   const [isCustomizing, setIsCustomizing] = useState(false);
 
-  // Parse layout from settings or use default
-  const defaultLayout: WidgetId[] = ['kpis', 'performance_chart', 'machine_status', 'recent_records'];
-  const [currentLayout, setCurrentLayout] = useState<WidgetId[]>([]);
+  // Layout Management
+  const defaultLayoutItems: LayoutItem[] = AVAILABLE_WIDGETS.map(w => ({ id: w.id, fullWidth: w.defaultFullWidth || false }));
+  const [currentLayout, setCurrentLayout] = useState<LayoutItem[]>([]);
+  const [gridMode, setGridMode] = useState<GridMode>('double');
+  const [equalHeight, setEqualHeight] = useState(false);
+
+  // DND Sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
 
   useEffect(() => {
     if (settings?.dashboardLayout) {
       try {
         const parsed = JSON.parse(settings.dashboardLayout);
-        setCurrentLayout(Array.isArray(parsed) && parsed.length > 0 ? parsed : defaultLayout);
+
+        let items: LayoutItem[] = [];
+        let mode: GridMode = 'double';
+
+        // Migration handle: handle simple array or new object structure
+        if (Array.isArray(parsed)) {
+          items = parsed.map((item: any) => {
+            if (typeof item === 'string') {
+              const def = AVAILABLE_WIDGETS.find(w => w.id === item);
+              return { id: item as WidgetId, fullWidth: def?.defaultFullWidth || false };
+            }
+            return item as LayoutItem;
+          });
+        } else if (parsed.items) {
+          items = parsed.items;
+          mode = parsed.gridMode || 'double';
+        }
+
+        setCurrentLayout(items.length > 0 ? items : defaultLayoutItems);
+        setGridMode(mode);
+        setEqualHeight(parsed.equalHeight || false);
       } catch (e) {
-        setCurrentLayout(defaultLayout);
+        setCurrentLayout(defaultLayoutItems);
+        setGridMode('double');
       }
     } else {
-      setCurrentLayout(defaultLayout);
+      setCurrentLayout(defaultLayoutItems);
+      setGridMode('double');
     }
   }, [settings?.dashboardLayout]);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [machinesRes, recordsRes] = await Promise.all([
+        const [machinesRes, recordsRes, stockRes, salesRes, shiftsRes, missingRes] = await Promise.all([
           api.get('/machines'),
-          api.get('/production-records')
+          api.get('/production-records'),
+          api.get('/analytics/stock-summary'),
+          api.get('/analytics/sales-overview'),
+          api.get('/shifts'),
+          api.get('/analytics/missing-production?days=7')
         ]);
-        setMachines(machinesRes);
-        setRecords(recordsRes);
+        setMachines(Array.isArray(machinesRes) ? machinesRes : []);
+        setRecords(Array.isArray(recordsRes) ? recordsRes : []);
+        setStockSummary(Array.isArray(stockRes) ? stockRes : []);
+        setSalesTrend(Array.isArray(salesRes) ? salesRes : []);
+        setMissingProduction(missingRes || null);
       } catch (e) {
         console.error('Failed to load data', e);
       } finally {
@@ -77,318 +153,387 @@ function Dashboard() {
     fetchData();
 
     // SOCKET.IO REALTIME INTEGRATION
-    const API_URL =
-      import.meta.env.VITE_API_URL ||
-      (import.meta.env.PROD ? '/api' : 'http://localhost:3001/api');
-
-    const socketioHost = API_URL.startsWith('http')
-      ? API_URL.replace(/\/api\/$/, '')
-      : window.location.origin;
-
+    const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : `http://${window.location.hostname}:3005/api`);
+    const socketioHost = API_URL.startsWith('http') ? API_URL.replace(/\/api$/, '') : window.location.origin;
     const socket: Socket = io(socketioHost);
 
-    socket.on('connect', () => {
-      socket.emit('joinDashboard');
-    });
-
+    socket.on('connect', () => socket.emit('joinDashboard'));
     socket.on('dashboardUpdate', (payload) => {
       if (payload.action === 'CREATED_RECORD' && payload.record) {
         setRecords(prev => [payload.record, ...prev]);
       }
     });
 
-    return () => {
-      socket.disconnect();
-    };
-
+    return () => { socket.disconnect(); };
   }, []);
 
   const handleSaveLayout = async () => {
     try {
-      await updateSettings({
-        ...settings!,
-        dashboardLayout: JSON.stringify(currentLayout)
-      });
+      const config: DashboardConfig = { items: currentLayout, gridMode, equalHeight };
+      await updateSettings({ ...settings!, dashboardLayout: JSON.stringify(config) });
       setIsCustomizing(false);
-      notify.success('Düzen Kaydedildi', 'Dashboard düzeni başarıyla güncellendi.');
+      notify.success('Panel Kaydedildi', 'Düzenleme başarıyla tamamlandı.');
     } catch (error) {
       notify.error('Hata', 'Düzen kaydedilirken bir hata oluştu.');
     }
   };
 
   const toggleWidget = (id: WidgetId) => {
-    if (currentLayout.includes(id)) {
-      setCurrentLayout(prev => prev.filter(wId => wId !== id));
+    if (currentLayout.some(i => i.id === id)) {
+      setCurrentLayout(prev => prev.filter(item => item.id !== id));
     } else {
-      setCurrentLayout(prev => [...prev, id]);
+      const def = AVAILABLE_WIDGETS.find(w => w.id === id);
+      setCurrentLayout(prev => [...prev, { id, fullWidth: def?.defaultFullWidth || false }]);
+    }
+  };
+
+  const toggleFullWidth = (id: WidgetId) => {
+    setCurrentLayout(prev => prev.map(item => item.id === id ? { ...item, fullWidth: !item.fullWidth } : item));
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setCurrentLayout((items) => {
+        const oldIndex = items.findIndex(i => i.id === active.id);
+        const newIndex = items.findIndex(i => i.id === over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
     }
   };
 
   if (loading) return <Loading size="lg" fullScreen />;
 
-  // Calculate generic KPIs
+  // KPIS
   const totalMachines = machines.length;
   const activeMachines = machines.filter(m => m.status === 'active').length;
-  const validOeeRecords = records.filter(r => r.oee !== null && r.oee !== undefined);
-  const avgOee = validOeeRecords.length > 0
-    ? (validOeeRecords.reduce((sum, r) => sum + r.oee, 0) / validOeeRecords.length).toFixed(1)
-    : '0.0';
+  const validOeeRecords = records.filter(r => r.oee !== null);
+  const avgOee = validOeeRecords.length > 0 ? (validOeeRecords.reduce((sum, r) => sum + r.oee, 0) / validOeeRecords.length).toFixed(1) : '0.0';
   const totalDowntimeMinutes = records.reduce((sum, r) => sum + (r.downtimeMinutes || 0), 0);
-  const totalDowntimeMinutesLong = totalDowntimeMinutes.toLocaleString('tr-TR');
 
-  // Machine OEE data
-  const machineOeeData = machines.map(machine => {
-    const machineRecords = records.filter(r => r.machineId === machine.id && r.oee !== null);
-    if (machineRecords.length === 0) return { name: machine.code, oee: 0, availability: 0, performance: 0, quality: 0 };
-    const mAvgOee = machineRecords.reduce((sum, r) => sum + r.oee, 0) / machineRecords.length;
-    const mAvgAvl = machineRecords.reduce((sum, r) => sum + (r.availability || 0), 0) / machineRecords.length;
-    const mAvgPrf = machineRecords.reduce((sum, r) => sum + (r.performance || 0), 0) / machineRecords.length;
-    const mAvgQlt = machineRecords.reduce((sum, r) => sum + (r.quality || 0), 0) / machineRecords.length;
-    return {
-      name: machine.code,
-      oee: Number(mAvgOee.toFixed(1)),
-      availability: Number(mAvgAvl.toFixed(1)),
-      performance: Number(mAvgPrf.toFixed(1)),
-      quality: Number(mAvgQlt.toFixed(1))
-    };
+  const machineOeeData = machines.map(m => {
+    const mRecords = records.filter(r => r.machineId === m.id && r.oee !== null);
+    if (mRecords.length === 0) return { name: m.code, oee: 0 };
+    return { name: m.code, oee: Number((mRecords.reduce((sum, r) => sum + r.oee, 0) / mRecords.length).toFixed(1)) };
   });
 
   return (
-    <div className="p-6 lg:p-8 w-full space-y-8 bg-theme-base animate-in fade-in duration-700">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <h2 className="text-3xl font-black text-theme-main tracking-tight uppercase italic">{t('dashboard.title', 'GENEL BAKIŞ')}</h2>
-          <p className="text-theme-dim text-[10px] mt-1 font-bold uppercase tracking-[0.2em] opacity-60">
-            {t('dashboard.subtitle', 'GERÇEK ZAMANLI ÜRETİM VERİ ANALİZİ VE PANEL YÖNETİMİ')}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setIsCustomizing(!isCustomizing)}
-            className={`flex items-center gap-2 px-6 py-3 rounded-xl font-black text-xs transition-all border shadow-lg ${isCustomizing ? 'bg-theme-main text-theme-base border-theme-main' : 'bg-theme-surface/80 text-theme-main border-theme hover:border-theme-primary/40'}`}
-          >
-            {isCustomizing ? <X className="w-4 h-4" /> : <LayoutIcon className="w-4 h-4" />}
-            {isCustomizing ? 'DÜZENLEMEDEN ÇIK' : 'PANELİ DÜZENLE'}
-          </button>
-
-          <div
-            className="relative"
-            onMouseEnter={() => setShowAddOptions(true)}
-            onMouseLeave={() => setShowAddOptions(false)}
-          >
-            <button className="bg-theme-primary hover:opacity-90 text-white px-6 py-3 rounded-xl font-black transition-all shadow-xl shadow-theme-primary/20 flex items-center gap-3 active:scale-95 text-xs">
-              {t('dashboard.newRecord', 'YENİ KAYIT')}
-              <ChevronRight className={`w-4 h-4 transition-transform ${showAddOptions ? 'rotate-90' : ''}`} />
-            </button>
-
-            <div className={`absolute right-0 top-full mt-3 w-72 bg-theme-base border border-theme rounded-2xl p-2 shadow-2xl z-50 transition-all duration-300 origin-top-right ${showAddOptions ? 'scale-100 opacity-100 visible' : 'scale-95 opacity-0 invisible translate-y-2'}`}>
-              <button onClick={() => navigate('/records/new')} className="w-full flex items-center gap-4 p-3 hover:bg-theme-primary/10 rounded-xl text-left transition-all group/btn">
-                <div className="w-10 h-10 bg-theme-primary/10 rounded-xl flex items-center justify-center group-hover/btn:bg-theme-primary/20 transition-colors"><Plus className="w-5 h-5 text-theme-primary" /></div>
-                <div className="min-w-0"><p className="text-theme-main font-black text-xs uppercase tracking-widest truncate">Manuel Kayıt Ekle</p><p className="text-theme-dim text-[10px] font-bold mt-0.5 truncate">Tekil üretim kaydı oluşturun</p></div>
-              </button>
-              <button onClick={() => navigate('/records/bulk')} className="w-full flex items-center gap-4 p-3 hover:bg-theme-primary/10 rounded-xl text-left transition-all group/btn mt-1">
-                <div className="w-10 h-10 bg-theme-primary/10 rounded-xl flex items-center justify-center group-hover/btn:bg-theme-primary/20 transition-colors"><Activity className="w-5 h-5 text-theme-primary" /></div>
-                <div className="min-w-0"><p className="text-theme-main font-black text-xs uppercase tracking-widest truncate">Hızlı Toplu Giriş</p><p className="text-theme-dim text-[10px] font-bold mt-0.5 truncate">Vardiya bazlı matris giriş</p></div>
-              </button>
-            </div>
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <div className="p-4 lg:p-6 w-full space-y-8 bg-theme-base animate-in fade-in duration-700">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div>
+            <h2 className="text-xl font-black text-theme-main uppercase tracking-tight">{t('dashboard.title', 'KONTROL PANELİ')}</h2>
+            <p className="text-theme-main/80 text-[12px] mt-1 font-bold opacity-60 leading-none">
+              {t('dashboard.subtitle', 'Gerçek Zamanlı Veri Analizi ve Panel Yönetimi')}
+            </p>
           </div>
-        </div>
-      </div>
 
-      {/* Customization Bar */}
-      {isCustomizing && (
-        <div className="bg-theme-primary/5 border border-theme-primary/20 rounded-2xl p-3 animate-in slide-in-from-top-4 duration-500">
-          <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
-            <div className="space-y-1">
-              <h4 className="text-lg font-black text-theme-main uppercase tracking-tighter italic">BİLEŞEN YÖNETİMİ</h4>
-              <p className="text-[10px] font-bold text-theme-dim uppercase tracking-widest">Dashboard'da görünmesini istediğiniz modülleri seçin</p>
-            </div>
-            <div className="flex flex-wrap items-center gap-4">
-              {AVAILABLE_WIDGETS.map(widget => (
-                <button
-                  key={widget.id}
-                  onClick={() => toggleWidget(widget.id)}
-                  className={`flex items-center gap-3 p-3 h-11 rounded-xl border transition-all font-black text-[10px] tracking-widest ${currentLayout.includes(widget.id) ? 'bg-theme-primary text-white border-theme-primary shadow-lg shadow-theme-primary/20' : 'bg-theme-surface/50 text-theme-muted border-theme hover:border-theme-primary/40'}`}
-                >
-                  <widget.icon className="w-4 h-4" />
-                  {widget.title.toUpperCase()}
-                  {currentLayout.includes(widget.id) ? <Check className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
-                </button>
-              ))}
-            </div>
+          <div className="flex items-center gap-3">
             <button
-              onClick={handleSaveLayout}
-              className="bg-theme-success h-11 w-auto min-w-42 text-white p-3 rounded-xl font-black text-xs tracking-widest shadow-xl shadow-theme-success/20 active:scale-95 transition-all flex items-center gap-3"
+              onClick={() => setIsCustomizing(!isCustomizing)}
+              className={cn(
+                "group flex items-center gap-3 px-6 py-3 rounded-xl font-black text-[10px] tracking-[0.2em] transition-all border shadow-lg",
+                isCustomizing
+                  ? "bg-theme-main text-theme-base border-theme-main"
+                  : "bg-theme-surface/80 text-theme-main border-theme hover:border-theme-primary/40"
+              )}
             >
-              <Save className="w-4 h-4" /> DÜZENİ KAYDET
+              {isCustomizing ? <Check className="w-4 h-4" /> : <LayoutIcon className="w-4 h-4 group-hover:rotate-12 transition-transform" />}
+              {isCustomizing ? 'DÜZENLEMEYİ BİTİR' : 'PANELİ DÜZENLE'}
             </button>
+
+            <div className="relative" onMouseEnter={() => setShowAddOptions(true)} onMouseLeave={() => setShowAddOptions(false)}>
+              <button className="bg-theme-primary hover:opacity-90 text-white px-6 py-3 rounded-xl font-black transition-all shadow-xl shadow-theme-primary/20 flex items-center gap-3 active:scale-95 text-[10px] tracking-[0.2em]">
+                {t('dashboard.newRecord', 'YENİ KAYIT')}
+                <ChevronRight className={`w-3.5 h-3.5 transition-transform ${showAddOptions ? 'rotate-90' : ''}`} />
+              </button>
+              <div className={cn(
+                "absolute right-0 top-full mt-3 w-72 bg-theme-base border border-theme rounded-2xl p-2 shadow-2xl z-50 transition-all duration-300 origin-top-right",
+                showAddOptions ? 'scale-100 opacity-100 visible' : 'scale-95 opacity-0 invisible translate-y-2'
+              )}>
+                <button onClick={() => navigate('/records/new')} className="w-full flex items-center gap-2 p-2 border border-theme/50 hover:border-theme-primary/40 hover:bg-theme-primary/10 rounded-xl text-left transition-all group/bt group hover:scale-95">
+                  <div className="w-10 h-10 bg-theme-primary/10 rounded-xl flex items-center justify-center text-theme-primary group-hover/btn:bg-theme-primary/20 transition-colors"><Plus className="w-5 h-5" /></div>
+                  <div className="min-w-0"><p className="text-theme-main font-black text-xs">Manuel Kayıt Ekle</p><p className="text-theme-dim text-[10px] font-bold mt-0.5 truncate">Tekil veri girişi</p></div>
+                </button>
+                <button onClick={() => navigate('/records/bulk')} className="w-full flex items-center gap-2 p-2 border border-theme/50 hover:border-theme-primary/40 hover:bg-theme-primary/10 rounded-xl text-left transition-all group/btn mt-1 group hover:scale-95">
+                  <div className="w-10 h-10 bg-theme-primary/10 rounded-xl flex items-center justify-center text-theme-primary group-hover/btn:bg-theme-primary/20 transition-colors"><Activity className="w-5 h-5" /></div>
+                  <div className="min-w-0"><p className="text-theme-main font-black text-xs">Hızlı Toplu Giriş</p><p className="text-theme-dim text-[10px] font-bold mt-0.5 truncate">Vardiya bazlı veri girişi</p></div>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
-      )}
 
-      {/* Render Dynamic Widgets */}
-      <div className="space-y-10">
-        {currentLayout.map((widgetId) => (
-          <div key={widgetId} className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-            {widgetId === 'kpis' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {[
-                  { label: t('dashboard.totalMachines', 'TOPLAM TEZGAH'), value: totalMachines.toLocaleString('tr-TR'), icon: Factory, color: 'text-theme-primary', bg: 'bg-theme-primary/10', border: 'border-theme-primary/20' },
-                  { label: t('dashboard.activeProduction', 'AKTİF ÜRETİM'), value: activeMachines.toLocaleString('tr-TR'), icon: Activity, color: 'text-theme-success', bg: 'bg-theme-success/10', border: 'border-theme-success/20' },
-                  { label: t('dashboard.avgOee', 'ORTALAMA OEE'), value: `%${avgOee}`, icon: BarChart3, color: Number(avgOee) >= 75 ? 'text-theme-success' : 'text-theme-warning', bg: Number(avgOee) >= 75 ? 'bg-theme-success/10' : 'bg-theme-warning/10', border: Number(avgOee) >= 75 ? 'border-theme-success/20' : 'border-theme-warning/20' },
-                  { label: t('dashboard.totalDowntime', 'TOPLAM DURUŞ'), value: `${totalDowntimeMinutesLong} dk`, icon: Clock, color: 'text-theme-danger', bg: 'bg-theme-danger/10', border: 'border-theme-danger/20' }
-                ].map((kpi, i) => (
-                  <div key={i} className={`bg-theme-card border ${kpi.border} rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all group relative overflow-hidden`}>
-                    <div className="relative z-10 flex items-start justify-between">
-                      <div className="space-y-1">
-                        <p className="text-[10px] font-black text-theme-dim uppercase tracking-widest opacity-60 leading-none mb-2">{kpi.label}</p>
-                        <h3 className="text-3xl font-black text-theme-main tracking-tighter italic">{kpi.value}</h3>
-                      </div>
-                      <div className={`p-3 rounded-2xl ${kpi.bg}`}>
-                        <kpi.icon className={`w-6 h-6 ${kpi.color}`} />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+        {/* Customization Toolset */}
+        {isCustomizing && (
+          <div className="bg-theme-primary/5 border-2 border-dashed border-theme-primary/30 rounded-2xl p-6 animate-in slide-in-from-top-4 duration-500 overflow-hidden relative">
+            <div className="flex flex-col lg:flex-row items-center justify-between gap-3">
+              <div className="w-[30%] space-y-1 text-center lg:text-left">
+                <h4 className="text-lg font-black text-theme-main flex items-center gap-2">MODÜL YÖNETİMİ <Activity className="w-5 h-5 text-theme-primary" /></h4>
+                <p className="text-[10px] font-bold text-theme-dim">Görünmesini istediğiniz bileşenleri seçip sürükleyerek sıralayın</p>
 
-            {widgetId === 'performance_chart' && (
-              <div className="bg-theme-card border border-theme rounded-[2.5rem] p-10 h-[550px] flex flex-col shadow-xl shadow-theme-main/5 relative overflow-hidden group">
-                <div className="absolute top-0 right-0 w-96 h-96 bg-theme-primary/5 rounded-full blur-[100px] -mr-48 -mt-48" />
-                <div className="flex flex-col md:flex-row items-center justify-between mb-10 gap-6 relative z-10">
-                  <div className="flex items-center gap-5">
-                    <div className="p-4 bg-theme-primary/10 rounded-2xl border border-theme-primary/20">
-                      <BarChart3 className="w-7 h-7 text-theme-primary" />
-                    </div>
-                    <div>
-                      <h3 className="text-2xl font-black text-theme-main uppercase tracking-tighter italic">{t('dashboard.chart.title', 'Performans Haritası')}</h3>
-                      <p className="text-[10px] text-theme-dim font-bold uppercase tracking-widest mt-1 opacity-50">Metriklerin üretim hatları arası karşılaştırmalı analizi</p>
+                {/* GLOBAL GRID MODE TOGGLE */}
+                <div className="flex flex-wrap items-center gap-4 mt-4 justify-center lg:justify-start">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[9px] font-black text-theme-muted uppercase tracking-widest mr-1">Sütun:</span>
+                    <div className="flex bg-theme-base/50 p-1 rounded-xl border border-theme">
+                      <button
+                        onClick={() => setGridMode('double')}
+                        className={cn(
+                          "flex items-center gap-2 px-3 py-1.5 rounded-lg text-[9px] font-black transition-all",
+                          gridMode === 'double' ? "bg-theme-primary text-white shadow-lg" : "text-theme-muted hover:text-theme-main"
+                        )}
+                      >
+                        <Columns2 className="w-3.5 h-3.5" /> 2 SÜTUN
+                      </button>
+                      <button
+                        onClick={() => setGridMode('single')}
+                        className={cn(
+                          "flex items-center gap-2 px-3 py-1.5 rounded-lg text-[9px] font-black transition-all",
+                          gridMode === 'single' ? "bg-theme-primary text-white shadow-lg" : "text-theme-muted hover:text-theme-main"
+                        )}
+                      >
+                        <Square className="w-3.5 h-3.5" /> TEK SÜTUN
+                      </button>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 text-[9px] font-black uppercase tracking-[0.2em]">
-                    <div className="flex items-center gap-2"><div className="w-8 h-1.5 bg-theme-primary rounded-full" /> OEE</div>
-                    <div className="flex items-center gap-2"><div className="w-8 h-1.5 bg-theme-success rounded-full" /> AVL</div>
-                    <div className="flex items-center gap-2"><div className="w-8 h-1.5 bg-theme-warning rounded-full" /> PRF</div>
-                    <div className="flex items-center gap-2"><div className="w-8 h-1.5 bg-purple-500 rounded-full" /> QLT</div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-[9px] font-black text-theme-muted uppercase tracking-widest mr-1">Ölçeklendirme:</span>
+                    <button
+                      onClick={() => setEqualHeight(!equalHeight)}
+                      className={cn(
+                        "flex items-center gap-2 px-4 py-2 rounded-xl text-[9px] font-black transition-all border shadow-sm",
+                        equalHeight
+                          ? "bg-theme-success/10 text-theme-success border-theme-success shadow-theme-success/10"
+                          : "bg-theme-base text-theme-muted border-theme hover:border-theme-primary/30"
+                      )}
+                    >
+                      <LayoutIcon className="w-3.5 h-3.5" /> {equalHeight ? 'EŞİT YÜKSEKLİK AKTİF' : 'ESNEK YÜKSEKLİK'}
+                    </button>
                   </div>
-                </div>
-                <div className="flex-1 w-full relative z-10">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={machineOeeData} margin={{ top: 20, right: 30, left: 0, bottom: 60 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border-main)" strokeOpacity={0.2} vertical={false} />
-                      <XAxis dataKey="name" stroke="var(--text-dim)" fontSize={10} axisLine={false} tickLine={false} height={60} angle={-35} textAnchor="end" tick={{ fontWeight: 900 }} />
-                      <YAxis stroke="var(--text-dim)" fontSize={10} axisLine={false} tickLine={false} domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} tick={{ fontWeight: 900 }} />
-                      <RechartsTooltip
-                        contentStyle={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-main)', borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', padding: '20px' }}
-                        itemStyle={{ fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', padding: '5px 0' }}
-                        labelStyle={{ fontSize: '14px', fontWeight: 900, marginBottom: '15px', color: 'var(--primary)', letterSpacing: '0.05em' }}
-                        formatter={(v: any) => [`%${v}`, '']}
-                      />
-                      <Line type="monotone" dataKey="oee" stroke="var(--primary)" strokeWidth={4} dot={{ r: 4, fill: 'var(--primary)', stroke: 'var(--bg-card)', strokeWidth: 2 }} activeDot={{ r: 8, strokeWidth: 4 }} />
-                      <Line type="monotone" dataKey="availability" stroke="var(--success)" strokeWidth={3} strokeDasharray="8 4" dot={{ r: 3, fill: 'var(--success)', stroke: 'var(--bg-card)', strokeWidth: 2 }} />
-                      <Line type="monotone" dataKey="performance" stroke="var(--warning)" strokeWidth={3} strokeDasharray="4 4" dot={{ r: 3, fill: 'var(--warning)', stroke: 'var(--bg-card)', strokeWidth: 2 }} />
-                      <Line type="monotone" dataKey="quality" stroke="#a855f7" strokeWidth={3} strokeDasharray="2 2" dot={{ r: 3, fill: '#a855f7', stroke: 'var(--bg-card)', strokeWidth: 2 }} />
-                    </LineChart>
-                  </ResponsiveContainer>
                 </div>
               </div>
-            )}
 
-            {widgetId === 'machine_status' && (
-              <div className="bg-theme-card border border-theme rounded-[2.5rem] p-10 h-[550px] flex flex-col shadow-xl shadow-theme-main/5 relative overflow-hidden group">
-                <div className="flex items-center gap-5 mb-10">
-                  <div className="p-4 bg-theme-primary/10 rounded-2xl border border-theme-primary/20">
-                    <Settings className="w-7 h-7 text-theme-primary" />
-                  </div>
-                  <div>
-                    <h3 className="text-2xl font-black text-theme-main uppercase tracking-tighter italic">{t('dashboard.machines.title', 'Tezgah Durumları')}</h3>
-                    <p className="text-[10px] text-theme-dim font-bold uppercase tracking-widest mt-1 opacity-50">Üretim hattındaki canlı çalışma verileri</p>
-                  </div>
-                </div>
-                <div className="flex-1 overflow-y-auto pr-2 space-y-4 custom-scrollbar">
-                  {machines.map((machine) => (
-                    <div key={machine.id} className="bg-theme-surface/50 border border-theme p-6 rounded-2xl hover:border-theme-primary/30 transition-all flex items-center justify-between group/item">
-                      <div className="flex items-center gap-6">
-                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-sm border shadow-sm ${machine.status === 'active' ? 'bg-theme-success/10 text-theme-success border-theme-success/20' : 'bg-theme-warning/10 text-theme-warning border-theme-warning/20'}`}>
-                          {machine.code.substring(0, 3)}
-                        </div>
-                        <div>
-                          <h4 className="font-black text-theme-main text-lg uppercase tracking-tight italic">{machine.code}</h4>
-                          <p className="text-[10px] text-theme-muted font-bold uppercase tracking-widest mt-1 opacity-60">{machine.name}</p>
-                        </div>
+              <div className="flex flex-wrap w-auto items-center justify-center gap-3">
+                {AVAILABLE_WIDGETS.map(widget => {
+                  const isActive = currentLayout.some(i => i.id === widget.id);
+                  return (
+                    <button
+                      key={widget.id}
+                      onClick={() => toggleWidget(widget.id)}
+                      className={cn(
+                        "flex items-center gap-2 p-2 h-10 rounded-xl border transition-all font-black text-[10px] tracking-widest group/w",
+                        isActive
+                          ? 'bg-theme-primary text-white border-theme-primary shadow-lg shadow-theme-primary/30'
+                          : 'bg-theme-surface/50 text-theme-muted border-theme hover:border-theme-primary/40 hover:bg-theme-surface'
+                      )}
+                    >
+                      <widget.icon className={cn("w-4 h-4", isActive ? "text-white" : "group-hover/w:text-theme-primary")} />
+                      {widget.title.toUpperCase()}
+                      <div className={cn("px-1.5 py-0.5 rounded-md text-[8px] font-black", isActive ? "bg-white/20" : "bg-theme-base/50")}>
+                        {isActive ? <Check className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
                       </div>
-                      <div className="flex flex-col items-end gap-3">
-                        <span className={`text-[9px] font-black uppercase tracking-[0.2em] px-4 py-2 rounded-xl border ${machine.status === 'active' ? 'bg-theme-success/10 text-theme-success border-theme-success/30' : 'bg-theme-warning/10 text-theme-warning border-theme-warning/30'}`}>
-                          {machine.status === 'active' ? 'AKTİF ÇALIŞIYOR' : 'MOLA / BAKIM'}
-                        </span>
-                        <div className="flex gap-1.5 h-1">
-                          {[1, 2, 3, 4, 5].map(i => (
-                            <div key={i} className={`w-3 rounded-full ${machine.status === 'active' ? 'bg-theme-success/40' : 'bg-theme-warning/40'} ${i === 5 && 'animate-pulse'}`} />
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    </button>
+                  );
+                })}
               </div>
-            )}
-
-            {widgetId === 'recent_records' && (
-              <div className="bg-theme-card border border-theme rounded-[2.5rem] overflow-hidden shadow-xl shadow-theme-main/5">
-                <div className="p-10 border-b border-theme flex flex-col md:flex-row md:items-center justify-between gap-6 bg-theme-surface/20">
-                  <div className="flex items-center gap-5">
-                    <div className="p-4 bg-theme-primary/10 rounded-2xl border border-theme-primary/20">
-                      <Clock className="w-7 h-7 text-theme-primary" />
-                    </div>
-                    <div>
-                      <h3 className="text-2xl font-black text-theme-main uppercase tracking-tighter italic">Son Kayıtlar</h3>
-                      <p className="text-[10px] text-theme-dim font-bold uppercase tracking-widest mt-1 opacity-50">En son girilen 5 veri kaydı</p>
-                    </div>
-                  </div>
-                  <Link to="/records" className="flex items-center gap-3 px-8 py-3.5 bg-theme-base border border-theme rounded-2xl text-[11px] font-black text-theme-primary hover:bg-theme-primary hover:text-white transition-all uppercase tracking-[0.2em]">
-                    TÜMÜNÜ GÖR <ChevronRight className="w-4 h-4" />
-                  </Link>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="bg-theme-base/10">
-                        <th className="px-10 py-6 text-[10px] font-black text-theme-dim uppercase tracking-[0.3em]">TARİH</th>
-                        <th className="px-10 py-6 text-[10px] font-black text-theme-dim uppercase tracking-[0.3em]">TEZGAH</th>
-                        <th className="px-10 py-6 text-[10px] font-black text-theme-dim uppercase tracking-[0.3em]">VARDİYA</th>
-                        <th className="px-10 py-6 text-[10px] font-black text-theme-dim uppercase tracking-[0.3em]">ÜRETİM</th>
-                        <th className="px-10 py-6 text-[10px] font-black text-theme-dim uppercase tracking-[0.3em] text-right">OEE</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-theme/20">
-                      {records.slice(0, 5).map(r => (
-                        <tr key={r.id} className="hover:bg-theme-primary/5 transition-all">
-                          <td className="px-10 py-6"><span className="text-xs font-black text-theme-dim bg-theme-base px-3 py-1.5 rounded-lg border border-theme">{new Date(r.productionDate).toLocaleDateString('tr-TR')}</span></td>
-                          <td className="px-10 py-6"><span className="text-sm font-black text-theme-main uppercase">{r.machine.code}</span></td>
-                          <td className="px-10 py-6 text-xs font-bold text-theme-muted uppercase">{r.shift.shiftName}</td>
-                          <td className="px-10 py-6">
-                            <div className="flex items-center gap-4">
-                              <div className="flex-1 max-w-[100px] h-1.5 bg-theme-base rounded-full overflow-hidden"><div className="h-full bg-theme-primary" style={{ width: `${Math.min((r.producedQuantity / (r.plannedQuantity || 1)) * 100, 100)}%` }} /></div>
-                              <span className="text-xs font-black text-theme-main italic">{r.producedQuantity}</span>
-                            </div>
-                          </td>
-                          <td className="px-10 py-6 text-right">
-                            <span className={`px-4 py-1.5 rounded-xl text-xs font-black border ${r.oee >= 80 ? 'bg-theme-success/10 text-theme-success border-theme-success/20' : r.oee >= 60 ? 'bg-theme-warning/10 text-theme-warning border-theme-warning/20' : 'bg-theme-danger/10 text-theme-danger border-theme-danger/20'}`}>%{r.oee}</span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
+              <button
+                onClick={handleSaveLayout}
+                className="bg-theme-approve h-10 w-auto lg:w-60 text-white px-2 py-2 rounded-xl font-black text-[10px] shadow-2xl shadow-theme-approve/30 active:scale-95 transition-all flex items-center justify-center gap-4 border-2 border-theme-approve/50"
+              >
+                <Save className="w-4 h-4" /> DÜZENİ KAYDET
+              </button>
+            </div>
           </div>
-        ))}
+        )}
+
+
+
+        {/* Dynamic Grid Layout */}
+        <div className={cn(
+          "grid gap-8 items-start",
+          gridMode === 'double' ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1"
+        )}>
+          <SortableContext items={currentLayout.map(item => item.id)} strategy={verticalListSortingStrategy}>
+            {currentLayout.map((item) => {
+              const widget = AVAILABLE_WIDGETS.find(w => w.id === item.id);
+              if (!widget) return null;
+
+              // If global mode is 'single', everything is fullWidth implicitly
+              const isFullWidth = gridMode === 'single' ? true : item.fullWidth;
+
+              return (
+                <DashboardWidget
+                  key={widget.id}
+                  id={widget.id}
+                  title={widget.title}
+                  subtitle={widget.subtitle}
+                  icon={widget.icon}
+                  isCustomizing={isCustomizing}
+                  onRemove={() => toggleWidget(widget.id)}
+                  fullWidth={isFullWidth}
+                  onToggleFullWidth={() => toggleFullWidth(widget.id)}
+                  className={cn(equalHeight && "h-full")}
+                >
+                  {item.id === 'kpis' && (
+                    <div className={cn(
+                      "grid gap-6 p-1",
+                      isFullWidth ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4" : "grid-cols-1 sm:grid-cols-2"
+                    )}>
+                      {[
+                        { label: t('dashboard.totalMachines', 'TOPLAM MAKİNE'), value: totalMachines.toLocaleString('tr-TR'), icon: Factory, color: 'text-theme-primary', bg: 'bg-theme-primary/10' },
+                        { label: t('dashboard.activeProduction', 'AKTİF ÜRETİM'), value: activeMachines.toLocaleString('tr-TR'), icon: Activity, color: 'text-theme-success', bg: 'bg-theme-success/10' },
+                        { label: t('dashboard.avgOee', 'ORTALAMA OEE'), value: `%${avgOee}`, icon: BarChart3, color: Number(avgOee) >= 75 ? 'text-theme-success' : 'text-theme-warning', bg: Number(avgOee) >= 75 ? 'bg-theme-success/10' : 'bg-theme-warning/10' },
+                        { label: t('dashboard.totalDowntime', 'TOPLAM DURUŞ'), value: `${totalDowntimeMinutes.toLocaleString('tr-TR')} dk`, icon: Clock, color: 'text-theme-danger', bg: 'bg-theme-danger/10' }
+                      ].map((kpi, i) => (
+                        <div key={i} className="p-4 bg-theme-surface/30 border border-theme rounded-3xl hover:border-theme-primary/30 transition-all group/k flex flex-col justify-between h-36">
+                          <div className="flex items-center justify-between">
+                            <div className={`p-2.5 rounded-xl ${kpi.bg} ${kpi.color}`}>
+                              <kpi.icon className="w-5 h-5" />
+                            </div>
+                            <span className="text-[8px] font-black text-theme-dim opacity-30 uppercase tracking-widest">{kpi.label.split(' ')[0]}</span>
+                          </div>
+                          <div className="mt-4">
+                            <p className="text-[10px] font-black text-theme-dim opacity-60 uppercase mb-1 tracking-widest">{kpi.label}</p>
+                            <h4 className="text-2xl font-black text-theme-main group-hover/k:translate-x-1 transition-transform">{kpi.value}</h4>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {item.id === 'performance_chart' && (
+                    <div className="h-[400px] mt-4 w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={machineOeeData}>
+                          <defs>
+                            <linearGradient id="colorOee" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3} />
+                              <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke="var(--border-main)" strokeOpacity={0.1} vertical={false} />
+                          <XAxis dataKey="name" stroke="var(--text-dim)" fontSize={10} axisLine={false} tickLine={false} tick={{ fontWeight: 900 }} />
+                          <YAxis stroke="var(--text-dim)" fontSize={10} axisLine={false} tickLine={false} domain={[0, 100]} tick={{ fontWeight: 900 }} />
+                          <RechartsTooltip
+                            contentStyle={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-main)', borderRadius: '20px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}
+                            labelStyle={{ color: 'var(--text-main)', fontWeight: 900, marginBottom: '10px', fontSize: '12px' }}
+                            itemStyle={{ color: 'var(--primary)', fontWeight: 900, fontSize: '11px' }}
+                          />
+                          <Area type="monotone" dataKey="oee" stroke="var(--primary)" strokeWidth={3} fillOpacity={1} fill="url(#colorOee)" dot={{ r: 4, fill: 'var(--primary)', strokeWidth: 2, stroke: 'var(--bg-card)' }} />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+
+                  {item.id === 'sales_trend' && (
+                    <div className="h-[400px] mt-4 w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={salesTrend}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="var(--border-main)" strokeOpacity={0.1} vertical={false} />
+                          <XAxis dataKey="date" stroke="var(--text-dim)" fontSize={10} axisLine={false} tickLine={false} tick={{ fontWeight: 900 }} />
+                          <YAxis yAxisId="left" stroke="var(--text-dim)" fontSize={10} axisLine={false} tickLine={false} tick={{ fontWeight: 900 }} />
+                          <YAxis yAxisId="right" orientation="right" stroke="var(--text-dim)" fontSize={10} axisLine={false} tickLine={false} tick={{ fontWeight: 900 }} />
+                          <RechartsTooltip contentStyle={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-main)', borderRadius: '20px' }} />
+                          <Line yAxisId="left" type="monotone" dataKey="amount" name="Ciro" stroke="var(--success)" strokeWidth={4} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                          <Line yAxisId="right" type="monotone" dataKey="count" name="Sipariş" stroke="var(--primary)" strokeWidth={2} strokeDasharray="5 5" dot={{ r: 3 }} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+
+                  {item.id === 'stock_summary' && (
+                    <div className="h-[400px] mt-4 w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={stockSummary} layout="vertical" margin={{ left: 40, right: 30 }}>
+                          <XAxis type="number" stroke="var(--text-dim)" fontSize={10} hide />
+                          <YAxis dataKey="name" type="category" stroke="var(--text-dim)" fontSize={10} width={80} axisLine={false} tickLine={false} tick={{ fontWeight: 900 }} />
+                          <RechartsTooltip cursor={{ fill: 'transparent' }} contentStyle={{ backgroundColor: 'var(--bg-card)', borderRadius: '15px' }} />
+                          <Bar dataKey="quantity" name="Miktar" radius={[0, 10, 10, 0]} barSize={20}>
+                            {stockSummary.map((_, index) => (
+                              <Cell key={`cell-${index}`} fill={index % 2 === 0 ? 'var(--primary)' : 'var(--primary-light)'} fillOpacity={1 - index * 0.1} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+
+                  {item.id === 'machine_status' && (
+                    <div className="flex flex-col col-span-1 lg:col-span-2 overflow-y-auto pr-2 space-y-3 h-[400px] custom-scrollbar mt-4">
+                      {machines.map((m) => (
+                        <div key={m.id} className="bg-theme-surface/50 border border-theme p-5 rounded-2xl flex items-center justify-between group/m transition-colors hover:border-theme-primary/30">
+                          <div className="flex items-center gap-5">
+                            <div className={cn(
+                              "w-12 h-12 rounded-xl flex items-center justify-center font-black text-[11px] border shadow-sm",
+                              m.status === 'active' ? 'bg-theme-success/10 text-theme-success border-theme-success/30' : 'bg-theme-warning/10 text-theme-warning border-theme-warning/20'
+                            )}>
+                              {m.code.substring(0, 3)}
+                            </div>
+                            <div>
+                              <h4 className="font-black text-theme-main text-sm uppercase tracking-tight italic">{m.code}</h4>
+                              <p className="text-[9px] text-theme-muted font-bold uppercase tracking-widest mt-0.5 opacity-50 truncate max-w-[120px]">{m.name}</p>
+                            </div>
+                          </div>
+                          <div className={cn(
+                            "text-[8px] font-black uppercase tracking-[0.2em] px-3 py-1.5 rounded-lg border",
+                            m.status === 'active' ? 'bg-theme-success/10 text-theme-success border-theme-success/30' : 'bg-theme-warning/10 text-theme-warning border-theme-warning/30'
+                          )}>
+                            {m.status === 'active' ? 'ÇALIŞIYOR' : 'MOLA'}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {item.id === 'recent_records' && (
+                    <div className="space-y-3 mt-4 overflow-y-auto h-[400px] pr-2 custom-scrollbar">
+                      {records.slice(0, 10).map((r) => (
+                        <div key={r.id} className="p-4 bg-theme-surface/30 border border-theme rounded-2xl flex items-center justify-between hover:bg-theme-surface/50 transition-colors">
+                          <div className="flex items-center gap-4">
+                            <div className="text-center bg-theme-base/50 p-2 rounded-xl border border-theme min-w-[50px]">
+                              <p className="text-[7px] font-black text-theme-muted uppercase tracking-tighter">GÜN</p>
+                              <p className="text-sm font-black text-theme-main">{new Date(r.productionDate).getDate()}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-black text-theme-main uppercase">{r.machine.code}</p>
+                              <p className="text-[8px] font-bold text-theme-dim uppercase opacity-50">{r.shift.shiftName}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-6">
+                            <div className="text-right">
+                              <p className="text-[8px] font-black text-theme-dim uppercase opacity-40 mb-1">ÜRETİM</p>
+                              <p className="text-xs font-black text-theme-main italic">{r.producedQuantity}</p>
+                            </div>
+                            <div className={cn(
+                              "w-12 h-8 rounded-lg flex items-center justify-center text-[10px] font-black border",
+                              r.oee >= 80 ? "bg-theme-success/10 text-theme-success border-theme-success/20" : "bg-theme-warning/10 text-theme-warning border-theme-warning/20"
+                            )}>
+                              %{r.oee}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </DashboardWidget>
+              );
+            })}
+          </SortableContext>
+        </div>
+
+        {missingProduction?.summary?.missingEntries > 0 && (
+          <MissingProductionInsight
+            data={missingProduction}
+            machines={machines.map((m) => ({ id: m.id, code: m.code, name: m.name }))}
+            compact
+            title="Eksik Üretim Kaydı Uyarısı (Son 7 Gün)"
+          />
+        )}
       </div>
-    </div>
+    </DndContext>
   );
 }
 

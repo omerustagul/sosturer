@@ -18,6 +18,8 @@ export interface AppSettings {
   allowSupportAccess: boolean;
   colorMode: 'light' | 'dark';
   dashboardLayout: string;
+  referenceLocationId?: string;
+  standardShiftIds?: string;
 }
 
 interface SettingsState {
@@ -68,6 +70,8 @@ const defaultSettings: AppSettings = {
   allowSupportAccess: false,
   colorMode: getLocalStorage('color_mode', defaultMode) as 'light' | 'dark',
   dashboardLayout: '[]',
+  referenceLocationId: '',
+  standardShiftIds: '[]',
 };
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({

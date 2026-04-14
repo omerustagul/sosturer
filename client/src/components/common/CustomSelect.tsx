@@ -26,6 +26,7 @@ interface CustomSelectProps {
   className?: string;
   searchable?: boolean;
   isMulti?: boolean;
+  variant?: 'default' | 'inline';
 }
 
 export const CustomSelect = memo(({
@@ -38,7 +39,8 @@ export const CustomSelect = memo(({
   disabled = false,
   className = '',
   searchable = true,
-  isMulti = false
+  isMulti = false,
+  variant = 'default'
 }: CustomSelectProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -53,10 +55,10 @@ export const CustomSelect = memo(({
       const rect = containerRef.current.getBoundingClientRect();
       const vh = window.innerHeight;
       const dropdownMaxHeight = 280; // Approximate max height (search + list + paddings)
-      
+
       const spaceBelow = vh - rect.bottom;
       const spaceAbove = rect.top;
-      
+
       // Open up if there's no space below AND more space above
       const shouldOpenUp = spaceBelow < dropdownMaxHeight && spaceAbove > spaceBelow;
 
@@ -90,6 +92,7 @@ export const CustomSelect = memo(({
   };
 
   const selectedLabels = useMemo(() => {
+    if (!options || !Array.isArray(options)) return [];
     if (isMulti) {
       if (!Array.isArray(value)) return [];
       return options.filter(opt => value.includes(opt.id)).map(opt => opt.label);
@@ -98,10 +101,11 @@ export const CustomSelect = memo(({
     return found ? [found.label] : [];
   }, [options, value, isMulti]);
 
-  const selectedOption = !isMulti ? options.find(opt => opt.id === value) : null;
+  const selectedOption = !isMulti ? (options?.find(opt => opt.id === value) || null) : null;
 
   // Filter options based on search
   const filteredOptions = useMemo(() => {
+    if (!options || !Array.isArray(options)) return [];
     if (!searchTerm) return options;
     const lowerSearch = searchTerm.toLocaleLowerCase('tr-TR');
     return options.filter(opt =>
@@ -163,7 +167,7 @@ export const CustomSelect = memo(({
       onMouseDown={e => e.stopPropagation()}
     >
       {searchable && (
-        <div className="w-full p-3 border-b border-theme bg-theme-main/5 flex items-center gap-3 group shrink-0">
+        <div className="w-full p-2 border-b border-theme bg-theme-main/5 flex items-center gap-2 group shrink-0">
           <Search size={14} className="text-theme-dim group-focus-within:text-theme-primary transition-colors shrink-0" />
           <input
             ref={inputRef}
@@ -185,12 +189,12 @@ export const CustomSelect = memo(({
                 key={option.id}
                 onClick={() => handleSelect(option)}
                 className={cn(
-                  "px-5 py-2.5 flex items-center justify-between cursor-pointer transition-all duration-200 group/opt w-full",
+                  "px-2 py-2 flex items-center justify-between cursor-pointer transition-all duration-200 group/opt w-full",
                   active ? "bg-theme-primary/10 text-theme-primary border-l-4 border-theme-primary font-bold"
                     : "hover:bg-theme-main/5 text-theme-muted hover:text-theme-main border-l-4 border-transparent"
                 )}
               >
-                <div className="flex flex-col min-w-0 flex-1 pr-4">
+                <div className="flex flex-col min-w-0 flex-1">
                   <span className={cn("text-[11px] font-bold truncate leading-snug transition-colors", active ? "text-theme-primary" : "text-theme-main group-hover/opt:text-theme-primary")}>
                     {option.label}
                   </span>
@@ -199,7 +203,7 @@ export const CustomSelect = memo(({
                       "text-[9px] font-bold truncate mt-0.5 transition-colors",
                       active ? "text-theme-primary/60" : "text-theme-dim group-hover/opt:text-theme-muted"
                     )}>
-                      {option.subLabel}
+                      {typeof option.subLabel === 'object' ? null : option.subLabel}
                     </span>
                   )}
                 </div>
@@ -224,7 +228,8 @@ export const CustomSelect = memo(({
       <div
         onClick={() => !disabled && setIsOpen(!isOpen)}
         className={cn(
-          "relative w-full h-10 bg-theme-base border border-theme rounded-xl px-4 py-2 flex items-center justify-between cursor-pointer transition-all duration-300 group",
+          "relative w-auto min-w-30 bg-theme-base border border-theme rounded-xl flex items-center justify-between cursor-pointer transition-all duration-300 group",
+          variant === 'inline' ? "h-8 px-2 py-1" : "h-10 px-2 py-1",
           isOpen && "ring-4 ring-theme-primary/10 border-theme-primary/40 bg-theme-surface shadow-primary-glow",
           !isOpen && !disabled && "hover:border-theme-primary/40 hover:bg-theme-surface/50",
           disabled && "opacity-40 cursor-not-allowed grayscale",
@@ -234,27 +239,40 @@ export const CustomSelect = memo(({
         <div className="flex-1 truncate">
           {selectedLabels.length > 0 ? (
             <div className="flex flex-col">
-              <span className="text-theme-main text-sm font-bold truncate leading-tight">
+              <span className={cn(
+                "text-theme-main font-bold truncate leading-tight mr-2",
+                variant === 'inline' ? "text-[11px]" : "text-sm"
+              )}>
                 {isMulti && selectedLabels.length > 1 ? `${selectedLabels[0]} (+${selectedLabels.length - 1})` : selectedLabels[0]}
               </span>
-              {selectedOption?.subLabel && <span className="text-[10px] text-theme-dim truncate font-bold leading-none">{selectedOption.subLabel}</span>}
+              {!isMulti && selectedOption?.subLabel && (
+                <span className="text-[10px] font-bold text-theme-dim truncate leading-tight mt-0">
+                  {typeof selectedOption.subLabel === 'object' ? null : selectedOption.subLabel}
+                </span>
+              )}
             </div>
           ) : (
-            <span className="text-theme-dim text-sm font-medium">{placeholder}</span>
+            <span className={cn(
+              "text-theme-dim font-medium",
+              variant === 'inline' ? "text-[11px]" : "text-sm"
+            )}>{placeholder}</span>
           )}
         </div>
 
-        <div className="flex items-center gap-2 pl-3 ml-auto border-l border-theme group-hover:border-theme transition-colors">
+        <div className={cn(
+          "flex items-center gap-1 ml-auto p-0 border-l border-theme group-hover:border-theme transition-colors",
+          variant === 'inline' ? "pl-1" : "pl-1"
+        )}>
           {selectedLabels.length > 0 && !disabled && (
             <div
               onClick={(e) => { e.stopPropagation(); onChange(isMulti ? [] : ''); }}
               className="p-1 rounded-full hover:bg-theme-main/10 text-theme-dim hover:text-theme-main transition-all cursor-pointer"
             >
-              <X size={12} />
+              <X size={variant === 'inline' ? 10 : 12} />
             </div>
           )}
           <ChevronDown
-            size={16}
+            size={variant === 'inline' ? 14 : 16}
             className={cn("text-theme-dim transition-transform duration-500 ease-out", isOpen && "rotate-180 text-theme-primary")}
           />
         </div>

@@ -37,12 +37,12 @@ const DATA_EXAMPLE_END_ROW = 5;
 const columns = [
   { col: 'A', header: 'Üretim Tarihi ★ (YYYY-MM-DD)', required: true, key: 'productionDate' },
   { col: 'B', header: 'Vardiya Kodu ★ (Dropdown)', required: true, key: 'shiftCode' },
-  { col: 'C', header: 'Tezgah Kodu ★ (Dropdown)', required: true, key: 'machineCode' },
+  { col: 'C', header: 'Makine Kodu ★ (Dropdown)', required: true, key: 'machineCode' },
   { col: 'D', header: 'Operatör Adı ★ (Dropdown)', required: true, key: 'operatorName' },
   { col: 'E', header: 'Ürün Kodu ★ (Dropdown)', required: true, key: 'productCode' },
   { col: 'F', header: 'Üretim Adeti ★ (Sayı, >= 1)', required: true, key: 'producedQuantity' },
   { col: 'G', header: 'Gerçek Süre (dk) ★ (Sayı, > 0)', required: true, key: 'actualDurationMinutes' },
-  { col: 'H', header: 'Tezgah Raporu (dk) ★ (Sayı, > 0)', required: true, key: 'cncReportedDurationMinutes' },
+  { col: 'H', header: 'Makine Raporu (dk) ★ (Sayı, > 0)', required: true, key: 'cncReportedDurationMinutes' },
   { col: 'I', header: 'Duruş Süresi (dk) (Sayı, >= 0)', required: false, key: 'downtimeMinutes' },
   { col: 'J', header: 'Kalite Sorunları (Metin)', required: false, key: 'qualityIssues' },
   { col: 'K', header: 'Notlar (Metin)', required: false, key: 'notes' },
@@ -214,7 +214,7 @@ export function createProductionRecordsTemplateWorkbook(params: {
   // Reference sheet: 4 simple lists (as spec)
   refWs.columns = [
     { header: 'Vardiyalar', key: 'shifts', width: 22 },
-    { header: 'Tezgahlar', key: 'machines', width: 22 },
+    { header: 'Makineler', key: 'machines', width: 22 },
     { header: 'Operatörler', key: 'operators', width: 28 },
     { header: 'Ürünler', key: 'products', width: 22 },
   ];
@@ -301,7 +301,7 @@ export function createProductionRecordsTemplateWorkbook(params: {
     '1) "Data" sayfasında sadece sarı örnek satırları doldurun (Satır 3-5).',
     '2) Sütun sırasını değiştirmeyin; başlık satırını silmeyin.',
     '3) Üretim Tarihi gelecekte olamaz. Format: YYYY-MM-DD',
-    '4) Vardiya/Tezgah/Operatör/Ürün alanlarını dropdown’dan seçin.',
+    '4) Vardiya/Makine/Operatör/Ürün alanlarını dropdown’dan seçin.',
     '5) Üretim Adeti >= 1, Süre alanları > 0 olmalıdır.',
     '',
     'NOT:',
@@ -361,7 +361,7 @@ export function validateProductionRecordsWorkbook(args: {
     }
 
     if (!b) errors.push({ type: 'error', code: 'SHIFT_REQUIRED', message: 'Vardiya Kodu zorunludur.', address: { sheet: SHEET_DATA, row: r, col: 'B' }, rowIndex: r });
-    if (!c) errors.push({ type: 'error', code: 'MACHINE_REQUIRED', message: 'Tezgah Kodu zorunludur.', address: { sheet: SHEET_DATA, row: r, col: 'C' }, rowIndex: r });
+    if (!c) errors.push({ type: 'error', code: 'MACHINE_REQUIRED', message: 'Makine Kodu zorunludur.', address: { sheet: SHEET_DATA, row: r, col: 'C' }, rowIndex: r });
     if (!d) errors.push({ type: 'error', code: 'OPERATOR_REQUIRED', message: 'Operatör Adı zorunludur.', address: { sheet: SHEET_DATA, row: r, col: 'D' }, rowIndex: r });
     if (!e) errors.push({ type: 'error', code: 'PRODUCT_REQUIRED', message: 'Ürün Kodu zorunludur.', address: { sheet: SHEET_DATA, row: r, col: 'E' }, rowIndex: r });
 
@@ -380,9 +380,9 @@ export function validateProductionRecordsWorkbook(args: {
       // In some legacy templates H column didn't exist; fallback to actual with a warning.
       cncReportedDurationMinutes = actualMin ?? null;
       if (cncReportedDurationMinutes && cncReportedDurationMinutes > 0) {
-        warnings.push({ type: 'warning', code: 'CNC_FALLBACK', message: 'Tezgah Raporu boş/invalid; Gerçek Süre kullanıldı.', address: { sheet: SHEET_DATA, row: r, col: 'H' }, rowIndex: r });
+        warnings.push({ type: 'warning', code: 'CNC_FALLBACK', message: 'Makine Raporu boş/invalid; Gerçek Süre kullanıldı.', address: { sheet: SHEET_DATA, row: r, col: 'H' }, rowIndex: r });
       } else {
-        errors.push({ type: 'error', code: 'CNC_INVALID', message: 'Tezgah Raporu (dk) > 0 olmalıdır.', address: { sheet: SHEET_DATA, row: r, col: 'H' }, rowIndex: r, rawValue: ws.getCell(`H${r}`).value });
+        errors.push({ type: 'error', code: 'CNC_INVALID', message: 'Makine Raporu (dk) > 0 olmalıdır.', address: { sheet: SHEET_DATA, row: r, col: 'H' }, rowIndex: r, rawValue: ws.getCell(`H${r}`).value });
       }
     }
 
@@ -400,7 +400,7 @@ export function validateProductionRecordsWorkbook(args: {
 
     const machine = args.lookups.machinesByCode.get(c);
     if (!machine) {
-      errors.push({ type: 'error', code: 'MACHINE_NOT_FOUND', message: `Tezgah bulunamadı: ${c}`, address: { sheet: SHEET_DATA, row: r, col: 'C' }, rowIndex: r, rawValue: c });
+      errors.push({ type: 'error', code: 'MACHINE_NOT_FOUND', message: `Makine bulunamadı: ${c}`, address: { sheet: SHEET_DATA, row: r, col: 'C' }, rowIndex: r, rawValue: c });
       continue;
     }
 
@@ -429,7 +429,7 @@ export function validateProductionRecordsWorkbook(args: {
 
     const dupKey = [pd.toISOString().slice(0, 10), shift.id, machine.id, operatorId, product.id].join('|');
     if (seenKeys.has(dupKey)) {
-      warnings.push({ type: 'warning', code: 'DUPLICATE_IN_FILE', message: 'Dosya içinde muhtemel duplicate satır (aynı tarih+vardiya+tezgah+operatör+ürün).', address: { sheet: SHEET_DATA, row: r, col: 'A' }, rowIndex: r });
+      warnings.push({ type: 'warning', code: 'DUPLICATE_IN_FILE', message: 'Dosya içinde muhtemel duplicate satır (aynı tarih+vardiya+makine+operatör+ürün).', address: { sheet: SHEET_DATA, row: r, col: 'A' }, rowIndex: r });
     }
     seenKeys.add(dupKey);
 

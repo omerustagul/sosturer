@@ -92,13 +92,13 @@ export const useAuthStore = create<AuthState>()(
       refreshUser: async () => {
         try {
           const data = await api.get('/auth/me');
-          const { company, freshToken, ...user } = data;
+          const { company, token, ...user } = data;
           
-          if (freshToken) {
-            sessionStorage.setItem('token', freshToken);
+          if (token) {
+            sessionStorage.setItem('token', token);
           }
           
-          set({ user, company, ...(freshToken ? { token: freshToken } : {}) });
+          set({ user, company, ...(token ? { token } : {}) });
         } catch (error) {
           console.log('Refresh failed, keeping current local session if any.');
         }

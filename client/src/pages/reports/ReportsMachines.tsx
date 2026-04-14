@@ -12,7 +12,9 @@ import {
   ChevronDown,
   Package,
   X,
-  History
+  History,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { Loading } from '../../components/common/Loading';
 import { CustomSelect } from '../../components/common/CustomSelect';
@@ -29,6 +31,9 @@ export function ReportsMachines() {
     startDate: new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0],
     endDate: new Date().toISOString().split('T')[0],
   });
+
+  const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(0);
 
   const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' }>({
     key: 'avgOee',
@@ -131,12 +136,21 @@ export function ReportsMachines() {
   const sortedMachines = useMemo(() => {
     return [...machineStats].sort((a, b) => {
       const { key, direction } = sortConfig;
-      let valA = a[key];
-      let valB = b[key];
-      const res = valA > valB ? 1 : -1;
+      const valA = a[key] || 0;
+      const valB = b[key] || 0;
+      const res = valA > valB ? 1 : valA < valB ? -1 : 0;
       return direction === 'asc' ? res : -res;
     });
   }, [machineStats, sortConfig]);
+
+  const paginatedMachines = useMemo(() => {
+    return sortedMachines.slice(
+      currentPage * pageSize,
+      (currentPage + 1) * pageSize
+    );
+  }, [sortedMachines, currentPage, pageSize]);
+
+  const pageCount = Math.ceil(sortedMachines.length / pageSize);
 
   const exportToExcel = async () => {
     try {
@@ -144,7 +158,7 @@ export function ReportsMachines() {
       if (filters.startDate) params.set('startDate', filters.startDate);
       if (filters.endDate) params.set('endDate', filters.endDate);
       if (filters.machineId !== 'all') params.set('machineId', filters.machineId);
-      await api.download(`/reports/excel/machines?${params.toString()}`, `Tezgah_Performans_Raporu.xlsx`);
+      await api.download(`/reports/excel/machines?${params.toString()}`, `Makine_Performans_Raporu.xlsx`);
     } catch (e) {
       alert('Dışa aktarma başarısız oldu.');
     }
@@ -153,13 +167,13 @@ export function ReportsMachines() {
   if (loading) return <Loading size="lg" fullScreen />;
 
   return (
-    <div className="p-6 lg:p-10 w-full space-y-8 animate-in fade-in duration-700 bg-theme-base">
+    <div className="p-4 lg:p-6 w-full space-y-8 animate-in fade-in duration-700 bg-theme-base">
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
         <div>
-          <h2 className="text-3xl font-black text-theme-main tracking-tight flex items-center gap-3">
-            <Factory className="w-10 h-10 text-theme-primary" /> TEZGAH PERFORMANS ANALİZİ
+          <h2 className="text-xl font-black text-theme-main tracking-tight flex items-center gap-2">
+            <Factory className="w-6 h-6 text-theme-primary" /> MAKİNE PERFORMANS ANALİZİ
           </h2>
-          <p className="text-theme-muted text-sm mt-1 font-medium italic">Her bir tezgahın operasyonel verimlilik, kullanım oranı ve kayıp zaman analizi.</p>
+          <p className="text-theme-muted text-xs mt-1 font-medium">Her bir makinenin operasyonel verimlilik, kullanım oranı ve kayıp zaman analizi.</p>
         </div>
         <button
           onClick={exportToExcel}
@@ -169,7 +183,7 @@ export function ReportsMachines() {
         </button>
       </div>
 
-      <div className="bg-theme-card backdrop-blur-xl border border-theme rounded-2xl p-6 flex flex-wrap gap-6 items-end shadow-2xl">
+      <div className="modern-glass-card flex flex-wrap gap-6 items-end">
         <div className="flex-1 min-w-[200px] space-y-2">
           <label className="text-[10px] font-black text-theme-dim uppercase tracking-widest flex items-center gap-2 px-1">
             <Calendar size={12} /> BAŞLANGIÇ
@@ -194,10 +208,10 @@ export function ReportsMachines() {
         </div>
         <div className="flex-1 min-w-[240px] space-y-2">
           <label className="text-[10px] font-black text-theme-dim uppercase tracking-widest flex items-center gap-2 px-1">
-            <Monitor size={12} /> TEZGAH FİLTRESİ
+            <Monitor size={12} /> MAKİNE FİLTRESİ
           </label>
           <CustomSelect
-            options={[{ id: 'all', label: 'Tüm Aktif Tezgahlar' }, ...machines.map(m => ({ id: m.id, label: m.code, subLabel: m.name }))]}
+            options={[{ id: 'all', label: 'Tüm Aktif Makineler' }, ...machines.map(m => ({ id: m.id, label: m.code, subLabel: m.name }))]}
             value={filters.machineId}
             onChange={(val) => setFilters(prev => ({ ...prev, machineId: val }))}
           />
@@ -211,12 +225,12 @@ export function ReportsMachines() {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-6">
-          <div className="bg-theme-card backdrop-blur-xl border border-theme rounded-2xl overflow-hidden shadow-2xl">
+          <div className="modern-glass-card p-0 overflow-hidden">
             <div className="p-6 border-b border-theme flex items-center justify-between bg-theme-surface/30">
               <h3 className="text-sm font-black text-theme-muted uppercase tracking-widest flex items-center gap-2">
-                <Activity size={16} className="text-theme-primary" /> TEZGAH PERFORMANS MATRİSİ
+                <Activity size={16} className="text-theme-primary" /> MAKİNE PERFORMANS MATRİSİ
               </h3>
-              <span className="text-[10px] font-bold text-theme-dim uppercase tracking-widest">{sortedMachines.length} TEZGAH LİSTELENDİ</span>
+              <span className="text-[10px] font-bold text-theme-dim uppercase tracking-widest">{sortedMachines.length} MAKİNE LİSTELENDİ</span>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left density-aware-table resizable-table">
@@ -246,7 +260,7 @@ export function ReportsMachines() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-theme/40">
-                  {sortedMachines.map((m) => (
+                  {paginatedMachines.map((m) => (
                     <tr key={m.id} className="group hover:bg-theme-primary/5 transition-all">
                       <td className="px-6 py-4 font-black text-theme-primary text-sm">{m.code}</td>
                       <td className="px-6 py-4 text-theme-main font-medium text-sm">{m.name}</td>
@@ -277,6 +291,65 @@ export function ReportsMachines() {
                   ))}
                 </tbody>
               </table>
+            </div>
+
+            {/* Pagination Controls */}
+            <div className="p-4 border-t border-theme bg-theme-base/20 flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="flex items-center gap-6 order-2 md:order-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-black text-theme-dim whitespace-nowrap uppercase tracking-widest">SAYFADA:</span>
+                  <div className="w-24">
+                    <CustomSelect
+                      options={[
+                        { id: 10, label: '10' },
+                        { id: 50, label: '50' },
+                        { id: 250, label: '250' },
+                        { id: 500, label: '500' },
+                        { id: 1000, label: '1000' },
+                        { id: 999999, label: 'Tümü' }
+                      ]}
+                      value={pageSize}
+                      onChange={value => {
+                        setPageSize(Number(value));
+                        setCurrentPage(0);
+                      }}
+                      searchable={false}
+                    />
+                  </div>
+                </div>
+                <div className="h-4 w-px bg-theme hidden md:block" />
+                <span className="text-[11px] font-black text-theme-dim uppercase tracking-widest">
+                  TOPLAM <span className="text-theme-primary">{sortedMachines.length}</span> KAYIT
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3 order-1 md:order-2">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
+                  disabled={currentPage === 0}
+                  className="p-3 rounded-xl bg-theme-base border border-theme text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+                >
+                  <ChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
+                </button>
+
+                <div className="flex items-center gap-2 px-4 py-2 bg-theme-base border border-theme rounded-2xl">
+                  <span className="text-theme-primary font-black text-sm min-w-[20px] text-center">
+                    {currentPage + 1}
+                  </span>
+                  <span className="text-theme-dim font-bold text-xs uppercase tracking-widest">/</span>
+                  <span className="text-theme-muted font-black text-sm min-w-[20px] text-center">
+                    {pageCount || 1}
+                  </span>
+                </div>
+
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(pageCount - 1, prev + 1))}
+                  disabled={currentPage >= pageCount - 1}
+                  className="p-3 rounded-xl bg-theme-base border border-theme text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+                >
+                  <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+                </button>
+              </div>
             </div>
           </div>
         </div>

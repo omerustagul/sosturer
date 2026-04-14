@@ -8,8 +8,10 @@ const router = Router();
 router.get('/', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const companyId = req.user?.companyId;
+    if (!companyId) return res.json([]);
+
     const departments = await prisma.department.findMany({
-      where: companyId ? { companyId } : undefined,
+      where: { companyId },
       orderBy: { displayOrder: 'asc' }
     });
     res.json(departments);

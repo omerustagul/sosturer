@@ -1,4 +1,4 @@
-import { X, Clock, Factory, Users, Package, Settings, AlertTriangle, Layers, Activity } from 'lucide-react';
+import { X, Clock, Factory, Users, Package, Settings, AlertTriangle, Layers, Activity, Wrench } from 'lucide-react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '../../lib/utils';
@@ -13,18 +13,19 @@ const toTRUpper = (str: string) => (str || '').toLocaleUpperCase('tr-TR');
 
 export function RecordDetailModal({ record, onClose }: RecordDetailModalProps) {
   if (!record) return null;
+  const safeNum = (value: any, fallback = 0) => (typeof value === 'number' && Number.isFinite(value) ? value : fallback);
 
   const stats = [
-    { label: 'OEE (Verimlilik)', value: `%${record.oee.toFixed(1)}`, color: 'text-theme-primary', icon: Activity },
-    { label: 'Performans', value: `%${record.performance.toFixed(1)}`, color: 'text-emerald-400', icon: Activity },
-    { label: 'Müsaitlik', value: `%${record.availability.toFixed(1)}`, color: 'text-amber-400', icon: Activity },
-    { label: 'Kalite', value: `%${record.quality.toFixed(1)}`, color: 'text-rose-400', icon: Activity },
+    { label: 'OEE (Verimlilik)', value: `%${safeNum(record.oee).toFixed(1)}`, color: 'text-theme-primary', icon: Activity },
+    { label: 'Performans', value: `%${safeNum(record.performance).toFixed(1)}`, color: 'text-emerald-400', icon: Activity },
+    { label: 'Müsaitlik', value: `%${safeNum(record.availability).toFixed(1)}`, color: 'text-amber-400', icon: Activity },
+    { label: 'Kalite', value: `%${safeNum(record.quality).toFixed(1)}`, color: 'text-rose-400', icon: Activity },
   ];
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 lg:p-12 overflow-hidden bg-theme-base/60 backdrop-blur-xl animate-in fade-in duration-500">
       <div
-        className="relative w-full max-w-5xl bg-theme-base border border-theme rounded-2xl shadow-[0_32px_80px_-16px_rgba(0,0,0,0.6)] flex flex-col max-h-[92vh] overflow-hidden scale-in duration-500 ring-1 ring-white/5"
+        className="modern-glass-card relative w-full max-w-5xl flex flex-col max-h-[92vh] p-0 overflow-hidden scale-in duration-500 ring-1 ring-white/5"
       >
 
         {/* Glow Effects */}
@@ -32,17 +33,17 @@ export function RecordDetailModal({ record, onClose }: RecordDetailModalProps) {
         <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-theme-primary/5 blur-[100px] rounded-full" />
 
         {/* Header */}
-        <div className="p-8 md:p-10 border-b border-theme/50 flex items-center justify-between bg-theme-surface/50 backdrop-blur-3xl relative z-10">
+        <div className="p-4 border-b border-theme/50 flex items-center justify-between bg-theme-surface/50 backdrop-blur-3xl relative z-10">
           <div className="flex items-center gap-6">
-            <div className="w-16 h-16 rounded-2xl bg-theme-primary/10 flex items-center justify-center border border-theme-primary/20 shadow-inner group">
-              <Clock className="w-8 h-8 text-theme-primary group-hover:scale-110 transition-transform duration-500" />
+            <div className="w-12 h-12 rounded-xl bg-theme-primary/10 flex items-center justify-center border border-theme-primary/20 shadow-inner group">
+              <Clock className="w-6 h-6 text-theme-primary group-hover:scale-110 transition-transform duration-500" />
             </div>
             <div>
-              <h3 className="text-2xl font-black text-theme-main tracking-tight leading-none mb-2">
+              <h3 className="text-lg font-black text-theme-main tracking-tight leading-none mb-0.5">
                 {toTRUpper('Üretim Kaydı Detayları')}
               </h3>
-              <p className="text-theme-dim text-xs font-black tracking-widest flex items-center gap-2 opacity-60">
-                İŞLEM ID: <span className="font-mono text-theme-primary">{record.id.toUpperCase()}</span>
+              <p className="text-theme-dim text-xs font-semibold flex items-center gap-2">
+                İşlem ID: <span className="font-mono text-theme-primary">{record.id.toUpperCase()}</span>
               </p>
             </div>
           </div>
@@ -55,14 +56,14 @@ export function RecordDetailModal({ record, onClose }: RecordDetailModalProps) {
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-8 md:p-12 space-y-12 custom-scrollbar relative z-10">
+        <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar relative z-10">
 
           {/* OEE Stats Grid - Premium Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
             {stats.map((stat, idx) => (
-              <div key={idx} className="bg-theme-surface/30 rounded-2xl p-6 border border-theme/20 flex flex-col items-center text-center group hover:bg-theme-surface/60 transition-all duration-500 hover:scale-[1.02] hover:-translate-y-1">
+              <div key={idx} className="bg-theme-surface/30 rounded-2xl p-3 border border-theme/60 flex flex-col items-center text-center group hover:bg-theme-surface/60 transition-all duration-500 hover:scale-[1.02] hover:-translate-y-1">
                 <div className={cn(
-                  "p-4 rounded-2xl bg-theme-base mb-4 shadow-xl ring-1 ring-white/5 transition-transform duration-500 group-hover:scale-110",
+                  "p-2 rounded-xl bg-theme-base mb-4 shadow-xl ring-1 ring-white/5 transition-transform duration-500 group-hover:scale-110",
                   stat.color
                 )}>
                   <stat.icon size={24} />
@@ -86,9 +87,9 @@ export function RecordDetailModal({ record, onClose }: RecordDetailModalProps) {
               </div>
               <div className="grid grid-cols-1 gap-4">
                 <DetailCard icon={Clock} label="Üretim Tarihi" value={format(new Date(record.productionDate), 'd MMMM yyyy, EEEE', { locale: tr })} />
-                <DetailCard icon={Factory} label="Tezgah" value={`${record.machine.code} - ${record.machine.name}`} />
-                <DetailCard icon={Users} label="Operatör" value={record.operator.fullName} />
-                <DetailCard icon={Clock} label="Vardiya" value={`${record.shift.shiftName} (${record.shift.shiftCode})`} />
+                <DetailCard icon={Factory} label="Makine" value={`${record.machine?.code || '-'} - ${record.machine?.name || ''}`} />
+                <DetailCard icon={Users} label="Operatör" value={record.operator?.fullName || <span className="flex items-center gap-1.5 text-rose-400"><Wrench size={12} /> Arıza / Bakım</span>} />
+                <DetailCard icon={Clock} label="Vardiya" value={`${record.shift?.shiftName || '-'} (${record.shift?.shiftCode || '-'})`} />
               </div>
             </div>
 
@@ -102,7 +103,19 @@ export function RecordDetailModal({ record, onClose }: RecordDetailModalProps) {
                 <div className="h-px bg-theme-primary/30 flex-1" />
               </div>
               <div className="grid grid-cols-1 gap-4">
-                <DetailCard icon={Package} label="Ürün" value={`${record.product.productCode} - ${record.product.productName}`} subValue={record.product.productGroup ? `Grup: ${record.product.productGroup}` : undefined} />
+                {record.product ? (
+                  <DetailCard icon={Package} label="Ürün" value={`${record.product.productCode} - ${record.product.productName}`} subValue={record.product.productGroup ? `Grup: ${record.product.productGroup}` : undefined} />
+                ) : (
+                  <div className="bg-rose-500/10 p-4 rounded-2xl border border-rose-500/30 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-rose-500/20 flex items-center justify-center">
+                      <Wrench className="w-5 h-5 text-rose-400" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-black text-rose-400 uppercase tracking-widest">Arıza / Bakım Kaydı</p>
+                      <p className="text-[11px] text-theme-dim font-bold">Bu vardiyada makine çalışmadı. Üretim yapılmadı.</p>
+                    </div>
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-4">
                   <DetailCard label="Planlanan Adet" value={record.plannedQuantity || 0} unit="Adet" />
                   <DetailCard label="Üretilen Adet" value={record.producedQuantity} unit="Adet" />
@@ -125,12 +138,12 @@ export function RecordDetailModal({ record, onClose }: RecordDetailModalProps) {
               </div>
               <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
                 <DetailCard label="Vardiya Süresi" value={record.shift.durationMinutes || 0} unit="dk" color="text-theme-primary" />
-                <DetailCard label="Gerçek Çalışma" value={record.actualDurationMinutes} unit="dk" color="text-amber-400" />
-                <DetailCard label="Tezgah Beklenen" value={record.plannedDurationMinutes.toFixed(1) || 0} unit="dk" />
+                <DetailCard label="Gerçek Çalışma" value={safeNum(record.actualDurationMinutes).toFixed(1)} unit="dk" color="text-amber-400" />
+                <DetailCard label="Makine Beklenen" value={safeNum(record.plannedDurationMinutes).toFixed(1)} unit="dk" />
                 <DetailCard label="Planlı Duruş" value={record.plannedDowntimeMinutes || 0} unit="dk" />
                 <DetailCard label="Plansız Duruş" value={record.unplannedDowntimeMinutes || 0} unit="dk" color="text-rose-400" />
               </div>
-              <div className="bg-theme-danger/5 rounded-2xl p-6 border border-theme-danger/20 flex items-center justify-between group transition-all duration-300 hover:bg-theme-danger/10">
+              <div className="bg-theme-danger/5 rounded-2xl p-3 border border-theme-danger/20 flex items-center justify-between group transition-all duration-300 hover:bg-theme-danger/10">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-xl bg-theme-danger/10 flex items-center justify-center border border-theme-danger/20 group-hover:scale-110 transition-transform">
                     <AlertTriangle className="text-theme-danger" size={24} />
@@ -163,7 +176,7 @@ export function RecordDetailModal({ record, onClose }: RecordDetailModalProps) {
         </div>
 
         {/* Footer */}
-        <div className="p-8 md:p-10 bg-theme-surface/50 border-t border-theme/50 flex justify-end gap-4 relative z-10 backdrop-blur-2xl">
+        <div className="p-4 bg-theme-surface/50 border-t border-theme/50 flex justify-end gap-4 relative z-10 backdrop-blur-2xl">
           <button
             onClick={onClose}
             className="px-10 py-4 bg-theme-surface border border-theme text-theme-dim font-black text-xs uppercase tracking-widest rounded-2xl transition-all duration-300 hover:text-white hover:bg-theme-primary hover:border-theme-primary shadow-xl hover:shadow-theme-primary/20 active:scale-95"
@@ -179,7 +192,7 @@ export function RecordDetailModal({ record, onClose }: RecordDetailModalProps) {
 
 function DetailCard({ icon: Icon, label, value, subValue, unit = '', color = 'text-theme-main' }: any) {
   return (
-    <div className="bg-theme-surface/20 p-5 rounded-2xl border border-theme/10 flex flex-col gap-2 ring-1 ring-transparent hover:ring-white/10 transition-all duration-300 group">
+    <div className="bg-theme-surface/20 p-5 rounded-2xl border border-theme/80 flex flex-col gap-2 ring-1 ring-transparent hover:ring-white/10 transition-all duration-300 group">
       <div className="flex items-center gap-2 mb-1 opacity-50 group-hover:opacity-100 transition-opacity">
         {Icon && <Icon size={14} className="text-theme-primary" />}
         <span className="text-[9px] font-black text-theme-dim uppercase tracking-[0.2em]">{toTRUpper(label)}</span>

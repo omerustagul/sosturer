@@ -76,10 +76,10 @@ export function Tooltip({ content, children, position = 'top', className = '' }:
   };
 
   const arrowClasses = {
-    top: 'bottom-[-4px] left-1/2 -translate-x-1/2 border-t-theme-card/95 border-x-transparent border-t-4 border-x-4 border-b-0',
-    bottom: 'top-[-4px] left-1/2 -translate-x-1/2 border-b-theme-card/95 border-x-transparent border-b-4 border-x-4 border-t-0',
-    left: 'right-[-4px] top-1/2 -translate-y-1/2 border-l-theme-card/95 border-y-transparent border-l-4 border-y-4 border-r-0',
-    right: 'left-[-4px] top-1/2 -translate-y-1/2 border-r-theme-card/95 border-y-transparent border-r-4 border-y-4 border-l-0',
+    top: 'bottom-[-4px] left-1/2 -translate-x-1/2 border-t-theme-card border-x-transparent border-t-4 border-x-4 border-b-0',
+    bottom: 'top-[-4px] left-1/2 -translate-x-1/2 border-b-theme-card border-x-transparent border-b-4 border-x-4 border-t-0',
+    left: 'right-[-4px] top-1/2 -translate-y-1/2 border-l-theme-card border-y-transparent border-l-4 border-y-4 border-r-0',
+    right: 'left-[-4px] top-1/2 -translate-y-1/2 border-r-theme-card border-y-transparent border-r-4 border-y-4 border-l-0',
   };
 
   return (
@@ -94,9 +94,9 @@ export function Tooltip({ content, children, position = 'top', className = '' }:
     >
       {children}
       {isVisible && coords && createPortal(
-        <div 
+        <div
           style={{ ...getPositionStyles(), position: 'absolute' }}
-          className={`z-[9999] px-4 py-2.5 text-[10px] font-black text-theme-main bg-theme-card/95 backdrop-blur-3xl border border-white/10 rounded-xl shadow-[0_16px_48px_rgba(0,0,0,0.5)] whitespace-pre-line ${position === 'right' ? 'animate-tooltip-rtl' : 'animate-in fade-in zoom-in-95'} duration-500 w-max max-w-xs pointer-events-none uppercase tracking-[0.1em] italic text-center ring-1 ring-white/10`}
+          className={`z-[9999] px-3 py-2 text-[11px] font-bold text-theme-main bg-theme-card/98 backdrop-blur-2xl border border-theme-border rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] whitespace-pre-line ${position === 'right' ? 'animate-tooltip-rtl' : 'animate-in fade-in zoom-in-95'} duration-500 w-max max-w-xs pointer-events-none text-center ring-1 ring-theme-border/50`}
         >
           {content}
           <div className={`absolute w-0 h-0 ${arrowClasses[position]} opacity-95`} />

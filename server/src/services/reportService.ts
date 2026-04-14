@@ -13,16 +13,16 @@ export class ReportService {
     filters?: { machineId?: string; operatorId?: string; productId?: string; shiftId?: string; productGroup?: string; category?: string; brand?: string }
   ) {
     const whereClause: any = { companyId };
-    
+
     // Date Filtering
     if (startDate || endDate) {
       whereClause.productionDate = {};
-      
+
       if (startDate && startDate.trim()) {
         const d = parseISO(startDate);
         if (isValid(d)) whereClause.productionDate.gte = startOfDay(d);
       }
-      
+
       if (endDate && endDate.trim()) {
         const d = parseISO(endDate);
         if (isValid(d)) whereClause.productionDate.lte = endOfDay(d);
@@ -62,7 +62,7 @@ export class ReportService {
     const headers = [
       { header: 'TARİH', key: 'date', width: 14 },
       { header: 'VARDİYA', key: 'shift', width: 14 },
-      { header: 'TEZGAH', key: 'machine', width: 14 },
+      { header: 'MAKİNE', key: 'machine', width: 14 },
       { header: 'OPERATÖR', key: 'operator', width: 22 },
       { header: 'ÜRÜN KODU', key: 'productCode', width: 18 },
       { header: 'ÜRÜN ADI', key: 'productName', width: 25 },
@@ -103,9 +103,9 @@ export class ReportService {
     });
 
     // 2. MACHINE SUMMARY SHEET
-    const machineSheet = workbook.addWorksheet('Tezgah Özeti');
+    const machineSheet = workbook.addWorksheet('Makine Özeti');
     machineSheet.columns = [
-      { header: 'TEZGAH KODU', key: 'code', width: 15 },
+      { header: 'MAKİNE KODU', key: 'code', width: 15 },
       { header: 'TOPLAM ÜRETİM', key: 'produced', width: 15 },
       { header: 'TOPLAM HATALI', key: 'defects', width: 15 },
       { header: 'TOPLAM DURUŞ (dk)', key: 'downtime', width: 18 },
@@ -199,26 +199,26 @@ export class ReportService {
     ]);
 
     const workbook = new exceljs.Workbook();
-    
+
     // Sheet 1: Executive Summary
     const summarySheet = workbook.addWorksheet('Yönetici Özeti');
     summarySheet.mergeCells('A1:F1');
     summarySheet.getCell('A1').value = 'ANAHTAR PERFORMANS GÖSTERGELERİ (KPI)';
     summarySheet.getCell('A1').font = { bold: true, size: 14 };
-    
+
     const avgOee = records.length > 0 ? records.reduce((s, r) => s + (r.oee || 0), 0) / records.length : 0;
     const totalProduced = records.reduce((s, r) => s + (r.producedQuantity || 0), 0);
     const totalDowntime = records.reduce((s, r) => s + (r.downtimeMinutes || 0), 0);
-    
+
     summarySheet.addRow(['Ortalama OEE', (avgOee / 100)]);
     summarySheet.addRow(['Toplam Üretim', totalProduced]);
     summarySheet.addRow(['Toplam Duruş (dk)', totalDowntime]);
     summarySheet.getCell('B2').numFmt = '0.0%';
 
     // Sheet 2: Machine Comparison
-    const machineSheet = workbook.addWorksheet('Tezgah Analizi');
+    const machineSheet = workbook.addWorksheet('Makine Analizi');
     machineSheet.columns = [
-      { header: 'Tezgah Code', key: 'code', width: 20 },
+      { header: 'Makine Code', key: 'code', width: 20 },
       { header: 'Kayıt Sayısı', key: 'count', width: 15 },
       { header: 'Başarı Oranı %', key: 'success', width: 15 },
       { header: 'Ort. OEE %', key: 'oee', width: 15 }
@@ -234,7 +234,7 @@ export class ReportService {
         oee: mOee
       });
     });
-    
+
     machineSheet.getColumn(3).numFmt = '0.0%';
     machineSheet.getColumn(4).numFmt = '0.0%';
 
@@ -278,7 +278,7 @@ export class ReportService {
 
     const workbook = new exceljs.Workbook();
     const sheet = workbook.addWorksheet('OEE Trend');
-    
+
     sheet.columns = [
       { header: 'TARİH', key: 'date', width: 15 },
       { header: 'OEE (%)', key: 'oee', width: 15 },

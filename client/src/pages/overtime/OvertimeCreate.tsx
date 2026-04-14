@@ -122,7 +122,7 @@ export function OvertimeCreate() {
         (plan.items || []).forEach((item: any) => {
           const dateStr = new Date(item.date).toISOString().split('T')[0];
           if (!grouped[dateStr]) grouped[dateStr] = [];
-          
+
           grouped[dateStr].push({
             id: Math.random().toString(36).substring(2, 9),
             type: item.machineId ? 'machine' : 'support',
@@ -178,7 +178,7 @@ export function OvertimeCreate() {
       if (prev.length === next.length && prev.every((p, i) => p.date === next[i].date)) {
         return prev;
       }
-      
+
       if (activeDayIndex >= next.length && next.length > 0) setActiveDayIndex(0);
       return next;
     });
@@ -206,7 +206,7 @@ export function OvertimeCreate() {
     const newPlans = [...dayPlans];
     const assign = newPlans[dayIndex].assignments.find(a => a.id === assignId);
     if (assign) {
-      if (field === 'tempDeptId') assign.operatorId = ''; 
+      if (field === 'tempDeptId') assign.operatorId = '';
       (assign as any)[field] = value;
 
       // Automated Target Calculation using historical average
@@ -215,7 +215,7 @@ export function OvertimeCreate() {
           const res = await api.get(`/production-records/average-cycle-time/${value}`);
           const avgCycle = res.averageCycleTime;
           assign.averageCycleTime = avgCycle; // Store for shift recalculations
-          
+
           const s = shifts.find(x => x.id === shiftId);
           if (avgCycle && s?.durationMinutes) {
             const target = Math.floor((s.durationMinutes * 60) / avgCycle);
@@ -311,7 +311,7 @@ export function OvertimeCreate() {
   };
 
   return (
-    <div className="p-6 pb-32 mx-auto animate-premium-page space-y-6 max-w-[1750px]">
+    <div className="p-4 lg:p-6 pb-32 mx-auto animate-premium-page space-y-6 max-w-[1750px]">
 
       {/* Header Panel */}
       <div className="premium-card p-6 border-theme/50 shadow-xl bg-theme-surface overflow-hidden relative">
@@ -320,7 +320,7 @@ export function OvertimeCreate() {
         </div>
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8 pb-6 border-b border-theme/20 relative z-10">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-theme-primary/10 rounded-2xl border border-theme-primary/20 flex items-center justify-center shadow-inner">
+            <div className="w-12 h-12 bg-theme-primary/10 rounded-xl border border-theme-primary/20 flex items-center justify-center shadow-inner">
               {isEdit ? <Edit2 className="w-6 h-6 text-theme-primary" /> : <Clock className="w-6 h-6 text-theme-primary" />}
             </div>
             <div>
@@ -330,7 +330,7 @@ export function OvertimeCreate() {
               </p>
             </div>
           </div>
-          <button onClick={handleSubmit} disabled={loading} className="btn-primary h-12 px-8 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest shadow-xl shadow-theme-primary/20">
+          <button onClick={handleSubmit} disabled={loading} className="btn-primary h-10 px-4 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest shadow-xl shadow-theme-primary/20">
             {isEdit ? <Edit2 size={20} /> : <Plus size={20} />} {toTRUpper(isEdit ? 'Planı Güncelle' : 'Planı Kaydet')}
           </button>
         </div>
@@ -455,14 +455,14 @@ export function OvertimeCreate() {
                 </div>
               </div>
 
-              {/* CONTAINER 1: TEZGAH MESAiSİ */}
+              {/* CONTAINER 1: MAKİNE MESAiSİ */}
               <div className="space-y-4">
                 <div className="flex items-center gap-4 px-2">
                   <div className="w-10 h-10 rounded-2xl bg-theme-primary/10 flex items-center justify-center text-theme-primary shadow-lg shadow-theme-primary/5">
                     <Monitor size={20} />
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-[12px] font-black text-theme-main tracking-tight uppercase leading-tight mb-1">TEZGAH VE ÜRETİM MESAİSİ</h3>
+                    <h3 className="text-[12px] font-black text-theme-main tracking-tight uppercase leading-tight mb-1">MAKİNE VE ÜRETİM MESAİSİ</h3>
                     <div className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-theme-primary animate-pulse" />
                       <p className="text-[8px] font-bold text-theme-dim opacity-60 uppercase tracking-widest">SADECE CNC ÜRETİM DEPARTMANI (DP-01)</p>
@@ -470,7 +470,7 @@ export function OvertimeCreate() {
                   </div>
                   <div className="ml-auto">
                     <button onClick={() => addAssignment(activeDayIndex, 'machine')} className="btn-primary h-9 px-5 flex items-center gap-2 text-[9px] font-black shadow-lg shadow-theme-primary/10">
-                      <Plus size={14} /> {toTRUpper('TEZGAH SATIRI EKLE')}
+                      <Plus size={14} /> {toTRUpper('MAKİNE SATIRI EKLE')}
                     </button>
                   </div>
                 </div>
@@ -479,7 +479,7 @@ export function OvertimeCreate() {
                   {(dayPlans[activeDayIndex]?.assignments || []).filter(a => a.type === 'machine').map((assign) => (
                     <div key={assign.id} className="premium-card p-4 grid grid-cols-1 lg:grid-cols-12 gap-4 items-end border-theme/20 bg-theme-surface/40 hover:bg-theme-surface transition-all group">
                       <div className="lg:col-span-3">
-                        <CustomSelect label="MAKİNE / TEZGAH" options={(machines || []).map(m => ({ id: m.id, label: m.name, subLabel: m.code }))} value={assign.machineId} onChange={v => updateAssignment(activeDayIndex, assign.id, 'machineId', v)} placeholder="Makine Seç..." />
+                        <CustomSelect label="MAKİNE" options={(machines || []).map(m => ({ id: m.id, label: m.name, subLabel: m.code }))} value={assign.machineId} onChange={v => updateAssignment(activeDayIndex, assign.id, 'machineId', v)} placeholder="Makine Seç..." />
                       </div>
                       <div className="lg:col-span-3">
                         <CustomSelect
@@ -508,7 +508,7 @@ export function OvertimeCreate() {
                     </div>
                   ))}
                   {(dayPlans[activeDayIndex]?.assignments || []).filter(a => a.type === 'machine').length === 0 && (
-                    <div className="p-10 text-center border-2 border-dashed border-theme/10 rounded-2xl opacity-20 text-[9px] font-black uppercase tracking-widest">Henüz Tezgah Ataması Mevcut Değil</div>
+                    <div className="p-10 text-center border-2 border-dashed border-theme/10 rounded-2xl opacity-20 text-[9px] font-black uppercase tracking-widest">Henüz Makine Ataması Mevcut Değil</div>
                   )}
                 </div>
               </div>

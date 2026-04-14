@@ -1,9 +1,9 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import {
-  Activity, Settings, BarChart3, ListOrdered, Plus, LogOut,
-  FileText, ChevronLeft, ChevronRight, Package, User,
-  Database, Sliders, Users, ShieldCheck,
-  Bell, Globe, Clock
+  Bolt, DiamondPlus, Logs, ChartArea, FileChartPie, ScanBarcode, CalendarRange,
+  Settings, BarChart3, LogOut, TextAlignStart, Airplay,
+  ChevronLeft, ChevronRight, Package, FileUser, User, ShieldCheck, Factory,
+  Bell, Globe, Building2, Warehouse, ShoppingCart, History, LayoutGrid, Boxes, GanttChart, Wrench
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useAuthStore } from '../store/authStore';
@@ -41,9 +41,13 @@ export function Layout() {
 
   const checkUnreadNotifications = async () => {
     try {
-      const data = await api.get('/system/activity');
-      const unread = data.some((log: any) => !log.isRead);
-      setHasUnreadNotifications(unread);
+      const [activity, systemNotifications] = await Promise.all([
+        api.get('/system/activity'),
+        api.get('/notifications')
+      ]);
+      const hasUnread = activity.some((log: any) => !log.isRead) ||
+        systemNotifications.some((n: any) => !n.isRead);
+      setHasUnreadNotifications(hasUnread);
     } catch (err) { }
   };
 
@@ -99,36 +103,87 @@ export function Layout() {
   };
 
   const navItems = [
-    { icon: Activity, label: t('nav.dashboard', 'KONTROL PANELİ'), path: '/' },
-    { icon: Plus, label: t('nav.newRecord', 'YENİ KAYIT'), path: '/records/new' },
-    { icon: ListOrdered, label: t('nav.records', 'KAYITLAR'), path: '/records' },
-    { icon: BarChart3, label: t('nav.analytics', 'ANALİTİK'), path: '/analytics' },
+    { icon: Bolt, label: t('nav.dashboard', 'KONTROL PANELİ'), path: '/' },
     {
-      icon: FileText,
+      icon: Factory,
+      label: 'ÜRETİM',
+      path: '/records_menu',
+      isDropdown: true,
+      children: [
+        { icon: DiamondPlus, label: t('nav.newRecord', 'Yeni Üretim Kaydı'), path: '/records/new' },
+        { icon: Logs, label: t('nav.records', 'Üretim Kayıtları'), path: '/records' },
+      ]
+    },
+    { icon: ChartArea, label: t('nav.analytics', 'ANALİTİK'), path: '/analytics' },
+    {
+      icon: FileChartPie,
       label: t('nav.reports', 'RAPORLAR'),
       path: '/reports',
       isDropdown: true,
       children: [
         { icon: BarChart3, label: t('reports.general', 'Raporlar'), path: '/reports/general' },
-        { icon: Settings, label: t('reports.machines', 'Tezgah Raporu'), path: '/reports/machines' },
+        { icon: Airplay, label: t('reports.machines', 'Makine Raporu'), path: '/reports/machines' },
         { icon: Package, label: t('reports.products', 'Ürün Raporu'), path: '/reports/products' },
-        { icon: User, label: t('reports.operators', 'Personel Raporu'), path: '/reports/operators' },
+        { icon: FileUser, label: t('reports.operators', 'Personel Raporu'), path: '/reports/operators' },
       ]
     },
-    { icon: Database, label: t('nav.definitions', 'TANIMLAR'), path: '/definitions' },
     {
-      icon: Clock,
+      icon: Warehouse,
+      label: t('nav.inventory', 'STOK YÖNETİMİ'),
+      path: '/inventory',
+      isDropdown: true,
+      children: [
+        { icon: Package, label: t('inventory.dashboard', 'Depo Durumu'), path: '/inventory/dashboard' },
+        { icon: History, label: t('inventory.movements', 'Stok Hareketleri'), path: '/inventory/movements' },
+      ]
+    },
+    {
+      icon: ShoppingCart,
+      label: t('nav.sales', 'SATIŞ YÖNETİMİ'),
+      path: '/sales',
+      isDropdown: true,
+      children: [
+        { icon: ShoppingCart, label: t('sales.orders', 'Siparişler'), path: '/sales/orders' },
+        { icon: User, label: t('sales.customers', 'Müşteri/Bayi'), path: '/sales/customers' },
+      ]
+    },
+    { icon: ScanBarcode, label: t('nav.definitions', 'TANIMLAR'), path: '/definitions' },
+    {
+      icon: LayoutGrid,
+      label: 'PLANLAMA',
+      path: '/planning',
+      isDropdown: true,
+      children: [
+        { icon: GanttChart, label: 'Üretim Planlama', path: '/planning/production' },
+        { icon: User, label: 'Personel Planlama', path: '/planning/personnel' },
+        { icon: Boxes, label: 'Malzeme Planlama (MRP)', path: '/planning/mrp' },
+        { icon: Wrench, label: 'Bakım Planlama', path: '/planning/maintenance' },
+      ]
+    },
+    {
+      icon: CalendarRange,
       label: t('nav.overtime', 'MESAİ PLANI'),
       path: '/overtime',
       isDropdown: true,
       children: [
-        { icon: Plus, label: t('overtime.plan', 'Mesai Planla'), path: '/overtime/create' },
-        { icon: Activity, label: t('overtime.list', 'Mesai Listesi'), path: '/overtime/list' },
-        { icon: BarChart3, label: t('overtime.reports', 'Mesai Raporları'), path: '/overtime/reports' },
+        { icon: DiamondPlus, label: t('overtime.plan', 'Mesai Planla'), path: '/overtime/create' },
+        { icon: TextAlignStart, label: t('overtime.list', 'Mesai Listesi'), path: '/overtime/list' },
+        { icon: FileChartPie, label: t('overtime.reports', 'Mesai Raporları'), path: '/overtime/reports' },
       ]
     },
-    ...(user.role === 'admin' ? [{ icon: Users, label: t('nav.team', 'EKİP YÖNETİMİ'), path: '/team' }] : []),
-    { icon: Sliders, label: t('nav.settings', 'AYARLAR'), path: '/settings' },
+    {
+      icon: ShieldCheck,
+      label: 'YÖNETİM PANELİ',
+      path: '/management',
+      isDropdown: true,
+      children: [
+        ...(user.role === 'admin' || user.role === 'superadmin' ? [
+          { icon: Building2, label: t('nav.company', 'Şirket Yönetimi'), path: '/company' },
+          { icon: User, label: t('nav.users', 'Kullanıcılar'), path: '/users' },
+        ] : []),
+        { icon: Settings, label: t('nav.settings', 'Ayarlar'), path: '/settings' },
+      ]
+    }
   ];
 
   return (
@@ -150,22 +205,22 @@ export function Layout() {
                 </span>
                 <span className="w-1.5 h-1.5 rounded-full bg-theme-primary mb-1 shadow-[0_0_8px_var(--primary-glow)]" />
               </div>
-              <span className="text-[10px] font-black tracking-[0.1em] text-theme-muted opacity-50 group-hover:opacity-100 group-hover:text-theme-primary/70 transition-all duration-300 leading-none">
+              <span className="text-[11px] font-semibold text-theme-main/65 group-hover:opacity-100 group-hover:text-theme-primary/70 transition-all duration-300 leading-none">
                 Smart Manufacturing
               </span>
             </div>
           </Link>
 
           <div className="hidden lg:flex items-center gap-3 pl-5 border-l border-theme h-8">
-            <span className="text-sm font-black text-theme-main tracking-wider truncate max-w-[400px]">
-              {companyName} {company?.id && <span className="opacity-40 text-xs ml-2">({company.id})</span>}
+            <span className="text-xs font-black uppercase text-theme-main max-w-[400px]">
+              {companyName}
             </span>
           </div>
         </div>
 
         <div className="flex gap-6 items-center vertical-align-middle">
 
-          <div className="flex items-center h-12 gap-4 bg-theme-surface/50 border border-theme p-2 rounded-2xl backdrop-blur-3xl shadow-2xl shadow-theme-success/5 group/network transition-all duration-700 hover:bg-theme-success/5 hover:border-theme-success/30 group shadow-lg">
+          <div className="flex items-center h-12 gap-4 bg-theme-surface/50 border border-theme p-2 rounded-xl backdrop-blur-3xl shadow-2xl shadow-theme-success/5 group/network transition-all duration-700 hover:bg-theme-success/5 hover:border-theme-success/30 group shadow-lg">
             <div className="relative flex items-center justify-center h-8 w-8 bg-theme-base rounded-xl border border-theme-success/20 group/lan overflow-hidden">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-theme-success/20 opacity-20 scale-150"></span>
               <Globe className="w-4 h-4 text-theme-success relative z-10 animate-pulse group-hover:scale-110 transition-transform" />
@@ -231,27 +286,27 @@ export function Layout() {
 
         <div
           className="absolute top-1/2 -translate-y-1/2 z-[100] transition-all duration-500 pointer-events-none"
-          style={{ left: isCollapsed ? '60px' : '200px' }}
+          style={{ left: isCollapsed ? '52.5px' : '205px' }}
         >
           <button
             onClick={toggleSidebar}
-            className="pointer-events-auto w-10 h-10 bg-theme-surface/80 backdrop-blur-3xl border border-theme text-theme-main rounded-2xl flex items-center justify-center shadow-2xl transition-all hover:scale-110 active:scale-95 group/toggle hover:border-theme-primary/50"
+            className="pointer-events-auto w-8 h-8 bg-theme-surface/80 backdrop-blur-3xl border border-theme text-theme-main rounded-xl flex items-center justify-center shadow-2xl transition-all hover:scale-110 active:scale-95 group/toggle hover:border-theme-primary/50"
           >
             <div className="flex items-center justify-center relative overflow-hidden w-full h-full">
               <div className={`transition-all duration-500 flex items-center gap-0.5 ${isCollapsed ? 'rotate-0' : 'rotate-180'}`}>
                 <div className="w-1 h-3 bg-theme-primary/40 rounded-full group-hover/toggle:bg-theme-primary transition-colors" />
-                <ChevronRight className="w-4 h-4 text-theme-primary group-hover/toggle:scale-125 transition-transform" />
+                <ChevronRight className="w-3 h-3 text-theme-primary group-hover/toggle:scale-125 transition-transform" />
               </div>
             </div>
           </button>
         </div>
 
         <aside
-          className={`relative z-40 border-r border-theme bg-theme-surface/40 backdrop-blur-3xl flex flex-col transition-all duration-300 ease-in-out hidden md:flex shrink-0 overflow-x-hidden ${isCollapsed ? 'w-18' : 'w-54'}`}
+          className={`relative z-40 border-r border-theme bg-theme-surface/40 backdrop-blur-3xl flex flex-col transition-all duration-300 ease-in-out hidden md:flex shrink-0 overflow-x-hidden ${isCollapsed ? 'w-15' : 'w-53'}`}
         >
 
 
-          <div className="flex flex-col py-3 px-3 gap-2 overflow-y-auto overflow-x-hidden no-scrollbar">
+          <div className="flex flex-col flex-1 py-3 px-2 gap-1 overflow-y-auto overflow-x-hidden no-scrollbar">
             {navItems.map((item: any) => {
               const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
 
@@ -272,12 +327,12 @@ export function Layout() {
                             setOpenDropdown(openDropdown === item.label ? null : item.label);
                           }
                         }}
-                        className={`group relative flex items-center h-10 w-full gap-2 p-1 rounded-xl cursor-pointer transition-all duration-200 ${isActive || openDropdown === item.label ? 'bg-theme-primary text-white shadow-[0_8px_20px_-6px_var(--primary-glow)]' : 'text-theme-muted hover:bg-theme-main/5 hover:text-theme-main'} ${isCollapsed ? 'justify-center' : 'px-5'}`}
+                        className={`group relative flex items-center h-10 w-full gap-2 p-1 rounded-xl cursor-pointer transition-all duration-200 shrink-0 ${isActive || openDropdown === item.label ? 'bg-theme-primary text-white shadow-[0_8px_20px_-6px_var(--primary-glow)]' : 'text-theme-muted hover:bg-theme-main/5 hover:text-theme-main'} ${isCollapsed ? 'justify-center' : 'px-3'}`}
                       >
                         <item.icon className="shrink-0 transition-transform duration-200 group-hover:scale-110 w-4 h-4" />
                         {!isCollapsed && (
                           <>
-                            <span className="font-bold text-[11px] whitespace-nowrap overflow-hidden transition-all duration-300 flex-1 text-left uppercase tracking-wider">{item.label}</span>
+                            <span className="font-bold text-[10.5px] whitespace-nowrap overflow-hidden transition-all duration-300 flex-1 text-left uppercase mt-1">{item.label}</span>
                             <span className="shrink-0">
                               <ChevronLeft className={`w-3.5 h-3.5 transition-transform duration-300 ${openDropdown === item.label ? '-rotate-90' : ''}`} />
                             </span>
@@ -287,11 +342,11 @@ export function Layout() {
                     </Tooltip>
 
                     {!isCollapsed && openDropdown === item.label && (
-                      <div className="flex flex-col gap-1 ml-2 pl-4 border-l border-theme/30 py-2 animate-dropdown">
+                      <div className="flex flex-col gap-1 ml-0 pl-4 border-l border-theme/30 py-2 animate-dropdown">
                         {item.children.map((child: any) => {
                           const isChildActive = location.pathname === child.path;
                           return (
-                            <Link key={child.path} to={child.path} className={`flex items-center gap-3 p-2.5 rounded-xl text-[11px] font-black tracking-widest transition-all ${isChildActive ? 'text-theme-primary bg-theme-primary/5' : 'text-theme-muted hover:text-theme-main hover:bg-theme-main/5'}`}>
+                            <Link key={child.path} to={child.path} className={`flex items-center gap-3 p-2 rounded-xl text-[10.5px] font-black transition-all shrink-0 ${isChildActive ? 'text-theme-primary bg-theme-primary/5' : 'text-theme-muted hover:text-theme-main hover:bg-theme-main/5'}`}>
                               <child.icon className="w-3.5 h-3.5" />
                               {child.label}
                             </Link>
@@ -305,18 +360,18 @@ export function Layout() {
 
               return (
                 <Tooltip
+                  key={item.path}
                   content={isCollapsed ? item.label : ""}
                   position="right"
                   className="w-full"
                 >
                   <Link
-                    key={item.path}
                     to={item.path}
-                    className={`group relative flex items-center h-10 w-full gap-2 p-1 rounded-xl cursor-pointer transition-all duration-200 overflow-hidden ${isActive ? 'bg-theme-primary text-white shadow-[0_8px_20px_-6px_var(--primary-glow)]' : 'text-theme-muted hover:bg-theme-main/5 hover:text-theme-main'} ${isCollapsed ? 'justify-center' : 'px-5'}`}
+                    className={`group relative flex items-center h-10 w-full gap-2 p-1 rounded-xl cursor-pointer transition-all duration-200 overflow-hidden shrink-0 ${isActive ? 'bg-theme-primary text-white shadow-[0_8px_20px_-6px_var(--primary-glow)]' : 'text-theme-muted hover:bg-theme-main/5 hover:text-theme-main'} ${isCollapsed ? 'justify-center' : 'px-3'}`}
                   >
                     <item.icon className={`shrink-0 transition-transform duration-200 group-hover:scale-110 w-4 h-4 ${isActive ? 'text-white' : ''}`} />
-                    {!isCollapsed && <span className="font-bold text-[11px] uppercase tracking-wider whitespace-nowrap overflow-hidden transition-all duration-300">{item.label}</span>}
-                    {isActive && !isCollapsed && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-theme-base" />}
+                    {!isCollapsed && <span className="font-bold text-[10.5px] uppercase whitespace-nowrap overflow-hidden transition-all duration-300 mt-1">{item.label}</span>}
+                    {isActive && !isCollapsed && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-theme-base animate-pulse" />}
                   </Link>
                 </Tooltip>
               );

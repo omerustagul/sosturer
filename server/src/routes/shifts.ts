@@ -7,12 +7,18 @@ const getCompanyId = (req: AuthRequest) => req.user?.companyId as string;
 
 router.get('/', async (req: AuthRequest, res) => {
   try {
+    const companyId = getCompanyId(req);
+    if (!companyId) return res.json([]);
+
     const shifts = await prisma.shift.findMany({
-      where: { companyId: getCompanyId(req) },
+      where: { companyId },
       orderBy: [{ displayOrder: 'asc' }, { shiftCode: 'asc' }],
     });
     res.json(shifts);
-  } catch (error) { res.status(500).json({ error: 'Failed to fetch shifts' }); }
+  } catch (error) { 
+    console.error('[Shifts] Fetch error:', error);
+    res.status(500).json({ error: 'Failed to fetch shifts' }); 
+  }
 });
 
 router.get('/:id', async (req: AuthRequest, res) => {

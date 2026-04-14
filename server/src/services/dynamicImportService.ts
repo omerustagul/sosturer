@@ -39,7 +39,7 @@ export class DynamicImportService {
 
     const ws = workbook.getWorksheet('Data') || workbook.worksheets[0];
     const totalRows = ws.actualRowCount - this.HEADER_ROW;
-    
+
     const parsedRows: any[] = [];
     const errors: any[] = [];
     const warnings: any[] = [];
@@ -93,7 +93,7 @@ export class DynamicImportService {
         const displayName = getDisplayName(field.name);
         // Find column by display name (or display name + *)
         const colIndex = headerMap[displayName] || headerMap[displayName + ' ★'];
-        
+
         if (!colIndex) {
           if (field.isRequired && !field.hasDefaultValue) {
             rowErrors.push(`Sütun bulunamadı: ${displayName}`);
@@ -102,7 +102,7 @@ export class DynamicImportService {
         }
 
         let value = row.getCell(colIndex).value;
-        
+
         // Handle lookup values (e.g. "Sabah | id-123" -> "id-123" or "Ahmet Yılmaz" -> mapped-id)
         if (typeof value === 'string') {
           let str = value.trim();
@@ -143,16 +143,16 @@ export class DynamicImportService {
 
     await prisma.$transaction(async (tx) => {
       const txModel = (tx as any)[modelName.charAt(0).toLowerCase() + modelName.slice(1)];
-      
+
       for (let i = 0; i < parsedRows.length; i++) {
         const data = parsedRows[i];
         const created = await txModel.create({ data });
         count++;
-        
+
         // Friendly log generator
         let identifier = '';
         if (data.productCode) identifier = `Ürün: ${data.productCode}`;
-        else if (data.code) identifier = `Tezgah: ${data.code}`;
+        else if (data.code) identifier = `Makine: ${data.code}`;
         else if (data.fullName) identifier = `Operatör: ${data.fullName}`;
         else if (data.shiftCode) identifier = `Vardiya: ${data.shiftCode}`;
         else if (data.productionDate) identifier = `Üretim Kaydı: ${new Date(data.productionDate).toLocaleDateString('tr-TR')}`;
@@ -207,7 +207,7 @@ export class DynamicImportService {
           if (['aktif', 'active', 'açık', 'etkin'].includes(lower)) return { val: 'active' };
           if (['pasif', 'passive', 'kapalı', 'devre dışı'].includes(lower)) return { val: 'passive' };
         }
-        
+
         if (strVal === '') {
           if (field.isRequired && !field.hasDefaultValue) return { val: null, error: 'Zorunlu alan boş bırakılamaz.' };
           return { val: null };
@@ -216,7 +216,7 @@ export class DynamicImportService {
         // Validate Foreign Keys structure (typically UUID which is 36 chars)
         // If a user types "Ahmet Yılmaz" (12 chars) instead of picking the UUID dropdown, it fails here
         if (field.name.endsWith('Id') && strVal.length < 20) {
-           return { val: null, error: `Hatalı Seçim ('${strVal}'). Lütfen hücreye elle kopyalama yapmak yerine Dropdown (Açılır Liste) menüsünden güncel seçimi yapınız.` };
+          return { val: null, error: `Hatalı Seçim ('${strVal}'). Lütfen hücreye elle kopyalama yapmak yerine Dropdown (Açılır Liste) menüsünden güncel seçimi yapınız.` };
         }
 
         return { val: strVal };

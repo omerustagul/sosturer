@@ -7,8 +7,8 @@ export const fieldTranslations: Record<string, string> = {
   'notes': 'Notlar',
 
   // Machine
-  'code': 'Tezgah/Vardiya Kodu',
-  'name': 'Tezgah Adı',
+  'code': 'Makine Kodu',
+  'name': 'Makine Adı',
   'brand': 'Marka',
   'model': 'Model',
   'installedDate': 'Kurulum Tarihi',
@@ -42,7 +42,7 @@ export const fieldTranslations: Record<string, string> = {
   // ProductionRecord
   'productionDate': 'Üretim Tarihi',
   'shiftId': 'Vardiya',
-  'machineId': 'Tezgah',
+  'machineId': 'Makine',
   'operatorId': 'Operatör',
   'productId': 'Ürün',
   'plannedQuantity': 'Planlanan Adet',
@@ -71,7 +71,7 @@ export const fieldTranslations: Record<string, string> = {
 
 export function getDisplayName(fieldName: string): string {
   if (fieldTranslations[fieldName]) return fieldTranslations[fieldName];
-  
+
   // Snake case to Title case if no translation
   return fieldName
     .replace(/([A-Z])/g, ' $1')

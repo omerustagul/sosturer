@@ -8,12 +8,18 @@ const getCompanyId = (req: AuthRequest) => req.user?.companyId;
 
 router.get('/', async (req: AuthRequest, res) => {
   try {
+    const companyId = getCompanyId(req);
+    if (!companyId) return res.json([]);
+
     const machines = await prisma.machine.findMany({
-      where: { companyId: getCompanyId(req) },
+      where: { companyId },
       orderBy: [{ displayOrder: 'asc' }, { createdAt: 'desc' }],
     });
     res.json(machines);
-  } catch (error) { res.status(500).json({ error: 'Failed to fetch machines' }); }
+  } catch (error) { 
+    console.error('[Machines] Fetch error:', error);
+    res.status(500).json({ error: 'Failed to fetch machines' }); 
+  }
 });
 
 router.get('/:id', async (req: AuthRequest, res) => {

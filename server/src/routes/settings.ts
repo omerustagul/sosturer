@@ -16,6 +16,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
     }
     res.json(settings);
   } catch (error) {
+    console.error('API Settings Error:', error);
     res.status(500).json({ error: 'Internal Server Error', message: String(error) });
   }
 });
@@ -34,7 +35,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
       'language', 'timezone', 'dataRetentionMonths', 'autoBackup', 'theme',
       'tableDensity', 'animationsEnabled', 'notificationsEnabled', 'twoFactorEnabled',
       'ipRestrictionEnabled', 'allowSupportAccess', 'sapIntegrationEnabled', 'webhooksEnabled',
-      'colorMode', 'dashboardLayout'
+      'colorMode', 'dashboardLayout', 'referenceLocationId', 'standardShiftIds'
     ];
     
     validFields.forEach(field => {

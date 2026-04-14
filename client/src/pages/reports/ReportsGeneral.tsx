@@ -13,6 +13,8 @@ import {
   Target,
   ChevronUp,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Info,
   Filter,
   User,
@@ -35,6 +37,7 @@ import {
 import { Loading } from '../../components/common/Loading';
 import { Tooltip } from '../../components/common/Tooltip';
 import { CustomSelect } from '../../components/common/CustomSelect';
+import { MissingProductionInsight } from '../../components/dashboard/MissingProductionInsight';
 
 export function ReportsGeneral() {
   const [loading, setLoading] = useState(true);
@@ -45,6 +48,7 @@ export function ReportsGeneral() {
   const [shifts, setShifts] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
+  const [missingProduction, setMissingProduction] = useState<any | null>(null);
 
   const [filters, setFilters] = useState({
     startDate: new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0],
@@ -57,6 +61,9 @@ export function ReportsGeneral() {
     category: 'all',
     brand: 'all'
   });
+
+  const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(0);
 
   const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' }>({
     key: 'produced',
@@ -92,7 +99,6 @@ export function ReportsGeneral() {
     init();
   }, []);
 
-  // Unique values from products for metadata filtering
   const productMeta = useMemo(() => {
     const groups = new Set<string>();
     const categories = new Set<string>();
@@ -122,6 +128,13 @@ export function ReportsGeneral() {
         const endpoint = `/production-records${params.toString() ? `?${params.toString()}` : ''}`;
         const data = await api.get(endpoint);
         setRecords(data);
+        const mp = new URLSearchParams();
+        if (filters.startDate) mp.set('start', filters.startDate);
+        if (filters.endDate) mp.set('end', filters.endDate);
+        if (filters.machineId !== 'all') mp.set('machineId', filters.machineId);
+        if (filters.shiftId !== 'all') mp.set('shiftId', filters.shiftId);
+        const missing = await api.get(`/analytics/missing-production?${mp.toString()}`);
+        setMissingProduction(missing);
       } catch (e) {
         console.error('Failed to load records', e);
       } finally {
@@ -129,7 +142,7 @@ export function ReportsGeneral() {
       }
     }
     if (!loading) loadData();
-  }, [filters.startDate, filters.endDate, loading]);
+  }, [filters.startDate, filters.endDate, filters.machineId, filters.shiftId, loading]);
 
   const filteredRecords = useMemo(() => {
     return records.filter(r => {
@@ -140,19 +153,17 @@ export function ReportsGeneral() {
       const matchGroup = filters.productGroup === 'all' || r.product?.productGroup === filters.productGroup;
       const matchCategory = filters.category === 'all' || r.product?.category === filters.category;
       const matchBrand = filters.brand === 'all' || r.product?.brand === filters.brand;
-      
+
       return matchMachine && matchOperator && matchShift && matchProduct && matchGroup && matchCategory && matchBrand;
     });
   }, [records, filters]);
 
-  // Consolidated KPIs
   const kpis = useMemo(() => {
     if (filteredRecords.length === 0) return { totalProduced: 0, avgOee: 0, totalDowntime: 0, avgQuality: 0 };
 
     const totalProduced = filteredRecords.reduce((sum, r) => sum + (r.producedQuantity || 0), 0);
     const avgOee = filteredRecords.reduce((sum, r) => sum + (r.oee || 0), 0) / filteredRecords.length;
 
-    // Correctly calculate total downtime using unique shift-machine keys
     const shiftKeys = new Set<string>();
     let totalDowntime = 0;
 
@@ -174,7 +185,6 @@ export function ReportsGeneral() {
     };
   }, [filteredRecords]);
 
-  // Weekly Trend Data
   const trendData = useMemo(() => {
     const daily: Record<string, any> = {};
     filteredRecords.forEach(r => {
@@ -193,7 +203,6 @@ export function ReportsGeneral() {
     })).sort((a, b) => a.date.localeCompare(b.date));
   }, [filteredRecords]);
 
-  // Machine Comparison Data
   const machineComparison = useMemo(() => {
     const stats: Record<string, any> = {};
     const machineShiftKeys = new Set<string>();
@@ -257,6 +266,15 @@ export function ReportsGeneral() {
     });
   }, [machineComparison, sortConfig]);
 
+  const paginatedComparison = useMemo(() => {
+    return sortedMachineComparison.slice(
+      currentPage * pageSize,
+      (currentPage + 1) * pageSize
+    );
+  }, [sortedMachineComparison, currentPage, pageSize]);
+
+  const pageCount = Math.ceil(sortedMachineComparison.length / pageSize);
+
   const footerTotals = useMemo(() => {
     if (sortedMachineComparison.length === 0) return null;
     return sortedMachineComparison.reduce((acc, curr) => ({
@@ -283,7 +301,7 @@ export function ReportsGeneral() {
       if (filters.productGroup !== 'all') params.set('productGroup', filters.productGroup);
       if (filters.category !== 'all') params.set('category', filters.category);
       if (filters.brand !== 'all') params.set('brand', filters.brand);
-      
+
       await api.download(`/reports/excel/export?${params.toString()}`, `Genel_Uretim_Raporu_${filters.startDate}_${filters.endDate}.xlsx`);
     } catch (e) {
       alert('Dışa aktarma başarısız oldu.');
@@ -307,14 +325,14 @@ export function ReportsGeneral() {
   if (loading) return <Loading size="lg" fullScreen />;
 
   return (
-    <div className="p-6 lg:p-10 w-full space-y-8 animate-in fade-in duration-700 bg-theme-base">
+    <div className="p-4 lg:p-6 w-full space-y-8 animate-in fade-in duration-700 bg-theme-base">
       {/* Header */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
         <div>
-          <h2 className="text-3xl font-black text-theme-main tracking-tight flex items-center gap-3">
-            <BarChart3 className="w-10 h-10 text-theme-primary" /> GENEL ÜRETİM RAPORU
+          <h2 className="text-xl font-black text-theme-main tracking-tight flex items-center gap-2">
+            <BarChart3 className="w-6 h-6 text-theme-primary" /> GENEL ÜRETİM RAPORU
           </h2>
-          <p className="text-theme-muted text-sm mt-1 font-medium italic">Tüm işletme operasyonlarının konsolide görünümü ve karşılaştırmalı analizi.</p>
+          <p className="text-theme-muted text-xs mt-1 font-medium">Tüm işletme operasyonlarının konsolide görünümü ve karşılaştırmalı analizi.</p>
         </div>
         <div className="flex gap-4 w-full lg:w-auto">
           <button
@@ -327,7 +345,7 @@ export function ReportsGeneral() {
       </div>
 
       {/* Filter Section */}
-      <div className="bg-theme-card backdrop-blur-xl border border-theme rounded-2xl p-6 space-y-6 shadow-2xl overflow-visible">
+      <div className="modern-glass-card p-6 space-y-6">
         <div className="flex flex-wrap gap-6 items-end">
           <div className="flex-1 min-w-[200px] space-y-2">
             <label className="text-[10px] font-black text-theme-dim uppercase tracking-widest flex items-center gap-2 px-1">
@@ -353,10 +371,10 @@ export function ReportsGeneral() {
           </div>
           <div className="flex-1 min-w-[200px] space-y-2">
             <label className="text-[10px] font-black text-theme-dim uppercase tracking-widest flex items-center gap-2 px-1">
-              <Factory size={12} /> TEZGAH
+              <Factory size={12} /> MAKİNE
             </label>
             <CustomSelect
-              options={[{ id: 'all', label: 'Tüm Tezgahlar' }, ...machines.map(m => ({ id: m.id, label: m.code, subLabel: m.name }))]}
+              options={[{ id: 'all', label: 'Tüm Makinalar' }, ...machines.map(m => ({ id: m.id, label: m.code, subLabel: m.name }))]}
               value={filters.machineId}
               onChange={(val) => setFilters(prev => ({ ...prev, machineId: val }))}
             />
@@ -464,9 +482,11 @@ export function ReportsGeneral() {
             <KpiCard title="KALİTE SKORU" value={`%${kpis.avgQuality}`} unit="Başarı" icon={CheckCircle2} color="emerald" />
           </div>
 
+
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Trend Chart */}
-            <div className="bg-theme-card backdrop-blur-xl border border-theme rounded-2xl p-8 shadow-2xl">
+            <div className="modern-glass-card">
               <h3 className="text-lg font-black text-theme-main mb-6 flex items-center gap-3">
                 <TrendingUp className="w-5 h-5 text-theme-primary" /> GÜNLÜK ÜRETİM TRENDİ
               </h3>
@@ -493,9 +513,9 @@ export function ReportsGeneral() {
             </div>
 
             {/* Machine Bar Chart */}
-            <div className="bg-theme-card backdrop-blur-xl border border-theme rounded-2xl p-8 shadow-2xl">
+            <div className="modern-glass-card">
               <h3 className="text-lg font-black text-theme-main mb-6 flex items-center gap-3">
-                <Target className="w-5 h-5 text-theme-primary" /> TEZGAH PERFORMANS KIYASLAMASI
+                <Target className="w-5 h-5 text-theme-primary" /> MAKİNE PERFORMANS KIYASLAMASI
               </h3>
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
@@ -516,13 +536,13 @@ export function ReportsGeneral() {
           </div>
 
           {/* Detailed Matrix Table */}
-          <div className="bg-theme-card backdrop-blur-xl border border-theme rounded-2xl overflow-hidden shadow-2xl ring-1 ring-theme-main/5">
+          <div className="modern-glass-card p-0 overflow-hidden">
             <div className="p-6 border-b border-theme bg-theme-surface/30 flex items-center justify-between">
               <h3 className="text-sm font-black text-theme-muted uppercase tracking-widest flex items-center gap-2">
                 <Activity size={16} className="text-theme-primary" /> OPERASYONEL VERİMLİLİK MATRİSİ
               </h3>
               <span className="text-[10px] font-bold bg-theme-primary/10 text-theme-primary px-3 py-1 rounded-full border border-theme-primary/20 uppercase tracking-widest">
-                {machineComparison.length} TEZGAH ANALİZ EDİLDİ
+                {machineComparison.length} MAKİNE ANALİZ EDİLDİ
               </span>
             </div>
             <div className="overflow-x-auto">
@@ -534,7 +554,7 @@ export function ReportsGeneral() {
                       className="w-1/9 px-4 py-5 text-[11px] font-black text-theme-dim tracking-widest cursor-pointer hover:text-theme-main transition-colors border-b border-theme"
                     >
                       <div className="flex items-center gap-2">
-                        Tezgah {sortConfig.key === 'name' && (sortConfig.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
+                        Makine {sortConfig.key === 'name' && (sortConfig.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
                       </div>
                     </th>
                     <th
@@ -604,7 +624,7 @@ export function ReportsGeneral() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-theme/30 font-bold overflow-hidden">
-                  {sortedMachineComparison.map((m, idx) => (
+                  {paginatedComparison.map((m, idx) => (
                     <tr key={idx} className="group hover:bg-theme-primary/5 transition-all duration-300">
                       <td className="w-1/9 px-4 py-4">
                         <div className="flex items-center gap-3">
@@ -638,7 +658,7 @@ export function ReportsGeneral() {
                       <td colSpan={9} className="py-24 text-center">
                         <div className="flex flex-col items-center gap-3 opacity-20">
                           <Info size={48} className="text-theme-muted" />
-                           <p className="text-theme-muted font-black uppercase tracking-widest text-[13px]">Veri bulunamadı.</p>
+                          <p className="text-theme-muted font-black uppercase tracking-widest text-[13px]">Veri bulunamadı.</p>
                         </div>
                       </td>
                     </tr>
@@ -665,7 +685,75 @@ export function ReportsGeneral() {
                 )}
               </table>
             </div>
+
+            {/* Pagination Controls */}
+            <div className="p-4 border-t border-theme bg-theme-base/20 flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="flex items-center gap-6 order-2 md:order-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-black text-theme-dim whitespace-nowrap uppercase tracking-widest">SAYFADA:</span>
+                  <div className="w-24">
+                    <CustomSelect
+                      options={[
+                        { id: 10, label: '10' },
+                        { id: 50, label: '50' },
+                        { id: 250, label: '250' },
+                        { id: 500, label: '500' },
+                        { id: 1000, label: '1000' },
+                        { id: 999999, label: 'Tümü' }
+                      ]}
+                      value={pageSize}
+                      onChange={value => {
+                        setPageSize(Number(value));
+                        setCurrentPage(0);
+                      }}
+                      searchable={false}
+                    />
+                  </div>
+                </div>
+                <div className="h-4 w-px bg-theme hidden md:block" />
+                <span className="text-[11px] font-black text-theme-dim uppercase tracking-widest">
+                  TOPLAM <span className="text-theme-primary">{sortedMachineComparison.length}</span> KAYIT
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3 order-1 md:order-2">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
+                  disabled={currentPage === 0}
+                  className="p-3 rounded-xl bg-theme-base border border-theme text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+                >
+                  <ChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
+                </button>
+
+                <div className="flex items-center gap-2 px-4 py-2 bg-theme-base border border-theme rounded-2xl">
+                  <span className="text-theme-primary font-black text-sm min-w-[20px] text-center">
+                    {currentPage + 1}
+                  </span>
+                  <span className="text-theme-dim font-bold text-xs uppercase tracking-widest">/</span>
+                  <span className="text-theme-muted font-black text-sm min-w-[20px] text-center">
+                    {pageCount || 1}
+                  </span>
+                </div>
+
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(pageCount - 1, prev + 1))}
+                  disabled={currentPage >= pageCount - 1}
+                  className="p-3 rounded-xl bg-theme-base border border-theme text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+                >
+                  <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+                </button>
+              </div>
+            </div>
           </div>
+          {missingProduction?.summary?.missingEntries > 0 && (
+            <div className="mt-8">
+              <MissingProductionInsight
+                data={missingProduction}
+                machines={machines.map((m) => ({ id: m.id, code: m.code, name: m.name }))}
+                title="Eksik Üretim Kayıtları (Rapor Tarih Aralığı)"
+              />
+            </div>
+          )}
         </>
       )}
     </div>

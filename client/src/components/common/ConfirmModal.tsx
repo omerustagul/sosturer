@@ -65,11 +65,11 @@ export function ConfirmModal({
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 animate-in fade-in duration-500 overflow-hidden">
       {/* Background with deep blur and dark overlay */}
       <div
-        className="absolute inset-0 bg-theme-sidebar/10 backdrop-blur-xs"
+        className="absolute inset-0 bg-theme-surface/60 backdrop-blur-xs"
         onClick={onClose}
       />
 
-      <div className={`relative w-auto max-w-xl bg-theme-card border border-white/10 rounded-2xl p-4 shadow-[0_32px_128px_rgba(0,0,0,0.2)] animate-in zoom-in-95 slide-in-from-bottom-10 duration-700 overflow-hidden ring-1 ring-white/10`}>
+      <div className={`relative w-auto max-w-lg bg-theme-card border border-white/10 rounded-2xl p-4 shadow-[0_32px_128px_rgba(0,0,0,0.2)] animate-in zoom-in-95 slide-in-from-bottom-10 duration-700 overflow-hidden ring-1 ring-white/10`}>
 
         {/* Animated background glow */}
         <div className={`absolute -top-32 -right-32 w-64 h-64 ${style.bg} transition-all duration-1000 blur-[120px] rounded-full animate-pulse`} />
@@ -88,10 +88,10 @@ export function ConfirmModal({
           </div>
 
           <div className="space-y-3 px-2">
-            <h3 className="text-2xl font-black text-theme-main tracking-tight uppercase leading-tight">
+            <h3 className="text-xl font-black text-theme-main tracking-tight uppercase leading-tight">
               {title}
             </h3>
-            <p className="text-theme-muted text-xs font-bold leading-relaxed opacity-80">
+            <p className="text-theme-muted text-xs font-bold leading-relaxed">
               {message}
             </p>
           </div>
@@ -99,7 +99,7 @@ export function ConfirmModal({
           <div className="flex flex-col sm:flex-row gap-4 w-full pt-4">
             <button
               onClick={onClose}
-              className="flex-1 px-8 py-4 bg-white/5 hover:bg-white/10 text-theme-dim hover:text-theme-main font-black rounded-2xl border border-white/10 transition-all text-[10px] tracking-[0.2em] active:scale-95 uppercase"
+              className="flex-1 px-4 py-2 h-10 bg-theme-main/5 hover:bg-theme-danger/10 text-theme-dim hover:text-theme-danger font-black rounded-xl border border-white/10 transition-all text-[10px] active:scale-95 uppercase"
             >
               {cancelLabel}
             </button>
@@ -108,7 +108,7 @@ export function ConfirmModal({
                 onConfirm();
                 onClose();
               }}
-              className={`flex-1 px-8 py-4 ${style.button} text-white font-black rounded-2xl shadow-2xl transition-all text-[10px] tracking-[0.2em] active:scale-95 flex items-center justify-center gap-3 uppercase`}
+              className={`flex-1 px-4 py-2 h-10 ${style.button} text-white font-black rounded-xl shadow-2xl transition-all text-[10px] active:scale-95 flex items-center justify-center gap-3 uppercase`}
             >
               <Check className="w-4 h-4" />
               {confirmLabel}

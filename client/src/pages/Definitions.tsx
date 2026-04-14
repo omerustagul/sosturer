@@ -4,14 +4,16 @@ import { api } from '../lib/api';
 import {
   Database, Factory, Users, Clock, Package,
   Plus, Trash2, Edit, FileUp, Download, UploadCloud,
-  CheckCircle2, AlertCircle, List, ChevronLeft, ChevronRight, Search, XCircle, Info, Settings, LayoutGrid
+  CheckCircle2, AlertCircle, List, ChevronLeft, ChevronRight, Search, Info, Settings, LayoutGrid,
+  Warehouse, Building2
 } from 'lucide-react';
 import { Loading } from '../components/common/Loading';
 import { CustomSelect } from '../components/common/CustomSelect';
+import { BulkActionBar } from '../components/common/BulkActionBar';
 import { ConfirmModal } from '../components/common/ConfirmModal';
 import { SortableTableBody, SortableTableProvider } from '../components/common/SortableTable';
 
-type TabType = 'machines' | 'operators' | 'shifts' | 'products' | 'departments' | 'department-roles' | 'import';
+type TabType = 'machines' | 'operators' | 'shifts' | 'products' | 'work-centers' | 'warehouses' | 'department-roles' | 'import';
 
 // Helper for Turkish characters in uppercase
 const toTRUpper = (str: string) => (str || '').toLocaleUpperCase('tr-TR');
@@ -22,6 +24,8 @@ export function Definitions() {
   const [data, setData] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
   const [roles, setRoles] = useState<any[]>([]);
+  const [companyUnits, setCompanyUnits] = useState<any[]>([]);   // departments from /company/units (with locationId)
+  const [companyLocations, setCompanyLocations] = useState<any[]>([]); // locations from /company/locations
   const [loading, setLoading] = useState(false);
 
   // Form states
@@ -56,6 +60,9 @@ export function Definitions() {
   const [isBulkEditing, setIsBulkEditing] = useState(false);
   const [localChanges, setLocalChanges] = useState<Record<string, any>>({});
 
+  const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(0);
+
   const updateLocalChanges = (id: string, field: string, value: any) => {
     setLocalChanges(prev => ({
       ...prev,
@@ -70,7 +77,7 @@ export function Definitions() {
     if (selectedIds.size === filteredData.length && filteredData.length > 0) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(filteredData.map(item => item.id)));
+      setSelectedIds(new Set(filteredData.map((item: any) => item.id)));
     }
   };
 
@@ -90,20 +97,29 @@ export function Definitions() {
   const [uploadStatus, setUploadStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [importLogs, setImportLogs] = useState<string[]>([]);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+  const API_URL = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3005/api`;
 
   const fetchData = async () => {
     if (activeTab === 'import') return;
     setLoading(true);
     try {
-      const [res, depsRes, rolesRes] = await Promise.all([
-        api.get(`/${activeTab}`).catch(() => []),
+      // For warehouses tab: fetch company units (departments) and locations to allow linking
+      const [res, depsRes, rolesRes, unitsRes, locsRes] = await Promise.all([
+        activeTab === 'warehouses'
+          ? api.get('/inventory/warehouses').catch(() => [])
+          : activeTab === 'work-centers'
+            ? api.get('/system/company/units').catch(() => [])
+            : api.get(`/${activeTab}`).catch(() => []),
         api.get('/departments').catch(() => []),
-        api.get('/department-roles').catch(() => [])
+        api.get('/department-roles').catch(() => []),
+        api.get('/system/company/units').catch(() => []),
+        api.get('/system/company/locations').catch(() => []),
       ]);
       setData(Array.isArray(res) ? res : []);
       setDepartments(Array.isArray(depsRes) ? depsRes : []);
       setRoles(Array.isArray(rolesRes) ? rolesRes : []);
+      setCompanyUnits(Array.isArray(unitsRes) ? unitsRes : []);
+      setCompanyLocations(Array.isArray(locsRes) ? locsRes : []);
     } catch (e) {
       console.error(`Error loading ${activeTab}:`, e);
       setData([]);
@@ -116,8 +132,9 @@ export function Definitions() {
     // Optimistic update
     setData(newOrder);
 
+    const endpoint = activeTab === 'work-centers' ? '/departments' : activeTab === 'warehouses' ? '/inventory/warehouses' : `/${activeTab}`;
     try {
-      await api.post(`/${activeTab}/reorder`, {
+      await api.post(`${endpoint}/reorder`, {
         ids: newOrder.map(item => item.id)
       });
     } catch (e) {
@@ -148,6 +165,7 @@ export function Definitions() {
     setSelectedIds(new Set()); // Reset selection when tab changes
     setIsBulkEditing(false);
     setLocalChanges({});
+    setCurrentPage(0); // Reset page when tab changes
   }, [activeTab]);
 
   const handleSort = (key: string) => {
@@ -185,8 +203,7 @@ export function Definitions() {
     if (!searchTerm) return sortedData;
 
     const lowerSearch = searchTerm.toLowerCase();
-    return sortedData.filter(item => {
-      // Search in different fields based on active tab
+    return sortedData.filter((item: any) => {
       if (activeTab === 'machines') {
         return (
           item.code?.toLowerCase().includes(lowerSearch) ||
@@ -213,10 +230,15 @@ export function Definitions() {
           item.productGroup?.toLowerCase().includes(lowerSearch) ||
           item.category?.toLowerCase().includes(lowerSearch)
         );
-      } else if (activeTab === 'departments') {
+      } else if (activeTab === 'work-centers') {
         return (
           item.name?.toLowerCase().includes(lowerSearch) ||
           item.code?.toLowerCase().includes(lowerSearch)
+        );
+      } else if (activeTab === 'warehouses') {
+        return (
+          item.name?.toLowerCase().includes(lowerSearch) ||
+          item.type?.toLowerCase().includes(lowerSearch)
         );
       } else if (activeTab === 'department-roles') {
         return (
@@ -228,9 +250,18 @@ export function Definitions() {
     });
   }, [sortedData, searchTerm, activeTab]);
 
+  const paginatedData = useMemo(() => {
+    return filteredData.slice(
+      currentPage * pageSize,
+      (currentPage + 1) * pageSize
+    );
+  }, [filteredData, currentPage, pageSize]);
+
+  const pageCount = Math.ceil(filteredData.length / pageSize);
+
   const SortHeader = ({ label, sortKey }: { label: string; sortKey: string }) => (
     <th
-      className="px-6 text-[10px] font-black text-theme-muted uppercase tracking-widest cursor-pointer group hover:text-theme-primary transition-colors whitespace-nowrap"
+      className="px-2 py-3 text-[10px] font-black text-theme-muted uppercase tracking-widest cursor-pointer hover:text-theme-primary transition-colors whitespace-nowrap text-center"
       onClick={() => handleSort(sortKey)}
     >
       <div className="flex items-center gap-1">
@@ -243,6 +274,13 @@ export function Definitions() {
     </th>
   );
 
+  // Determine the correct API endpoint for CRUD operations
+  const getEndpoint = () => {
+    if (activeTab === 'work-centers') return '/system/company/units';
+    if (activeTab === 'warehouses') return '/inventory/warehouses';
+    return `/${activeTab}`;
+  };
+
   const handleDelete = (id: string) => {
     setConfirmModal({
       isOpen: true,
@@ -251,7 +289,7 @@ export function Definitions() {
       type: 'danger',
       onConfirm: async () => {
         try {
-          await api.delete(`/${activeTab}/${id}`);
+          await api.delete(`${getEndpoint()}/${id}`);
           fetchData();
         } catch (e) {
           alert('Kayıt silinirken bir hata oluştu veya bu kayıt başka bir işlemde kullanılıyor.');
@@ -275,7 +313,7 @@ export function Definitions() {
       type: 'danger',
       onConfirm: async () => {
         try {
-          await api.post(`/${activeTab}/bulk-delete`, { ids: Array.from(selectedIds) });
+          await api.post(`${getEndpoint()}/bulk-delete`, { ids: Array.from(selectedIds) });
           setSelectedIds(new Set());
           fetchData();
         } catch (e) {
@@ -295,7 +333,7 @@ export function Definitions() {
       type: 'warning',
       onConfirm: async () => {
         try {
-          await api.post(`/${activeTab}/bulk-update-status`, { ids: Array.from(selectedIds), status });
+          await api.post(`${getEndpoint()}/bulk-update-status`, { ids: Array.from(selectedIds), status });
           setSelectedIds(new Set());
           fetchData();
         } catch (e) {
@@ -314,14 +352,14 @@ export function Definitions() {
 
     setLoading(true);
     try {
-      await api.post(`/${activeTab}/bulk-update`, { updates });
+      await api.post(`${getEndpoint()}/bulk-update`, { updates });
       setIsBulkEditing(false);
       setLocalChanges({});
       setSelectedIds(new Set());
       fetchData();
     } catch (e: any) {
       const errorMsg = e.response?.data?.error || 'Toplu kaydetme başarısız oldu.';
-      alert(`${errorMsg}\n\nLütfen girdiğiniz tüm kodların (Tezgah Kodu, Operatör ID vb.) benzersiz olduğundan ve zorunlu alanların dolu olduğundan emin olun.`);
+      alert(`${errorMsg}\n\nLütfen girdiğiniz tüm kodların (Makine Kodu, Operatör ID vb.) benzersiz olduğundan ve zorunlu alanların dolu olduğundan emin olun.`);
     } finally {
       setLoading(false);
     }
@@ -339,7 +377,7 @@ export function Definitions() {
       onConfirm: async () => {
         try {
           const { id, createdAt, updatedAt, ...rest } = item;
-          await api.put(`/${activeTab}/${id}`, { ...rest, status: newStatus });
+          await api.put(`${getEndpoint()}/${id}`, { ...rest, status: newStatus });
           fetchData();
         } catch (e) {
           alert('Durum güncellenirken bir hata oluştu.');
@@ -355,9 +393,9 @@ export function Definitions() {
       const dataToSave = { ...rest, status: formData.status || 'active' };
 
       if (isEditing) {
-        await api.put(`/${activeTab}/${id}`, dataToSave);
+        await api.put(`${getEndpoint()}/${id}`, dataToSave);
       } else {
-        await api.post(`/${activeTab}`, dataToSave);
+        await api.post(getEndpoint(), dataToSave);
       }
       setShowAddForm(false);
       setIsEditing(false);
@@ -421,34 +459,91 @@ export function Definitions() {
     }
   };
 
+  // Build unit options grouped by location for the warehouses tab
+  const unitOptionsByLocation = useMemo(() => {
+    const grouped: { locationName: string; units: { id: string; label: string; subLabel: string }[] }[] = [];
+    const noLocationUnits: { id: string; label: string; subLabel: string }[] = [];
+
+    companyUnits.forEach((u: any) => {
+      const loc = companyLocations.find(l => l.id === u.locationId);
+      const unitEntry = { id: u.id, label: u.name, subLabel: loc?.name || 'Lokasyon yok' };
+      if (loc) {
+        const existing = grouped.find(g => g.locationName === loc.name);
+        if (existing) {
+          existing.units.push(unitEntry);
+        } else {
+          grouped.push({ locationName: loc.name, units: [unitEntry] });
+        }
+      } else {
+        noLocationUnits.push(unitEntry);
+      }
+    });
+    if (noLocationUnits.length > 0) {
+      grouped.push({ locationName: 'Lokasyon Atanmamış', units: noLocationUnits });
+    }
+    return grouped;
+  }, [companyUnits, companyLocations]);
+
+  // Flat unit options for CustomSelect in warehouse form
+  const flatUnitOptions = useMemo(() => {
+    return [
+      { id: '', label: 'Birim Bağlantısı Yok' },
+      ...unitOptionsByLocation.flatMap(g =>
+        g.units.map(u => ({ id: u.id, label: u.label, subLabel: `📍 ${g.locationName}` }))
+      )
+    ];
+  }, [unitOptionsByLocation]);
+
   const tabs = [
-    { id: 'machines', label: 'Tezgahlar', icon: Factory },
+    { id: 'machines', label: 'Makineler', icon: Factory },
     { id: 'operators', label: 'Personeller', icon: Users },
-    { id: 'departments', label: 'Departmanlar', icon: LayoutGrid },
-    { id: 'department-roles', label: 'Roller / Görevler', icon: Settings },
     { id: 'shifts', label: 'Vardiyalar', icon: Clock },
     { id: 'products', label: 'Ürün Kütüphanesi', icon: Package },
+    {
+      id: '_group_departments',
+      label: 'DEPARTMANLAR',
+      isGroupHeader: true,
+      icon: LayoutGrid
+    },
+    { id: 'work-centers', label: 'İş Merkezleri', icon: Building2, indent: true },
+    { id: 'warehouses', label: 'Depolar', icon: Warehouse, indent: true },
+    { id: 'department-roles', label: 'Roller / Görevler', icon: Settings, indent: true },
     { id: 'import', label: 'Veri Aktarımı', icon: FileUp }
   ];
 
+  const tabLabel = () => {
+    if (activeTab === 'work-centers') return 'İŞ MERKEZLERİ';
+    if (activeTab === 'warehouses') return 'DEPOLAR';
+    const found = tabs.find(t => t.id === activeTab);
+    return toTRUpper(found?.label ?? '');
+  };
+
   return (
-    <div className="p-6 lg:p-8 w-full space-y-8 animate-in fade-in duration-500">
+    <div className="p-4 lg:p-6 w-full space-y-8 animate-in fade-in duration-500">
       <div>
         <h2 className="text-2xl font-black text-theme-main flex items-center gap-4 tracking-tight">
           <Database className="w-8 h-8 text-theme-primary" /> SİSTEM TANIMLARI
         </h2>
-        <p className="text-theme-muted text-sm mt-1">Tezgah, operatör ve ürün gibi <strong className="text-theme-primary">temel sistem tanımlamalarını</strong> buradan yönetebilirsiniz.</p>
+        <p className="text-theme-muted text-sm mt-1">Makine, operatör ve ürün gibi <strong className="text-theme-primary">temel sistem tanımlamalarını</strong> buradan yönetebilirsiniz.</p>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-8">
-        <div className="w-54 space-y-2 shrink-0">
+        <div className="w-54 space-y-1 shrink-0">
           {tabs.map((tab) => {
+            if ((tab as any).isGroupHeader) {
+              return (
+                <div key={tab.id} className="pt-3 pb-1 px-2">
+                  <span className="text-[9px] font-black text-theme-dim uppercase tracking-[0.2em]">{tab.label}</span>
+                </div>
+              );
+            }
             const isActive = activeTab === tab.id;
+            const indent = (tab as any).indent;
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as TabType)}
-                className={`w-full flex items-center gap-3 px-3 py-3 rounded-2xl transition-all font-bold text-sm border-2 ${isActive ? 'bg-theme-primary/10 border-theme-primary text-theme-primary shadow-xl shadow-theme-primary/10'
+                className={`w-full flex items-center gap-3 p-2 rounded-xl transition-all font-bold text-xs border-2 ${indent ? 'ml-2 w-[calc(100%-8px)]' : ''} ${isActive ? 'bg-theme-primary/10 border-theme-primary text-theme-primary shadow-xl shadow-theme-primary/10'
                   : 'text-theme-dim border-transparent hover:border-theme-muted hover:text-theme-muted'
                   }`}
               >
@@ -459,10 +554,10 @@ export function Definitions() {
           })}
         </div>
 
-        <div className="flex-1 bg-theme-surface/40 backdrop-blur-xl border border-theme rounded-2xl shadow-2xl overflow-hidden flex flex-col" style={{ height: 'calc(100vh - 240px)' }}>
+        <div className="modern-glass-card w-full overflow-hidden flex flex-col p-0" style={{ height: 'calc(70vh)' }}>
           {activeTab === 'import' ? (
-            <div className="p-10 space-y-10 overflow-y-auto">
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 pb-8 border-b border-theme">
+            <div className="space-y-4 overflow-y-auto">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 p-4 border-b border-theme">
                 <div>
                   <h3 className="text-2xl font-black text-theme-main tracking-tight">TOPLU VERİ AKTARIMI</h3>
                   <p className="text-theme-muted font-medium">Excel üzerinden sisteme hızlıca veri enjekte edin.</p>
@@ -475,9 +570,9 @@ export function Definitions() {
                     options={[
                       { id: 'production_records', label: 'Üretim Kayıtları' },
                       { id: 'products', label: 'Ürün Kütüphanesi' },
-                      { id: 'machines', label: 'Tezgahlar' },
+                      { id: 'machines', label: 'Makineler' },
                       { id: 'operators', label: 'Personeller' },
-                      { id: 'departments', label: 'Departmanlar' },
+                      { id: 'departments', label: 'İş Merkezleri' },
                       { id: 'department_roles', label: 'Roller / Görevler' },
                       { id: 'shifts', label: 'Vardiyalar' }
                     ]}
@@ -486,7 +581,7 @@ export function Definitions() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-10">
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 p-4">
                 <div className="space-y-8">
                   <div className="p-8 bg-theme-primary/5 rounded-2xl border-2 border-dashed border-theme-primary/20 text-center space-y-4">
                     <Download className="w-10 h-10 text-theme-primary mx-auto" />
@@ -575,11 +670,233 @@ export function Definitions() {
                 </div>
               </div>
             </div>
+          ) : (activeTab === 'warehouses' || activeTab === 'work-centers') ? (
+            // ─── GROUPED VIEW (DEPOLAR & İŞ MERKEZLERİ) ──────────────────────
+            <>
+              <div className="p-4 border-b border-theme flex justify-between items-center bg-theme-base/20 gap-4">
+                <div>
+                  <h3 className="text-lg font-bold text-theme-main tracking-tight uppercase">{activeTab === 'warehouses' ? 'DEPOLAR' : 'İŞ MERKEZLERİ'}</h3>
+                  <p className="text-[10px] font-bold text-theme-muted mt-0.5">
+                    {activeTab === 'warehouses' 
+                      ? 'Şirket lokasyonlarındaki depo birimlerini buradan tanımlayın ve yönetin.' 
+                      : 'Üretim süreçlerinin gerçekleştiği ana operasyonel birimler.'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="relative group">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-theme-muted group-focus-within:text-theme-primary transition-colors" />
+                    <input
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      placeholder="Ara..."
+                      className="w-64 h-10 bg-theme-surface border-2 border-theme rounded-xl pl-8 pr-4 py-2 text-sm text-theme-main focus:outline-none focus:border-theme-primary/50 transition-all font-bold"
+                    />
+                  </div>
+                  <button
+                    onClick={() => { setShowAddForm(!showAddForm); setIsEditing(false); setFormData({}); }}
+                    className="bg-theme-primary hover:bg-theme-primary-hover h-10 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-xl shadow-theme-primary/20 flex items-center gap-2 group hover:scale-95"
+                  >
+                    <Plus className="w-4 h-4" /> Yeni Ekle
+                  </button>
+                </div>
+              </div>
+
+              {showAddForm && (
+                <form onSubmit={handleSave} className="flex flex-col bg-theme-surface border-b border-theme animate-in slide-in-from-top-4 duration-300 overflow-hidden" style={{ maxHeight: '80%' }}>
+                  <div className="flex-1 overflow-y-auto p-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {activeTab === 'warehouses' ? (
+                        <>
+                          <div className="space-y-1">
+                            <label className="label-sm">DEPO ADI</label>
+                            <input required value={formData.name || ''} className="form-input" onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="örn. MAMÜL DEPO" />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="label-sm">DEPO TİPİ</label>
+                            <CustomSelect
+                              options={[
+                                { id: 'general', label: 'Genel Depo' },
+                                { id: 'raw', label: 'Hammadde Deposu' },
+                                { id: 'finished', label: 'Mamül Deposu' },
+                                { id: 'semifinished', label: 'Yarı Mamül Deposu' },
+                                { id: 'consumable', label: 'Sarf Malzeme Deposu' },
+                                { id: 'scrap', label: 'Fire / Hurda' },
+                                { id: 'workcenter', label: 'İş Merkezi' },
+                              ]}
+                              value={formData.type || 'general'}
+                              onChange={(val) => setFormData({ ...formData, type: val })}
+                              searchable={false}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="label-sm">DURUM</label>
+                            <CustomSelect
+                              options={[{ id: 'active', label: 'Aktif' }, { id: 'passive', label: 'Pasif' }]}
+                              value={formData.status || 'active'}
+                              onChange={(val) => setFormData({ ...formData, status: val })}
+                              searchable={false}
+                            />
+                          </div>
+                          <div className="space-y-1 md:col-span-2 lg:col-span-3">
+                            <label className="label-sm">LOKASYON BİRİMİ (Şirket Yapısından Seçin)</label>
+                            <CustomSelect
+                              options={flatUnitOptions}
+                              value={formData.unitId || ''}
+                              onChange={(val) => setFormData({ ...formData, unitId: val || null })}
+                              placeholder="Bağlanacak birimi seçin (isteğe bağlı)"
+                            />
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="space-y-1">
+                            <label className="label-sm">İŞ MERKEZİ ADI</label>
+                            <input required value={formData.name || ''} className="form-input" onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="örn. CNC-1 KESİM" />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="label-sm">LOKASYON</label>
+                            <CustomSelect
+                              options={companyLocations.map(l => ({ id: l.id, label: l.name }))}
+                              value={formData.locationId || ''}
+                              onChange={(val) => setFormData({ ...formData, locationId: val })}
+                              placeholder="Lokasyon Seçin"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="label-sm">DURUM</label>
+                            <CustomSelect
+                              options={[{ id: 'active', label: 'Aktif' }, { id: 'passive', label: 'Pasif' }]}
+                              value={formData.status || 'active'}
+                              onChange={(val) => setFormData({ ...formData, status: val })}
+                              searchable={false}
+                            />
+                          </div>
+                          <div className="space-y-1 md:col-span-2 lg:col-span-3">
+                            <label className="label-sm">KOD</label>
+                            <input value={formData.code || ''} className="form-input" onChange={(e) => setFormData({ ...formData, code: e.target.value })} placeholder="Birim Kodu" />
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <div className="p-6 bg-theme-base/20 border-t border-theme flex justify-end gap-3">
+                    <button type="button" onClick={() => setShowAddForm(false)} className="px-6 py-2.5 text-xs font-black text-theme-dim border border-theme rounded-xl hover:bg-theme-main/10 transition-all uppercase tracking-widest">İPTAL</button>
+                    <button type="submit" className="px-8 py-2.5 text-xs font-black text-white bg-theme-primary rounded-xl hover:bg-theme-primary-hover transition-all shadow-lg shadow-theme-primary/20 uppercase tracking-widest">
+                      {isEditing ? 'DEĞİŞİKLİKLERİ KAYDET' : 'KAYDET'}
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              <div className="flex-1 overflow-auto custom-scrollbar relative">
+                {loading ? (
+                  <div className="absolute inset-0 z-10 flex items-center justify-center bg-theme-surface/60 backdrop-blur-sm">
+                    <Loading size="lg" />
+                  </div>
+                ) : (
+                  <div className="p-4 space-y-6">
+                    {filteredData.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-20 text-center opacity-40">
+                        {activeTab === 'warehouses' ? <Warehouse className="w-12 h-12 mb-4 text-theme-dim" /> : <Building2 className="w-12 h-12 mb-4 text-theme-dim" />}
+                        <p className="font-black text-theme-main uppercase tracking-widest text-sm">Henüz {activeTab === 'warehouses' ? 'depo' : 'iş merkezi'} tanımlanmamış</p>
+                        <p className="text-xs text-theme-muted mt-1">Yeni Ekle butonuna tıklayarak başlayın.</p>
+                      </div>
+                    ) : (
+                      (() => {
+                        const groupsMap: Record<string, { locName: string; items: any[] }> = {};
+                        
+                        paginatedData.forEach((item: any) => {
+                          let locName = 'Bilinmiyor';
+                          if (activeTab === 'warehouses') {
+                            const unit = companyUnits.find(u => u.id === item.unitId);
+                            const loc = companyLocations.find(l => l.id === unit?.locationId);
+                            locName = loc?.name || (unit ? unit.name : 'Lokasyon Atanmamış');
+                          } else {
+                            const loc = companyLocations.find(l => l.id === item.locationId);
+                            locName = loc?.name || 'Lokasyon Atanmamış';
+                          }
+
+                          if (!groupsMap[locName]) groupsMap[locName] = { locName, items: [] };
+                          groupsMap[locName].items.push(item);
+                        });
+
+                        return Object.values(groupsMap).map(group => (
+                          <div key={group.locName} className="space-y-4">
+                            <div className="flex items-center gap-3 pb-2 border-b-2 border-theme/20">
+                              <div className="w-2 h-6 bg-theme-primary rounded-full" />
+                              <h4 className="text-xs font-black text-theme-main uppercase tracking-widest">{group.locName}</h4>
+                              <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-theme-primary/10 text-theme-primary border border-theme-primary/20">
+                                {group.items.length} {activeTab === 'warehouses' ? 'DEPO' : 'İŞ MERKEZİ'}
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                              {group.items.map((item: any) => {
+                                const typeLabel = activeTab === 'warehouses' ? ({
+                                  general: 'Genel Depo',
+                                  raw: 'Hammadde',
+                                  finished: 'Mamül',
+                                  semifinished: 'Yarı Mamül',
+                                  consumable: 'Sarf Malzeme',
+                                  scrap: 'Fire / Hurda',
+                                  workcenter: 'İş Merkezi',
+                                }[item.type as string] || item.type) : (item.code || 'BİRİM');
+
+                                return (
+                                  <div key={item.id} className="p-4 rounded-2xl border border-theme bg-theme-surface/50 hover:border-theme-primary/40 hover:bg-theme-surface hover:shadow-2xl hover:shadow-theme-primary/5 transition-all duration-300 group relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 w-24 h-24 bg-theme-primary/5 rounded-full -mr-12 -mt-12 group-hover:scale-110 transition-transform duration-500" />
+                                    
+                                    <div className="flex items-start justify-between gap-3 mb-4 relative z-10">
+                                      <div className={`w-10 h-10 rounded-xl ${activeTab === 'warehouses' ? 'bg-amber-500/10' : 'bg-theme-primary/10'} flex items-center justify-center shrink-0 shadow-inner`}>
+                                        {activeTab === 'warehouses' ? <Warehouse className="w-5 h-5 text-amber-500" /> : <Building2 className="w-5 h-5 text-theme-primary" />}
+                                      </div>
+                                      <div className="flex gap-2">
+                                        <button onClick={() => handleEdit(item)} className="p-2 bg-theme-base/50 text-theme-dim rounded-xl hover:bg-theme-primary hover:text-white transition-all shadow-sm"><Edit className="w-4 h-4" /></button>
+                                        <button onClick={() => handleDelete(item.id)} className="p-2 bg-theme-base/50 text-theme-dim rounded-xl hover:bg-theme-danger hover:text-white transition-all shadow-sm"><Trash2 className="w-4 h-4" /></button>
+                                      </div>
+                                    </div>
+                                    
+                                    <div className="relative z-10">
+                                      <p className="text-sm font-black text-theme-main uppercase leading-none tracking-tight mb-1">{item.name}</p>
+                                      <div className="flex flex-wrap gap-2 mt-3">
+                                        <span className={`text-[10px] font-black px-2 py-1 rounded-lg border uppercase tracking-wider ${
+                                          activeTab === 'warehouses' 
+                                            ? 'bg-amber-500/10 text-amber-600 border-amber-500/20' 
+                                            : 'bg-theme-primary/10 text-theme-primary border-theme-primary/20'
+                                        }`}>
+                                          {typeLabel}
+                                        </span>
+                                        <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-theme-base/40 border border-theme/20">
+                                          <div className={`w-1.5 h-1.5 rounded-full ${item.status === 'active' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-rose-500'}`} />
+                                          <span className={`text-[10px] font-black uppercase tracking-widest ${item.status === 'active' ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                            {item.status === 'active' ? 'AKTİF' : 'PASİF'}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    
+                                    {activeTab === 'warehouses' && item._count?.stockLevels != null && (
+                                      <div className="mt-4 pt-3 border-t border-theme/20 flex items-center justify-between">
+                                        <span className="text-[10px] text-theme-muted font-bold uppercase tracking-widest">Takip Edilen Ürün</span>
+                                        <span className="text-[11px] font-black text-theme-main">{item._count.stockLevels}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ))
+                      })()
+                    ) }
+                  </div>
+                ) }
+              </div>
+            </>
           ) : (
             <>
-              <div className="p-6 border-b border-theme flex justify-between items-center bg-theme-base/20 gap-4">
+              <div className="p-4 border-b border-theme flex justify-between items-center bg-theme-base/20 gap-4">
                 <h3 className="text-lg font-bold text-theme-main tracking-tight">
-                  {toTRUpper(tabs.find(t => t.id === activeTab)?.label ?? '')}
+                  {tabLabel()}
                 </h3>
                 <div className="flex items-center gap-3">
                   <div className="relative group">
@@ -588,14 +905,14 @@ export function Definitions() {
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       placeholder="Ara..."
-                      className="w-64 bg-theme-surface border-2 border-theme rounded-xl pl-10 pr-4 py-2.5 text-sm text-theme-main focus:outline-none focus:border-theme-primary/50 transition-all font-bold"
+                      className="w-64 h-10 bg-theme-surface border-2 border-theme rounded-xl pl-8 pr-4 py-2 text-sm text-theme-main focus:outline-none focus:border-theme-primary/50 transition-all font-bold"
                     />
                   </div>
                   <button
                     onClick={() => { setShowAddForm(!showAddForm); setIsEditing(false); setFormData({}); }}
-                    className="bg-theme-primary hover:bg-theme-primary-hover text-white px-6 py-3 rounded-xl text-sm font-black transition-all shadow-xl shadow-theme-primary/20 flex items-center gap-2 active:scale-95"
+                    className="bg-theme-primary hover:bg-theme-primary-hover h-10 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-xl shadow-theme-primary/20 flex items-center gap-2 group hover:scale-95"
                   >
-                    <Plus className="w-4 h-4" /> YENİ EKLE
+                    <Plus className="w-4 h-4" /> Yeni Ekle
                   </button>
                 </div>
               </div>
@@ -606,7 +923,7 @@ export function Definitions() {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {activeTab === 'machines' && (
                         <>
-                          <div className="space-y-1"><label className="label-sm">TEZGAH KODU</label><input required value={formData.code || ''} className="form-input" onChange={(e) => setFormData({ ...formData, code: e.target.value })} /></div>
+                          <div className="space-y-1"><label className="label-sm">MAKİNE KODU</label><input required value={formData.code || ''} className="form-input" onChange={(e) => setFormData({ ...formData, code: e.target.value })} /></div>
                           <div className="space-y-1"><label className="label-sm">ADI</label><input required value={formData.name || ''} className="form-input" onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
                           <div className="space-y-1"><label className="label-sm">MARKA</label><input value={formData.brand || ''} className="form-input" onChange={(e) => setFormData({ ...formData, brand: e.target.value })} /></div>
                           <div className="space-y-1"><label className="label-sm">MODEL</label><input value={formData.model || ''} className="form-input" onChange={(e) => setFormData({ ...formData, model: e.target.value })} /></div>
@@ -645,20 +962,6 @@ export function Definitions() {
                           <div className="space-y-1"><label className="label-sm">İŞE GİRİŞ TARİHİ</label><input value={formData.hireDate ? String(formData.hireDate).slice(0, 10) : ''} type="date" className="form-input" onChange={(e) => setFormData({ ...formData, hireDate: e.target.value || null })} /></div>
                           <div className="space-y-1"><label className="label-sm">TECRÜBE (Yıl)</label><input value={formData.experienceYears ?? ''} type="number" className="form-input" onChange={(e) => setFormData({ ...formData, experienceYears: e.target.value === '' ? null : Number(e.target.value) })} /></div>
                           <div className="space-y-1 md:col-span-2 lg:col-span-3"><label className="label-sm">SERTİFİKALAR</label><input value={formData.certifications || ''} className="form-input" onChange={(e) => setFormData({ ...formData, certifications: e.target.value })} /></div>
-                        </>
-                      )}
-                      {activeTab === 'departments' && (
-                        <>
-                          <div className="space-y-1"><label className="label-sm">DEPARTMAN ADI</label><input required value={formData.name || ''} className="form-input" onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
-                          <div className="space-y-1"><label className="label-sm">DEPARTMAN KODU</label><input value={formData.code || ''} className="form-input" onChange={(e) => setFormData({ ...formData, code: e.target.value })} /></div>
-                          <div className="space-y-1">
-                            <label className="label-sm">DURUM</label>
-                            <CustomSelect
-                              options={[{ id: 'active', label: 'Aktif' }, { id: 'passive', label: 'Pasif' }]}
-                              value={formData.status || 'active'}
-                              onChange={(val) => setFormData({ ...formData, status: val })}
-                            />
-                          </div>
                         </>
                       )}
                       {activeTab === 'department-roles' && (
@@ -720,14 +1023,14 @@ export function Definitions() {
                   </div>
                 ) : (
                   <SortableTableProvider
-                    items={filteredData}
+                    items={paginatedData}
                     onReorder={handleReorder}
                   >
                     <table className="w-full text-left border-collapse resizable-table">
                       <thead className="sticky top-0 z-20 bg-theme-base/95 backdrop-blur-md">
                         <tr>
-                          <th className="w-10"></th>
-                          <th className="w-12 pl-6 py-5 border-b border-theme">
+                          <th className="w-10 px-2 py-3 text-[10px] font-black text-theme-muted tracking-widest text-center">SEÇ</th>
+                          <th className="w-12 px-2 py-3 border-b border-theme">
                             <label className="relative flex items-center cursor-pointer group justify-center">
                               <input
                                 type="checkbox"
@@ -740,15 +1043,14 @@ export function Definitions() {
                               </div>
                             </label>
                           </th>
-                          <SortHeader label="KOD / ID" sortKey={activeTab === 'machines' ? 'code' : activeTab === 'operators' ? 'employeeId' : activeTab === 'shifts' ? 'shiftCode' : activeTab === 'departments' ? 'code' : activeTab === 'department-roles' ? 'id' : 'productCode'} />
-                          <SortHeader label="TANIM / İSİM" sortKey={activeTab === 'machines' ? 'name' : activeTab === 'operators' ? 'fullName' : activeTab === 'shifts' ? 'shiftName' : activeTab === 'departments' ? 'name' : activeTab === 'department-roles' ? 'name' : 'productName'} />
+                          <SortHeader label="KOD / ID" sortKey={activeTab === 'machines' ? 'code' : activeTab === 'operators' ? 'employeeId' : activeTab === 'shifts' ? 'shiftCode' : activeTab === 'department-roles' ? 'id' : 'productCode'} />
+                          <SortHeader label="TANIM / İSİM" sortKey={activeTab === 'machines' ? 'name' : activeTab === 'operators' ? 'fullName' : activeTab === 'shifts' ? 'shiftName' : activeTab === 'department-roles' ? 'name' : 'productName'} />
                           {activeTab === 'machines' && <SortHeader label="MARKA" sortKey="brand" />}
                           {activeTab === 'machines' && <SortHeader label="MODEL" sortKey="model" />}
                           {activeTab === 'machines' && <SortHeader label="KURULUM" sortKey="installedDate" />}
                           {activeTab === 'machines' && <SortHeader label="KAPASİTE/VARDİYA" sortKey="capacityPerShift" />}
                           {activeTab === 'machines' && <SortHeader label="NOT" sortKey="notes" />}
 
-                          {activeTab === 'departments' && <SortHeader label="DURUM" sortKey="status" />}
                           {activeTab === 'department-roles' && <SortHeader label="DEPARTMAN" sortKey="department.name" />}
 
                           {activeTab === 'operators' && <SortHeader label="DEPARTMAN" sortKey="department" />}
@@ -768,44 +1070,49 @@ export function Definitions() {
                           {activeTab === 'products' && <SortHeader label="BİRİM" sortKey="unitOfMeasure" />}
                           {activeTab === 'products' && <SortHeader label="KATEGORİ" sortKey="category" />}
                           <SortHeader label="DURUM" sortKey="status" />
-                          <th className="px-6 py-5 text-[10px] font-black text-theme-muted tracking-widest text-right">İŞLEMLER</th>
+                          <th className="px-2 py-3 text-[10px] font-black text-theme-muted tracking-widest text-center">İŞLEMLER</th>
                         </tr>
                       </thead>
                       <SortableTableBody
-                        items={filteredData}
+                        items={paginatedData}
+                        onRowClick={(item, e) => {
+                          if ((e.target as HTMLElement).closest('button, input, select, a, .cursor-pointer')) return;
+                          toggleSelectItem(item.id);
+                        }}
+                        rowClassName={(item) => selectedIds.has(item.id) ? 'bg-theme-primary/10' : ''}
                         renderRow={(item: any) => {
                           const isSelected = selectedIds.has(item.id);
                           const isEditingRow = isBulkEditing && isSelected;
 
                           return (
                             <>
-                              <td className="w-12 pl-6 py-4 border-b border-theme/30">
-                                <label className="relative flex items-center cursor-pointer group justify-center">
+                              <td className="w-12 px-2 py-3 border-b border-theme/30">
+                                <label className="relative flex items-center justify-center group">
                                   <input
                                     type="checkbox"
                                     className="peer sr-only"
                                     checked={isSelected}
                                     onChange={() => toggleSelectItem(item.id)}
                                   />
-                                  <div className="w-5 h-5 bg-theme-surface border-2 border-theme rounded-lg transition-all peer-checked:bg-theme-primary peer-checked:border-theme-primary group-hover:border-theme-muted flex items-center justify-center scale-90 group-hover:scale-100">
+                                  <div className="w-5 h-5 bg-theme-surface border-2 border-theme rounded-lg transition-all peer-checked:bg-theme-primary peer-checked:border-theme-primary flex items-center justify-center scale-90 group-hover:scale-100">
                                     <div className="w-1.5 h-3 border-r-2 border-b-2 border-theme-base rotate-45 mb-1 opacity-0 peer-checked:opacity-100 transition-opacity" />
                                   </div>
                                 </label>
                               </td>
-                              <td className="px-6 py-4 border-b border-theme/30 font-bold text-theme-primary font-mono text-sm leading-none">
+                              <td className="px-2 py-3 border-b border-theme/30 font-bold text-theme-primary font-mono text-sm leading-none">
                                 {isEditingRow ? (
                                   <input
-                                    value={localChanges[item.id]?.[activeTab === 'machines' ? 'code' : activeTab === 'operators' ? 'employeeId' : activeTab === 'shifts' ? 'shiftCode' : activeTab === 'departments' ? 'code' : activeTab === 'department-roles' ? 'id' : 'productCode'] ?? (item.code || item.employeeId || item.shiftCode || item.productCode || item.id || '')}
-                                    onChange={(e) => updateLocalChanges(item.id, activeTab === 'machines' ? 'code' : activeTab === 'operators' ? 'employeeId' : activeTab === 'shifts' ? 'shiftCode' : activeTab === 'departments' ? 'code' : activeTab === 'department-roles' ? 'id' : 'productCode', e.target.value)}
+                                    value={localChanges[item.id]?.[activeTab === 'machines' ? 'code' : activeTab === 'operators' ? 'employeeId' : activeTab === 'shifts' ? 'shiftCode' : activeTab === 'department-roles' ? 'id' : 'productCode'] ?? (item.code || item.employeeId || item.shiftCode || item.productCode || item.id || '')}
+                                    onChange={(e) => updateLocalChanges(item.id, activeTab === 'machines' ? 'code' : activeTab === 'operators' ? 'employeeId' : activeTab === 'shifts' ? 'shiftCode' : activeTab === 'department-roles' ? 'id' : 'productCode', e.target.value)}
                                     className="settings-inline-input text-theme-primary font-mono"
                                   />
                                 ) : (item.code || item.employeeId || item.shiftCode || item.productCode || (activeTab === 'department-roles' ? item.id.slice(0, 8) : item.id))}
                               </td>
-                              <td className="px-6 py-4 border-b border-theme/30 text-theme-main font-bold whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">
+                              <td className="px-2 py-3 border-b border-theme/30 text-xs text-theme-main font-bold whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">
                                 {isEditingRow ? (
                                   <input
-                                    value={localChanges[item.id]?.[activeTab === 'machines' ? 'name' : activeTab === 'operators' ? 'fullName' : activeTab === 'shifts' ? 'shiftName' : activeTab === 'departments' ? 'name' : activeTab === 'department-roles' ? 'name' : 'productName'] ?? (item.name || item.fullName || item.shiftName || item.productName || '')}
-                                    onChange={(e) => updateLocalChanges(item.id, activeTab === 'machines' ? 'name' : activeTab === 'operators' ? 'fullName' : activeTab === 'shifts' ? 'shiftName' : activeTab === 'departments' ? 'name' : activeTab === 'department-roles' ? 'name' : 'productName', e.target.value)}
+                                    value={localChanges[item.id]?.[activeTab === 'machines' ? 'name' : activeTab === 'operators' ? 'fullName' : activeTab === 'shifts' ? 'shiftName' : activeTab === 'department-roles' ? 'name' : 'productName'] ?? (item.name || item.fullName || item.shiftName || item.productName || '')}
+                                    onChange={(e) => updateLocalChanges(item.id, activeTab === 'machines' ? 'name' : activeTab === 'operators' ? 'fullName' : activeTab === 'shifts' ? 'shiftName' : activeTab === 'department-roles' ? 'name' : 'productName', e.target.value)}
                                     className="settings-inline-input"
                                   />
                                 ) : (item.name || item.fullName || item.shiftName || item.productName)}
@@ -813,19 +1120,19 @@ export function Definitions() {
 
                               {activeTab === 'machines' && (
                                 <>
-                                  <td className="px-6 py-4 border-b border-theme/30 text-theme-muted text-sm whitespace-nowrap">
+                                  <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap text-start">
                                     {isEditingRow ? <input value={localChanges[item.id]?.brand ?? (item.brand || '')} onChange={e => updateLocalChanges(item.id, 'brand', e.target.value)} className="settings-inline-input" /> : (item.brand || '-')}
                                   </td>
-                                  <td className="px-6 py-4 border-b border-theme/30 text-theme-muted text-sm whitespace-nowrap">
+                                  <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap">
                                     {isEditingRow ? <input value={localChanges[item.id]?.model ?? (item.model || '')} onChange={e => updateLocalChanges(item.id, 'model', e.target.value)} className="settings-inline-input" /> : (item.model || '-')}
                                   </td>
-                                  <td className="px-6 py-4 border-b border-theme/30 text-theme-muted text-sm whitespace-nowrap">
+                                  <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap">
                                     {isEditingRow ? <input type="date" value={localChanges[item.id]?.installedDate?.slice(0, 10) ?? (item.installedDate ? String(item.installedDate).slice(0, 10) : '')} onChange={e => updateLocalChanges(item.id, 'installedDate', e.target.value)} className="settings-inline-input" /> : (item.installedDate ? new Date(item.installedDate).toLocaleDateString('tr-TR') : '-')}
                                   </td>
-                                  <td className="px-6 py-4 border-b border-theme/30 text-theme-muted font-mono text-sm whitespace-nowrap text-right">
+                                  <td className="px-2 py-3 border-b border-theme/30 text-theme-muted font-mono text-xs whitespace-nowrap text-start">
                                     {isEditingRow ? <input type="number" value={localChanges[item.id]?.capacityPerShift ?? (item.capacityPerShift || '')} onChange={e => updateLocalChanges(item.id, 'capacityPerShift', parseInt(e.target.value))} className="settings-inline-input w-20 text-right" /> : (item.capacityPerShift || '-')}
                                   </td>
-                                  <td className="px-6 py-4 border-b border-theme/30 text-theme-muted text-sm whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">
+                                  <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap overflow-hidden text-start max-w-[200px]">
                                     {isEditingRow ? <input value={localChanges[item.id]?.notes ?? (item.notes || '')} onChange={e => updateLocalChanges(item.id, 'notes', e.target.value)} className="settings-inline-input" /> : (item.notes || '-')}
                                   </td>
                                 </>
@@ -833,31 +1140,33 @@ export function Definitions() {
 
                               {activeTab === 'operators' && (
                                 <>
-                                  <td className="px-6 py-4 border-b border-theme/30 text-theme-muted text-sm whitespace-nowrap">
+                                  <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap">
                                     {isEditingRow ? (
                                       <CustomSelect
+                                        variant="inline"
                                         options={departments.map(d => ({ id: d.id, label: d.name }))}
                                         value={localChanges[item.id]?.departmentId ?? (item.departmentId || '')}
                                         onChange={(val) => updateLocalChanges(item.id, 'departmentId', val)}
                                       />
                                     ) : (item.department?.name || '-')}
                                   </td>
-                                  <td className="px-6 py-4 border-b border-theme/30 text-theme-muted text-sm whitespace-nowrap">
+                                  <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap">
                                     {isEditingRow ? (
                                       <CustomSelect
+                                        variant="inline"
                                         options={roles.filter(r => r.departmentId === (localChanges[item.id]?.departmentId ?? item.departmentId)).map(r => ({ id: r.id, label: r.name }))}
                                         value={localChanges[item.id]?.roleId ?? (item.roleId || '')}
                                         onChange={(val) => updateLocalChanges(item.id, 'roleId', val)}
                                       />
                                     ) : (item.role?.name || '-')}
                                   </td>
-                                  <td className="px-6 py-4 border-b border-theme/30 text-theme-muted text-sm whitespace-nowrap">
+                                  <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap">
                                     {isEditingRow ? <input type="date" value={localChanges[item.id]?.hireDate?.slice(0, 10) ?? (item.hireDate ? String(item.hireDate).slice(0, 10) : '')} onChange={e => updateLocalChanges(item.id, 'hireDate', e.target.value)} className="settings-inline-input" /> : (item.hireDate ? new Date(item.hireDate).toLocaleDateString('tr-TR') : '-')}
                                   </td>
-                                  <td className="px-6 py-4 border-b border-theme/30 text-theme-muted font-mono text-sm whitespace-nowrap text-right">
+                                  <td className="px-2 py-3 border-b border-theme/30 text-theme-muted font-mono text-xs whitespace-nowrap text-start">
                                     {isEditingRow ? <input type="number" value={localChanges[item.id]?.experienceYears ?? (item.experienceYears || '')} onChange={e => updateLocalChanges(item.id, 'experienceYears', parseInt(e.target.value))} className="settings-inline-input w-20 text-right" /> : (item.experienceYears || '-')}
                                   </td>
-                                  <td className="px-6 py-4 border-b border-theme/30 text-theme-muted text-sm whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">
+                                  <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">
                                     {isEditingRow ? <input value={localChanges[item.id]?.certifications ?? (item.certifications || '')} onChange={e => updateLocalChanges(item.id, 'certifications', e.target.value)} className="settings-inline-input" /> : (item.certifications || '-')}
                                   </td>
                                 </>
@@ -865,9 +1174,10 @@ export function Definitions() {
 
                               {activeTab === 'department-roles' && (
                                 <>
-                                  <td className="px-6 py-4 border-b border-theme/30 text-theme-muted text-sm whitespace-nowrap">
+                                  <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap">
                                     {isEditingRow ? (
                                       <CustomSelect
+                                        variant="inline"
                                         options={departments.map(d => ({ id: d.id, label: d.name }))}
                                         value={localChanges[item.id]?.departmentId ?? (item.departmentId || '')}
                                         onChange={(val) => updateLocalChanges(item.id, 'departmentId', val)}
@@ -879,16 +1189,16 @@ export function Definitions() {
 
                               {activeTab === 'shifts' && (
                                 <>
-                                  <td className="px-6 py-4 border-b border-theme/30 text-theme-muted text-sm whitespace-nowrap">
+                                  <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap">
                                     {isEditingRow ? <input value={localChanges[item.id]?.startTime ?? (item.startTime || '')} onChange={e => updateLocalChanges(item.id, 'startTime', e.target.value)} className="settings-inline-input" /> : (item.startTime || '-')}
                                   </td>
-                                  <td className="px-6 py-4 border-b border-theme/30 text-theme-muted text-sm whitespace-nowrap">
+                                  <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap">
                                     {isEditingRow ? <input value={localChanges[item.id]?.endTime ?? (item.endTime || '')} onChange={e => updateLocalChanges(item.id, 'endTime', e.target.value)} className="settings-inline-input" /> : (item.endTime || '-')}
                                   </td>
-                                  <td className="px-6 py-4 border-b border-theme/30 text-theme-muted font-mono text-sm whitespace-nowrap text-right">
+                                  <td className="px-2 py-3 border-b border-theme/30 text-theme-muted font-mono text-xs whitespace-nowrap text-right">
                                     {isEditingRow ? <input type="number" value={localChanges[item.id]?.durationMinutes ?? (item.durationMinutes || '')} onChange={e => updateLocalChanges(item.id, 'durationMinutes', parseInt(e.target.value))} className="settings-inline-input w-20 text-right" /> : (item.durationMinutes || '-')}
                                   </td>
-                                  <td className="px-6 py-4 border-b border-theme/30 text-theme-muted text-sm whitespace-nowrap">
+                                  <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap">
                                     {isEditingRow ? (
                                       <div className="flex items-center gap-2">
                                         <input type="color" value={localChanges[item.id]?.colorCode ?? (item.colorCode || '#3b82f6')} onChange={e => updateLocalChanges(item.id, 'colorCode', e.target.value)} className="w-8 h-8 bg-transparent border-0 cursor-pointer" />
@@ -906,25 +1216,27 @@ export function Definitions() {
 
                               {activeTab === 'products' && (
                                 <>
-                                  <td className="px-6 py-4 border-b border-theme/30 text-theme-muted text-sm whitespace-nowrap overflow-hidden text-ellipsis max-w-[150px]">
+                                  <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap overflow-hidden text-ellipsis max-w-[150px]">
                                     {isEditingRow ? <input value={localChanges[item.id]?.brand ?? (item.brand || '')} onChange={e => updateLocalChanges(item.id, 'brand', e.target.value)} className="settings-inline-input" /> : (item.brand || '-')}
                                   </td>
-                                  <td className="px-6 py-4 border-b border-theme/30 text-theme-muted text-sm whitespace-nowrap">
+                                  <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap">
                                     {isEditingRow ? <input value={localChanges[item.id]?.productGroup ?? (item.productGroup || '')} onChange={e => updateLocalChanges(item.id, 'productGroup', e.target.value)} className="settings-inline-input" /> : (item.productGroup || '-')}
                                   </td>
-                                  <td className="px-6 py-4 border-b border-theme/30 text-theme-muted text-sm whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">
+                                  <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">
                                     {isEditingRow ? <input value={localChanges[item.id]?.description ?? (item.description || '')} onChange={e => updateLocalChanges(item.id, 'description', e.target.value)} className="settings-inline-input" /> : (item.description || '-')}
                                   </td>
-                                  <td className="px-6 py-4 border-b border-theme/30 text-theme-muted text-sm whitespace-nowrap">
+                                  <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap">
                                     {isEditingRow ? <input value={localChanges[item.id]?.unitOfMeasure ?? (item.unitOfMeasure || '')} onChange={e => updateLocalChanges(item.id, 'unitOfMeasure', e.target.value)} className="settings-inline-input w-20" /> : (item.unitOfMeasure || '-')}
                                   </td>
-                                  <td className="px-6 py-4 border-b border-theme/30 text-theme-muted text-sm whitespace-nowrap">
+                                  <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap">
                                     {isEditingRow ? <input value={localChanges[item.id]?.category ?? (item.category || '')} onChange={e => updateLocalChanges(item.id, 'category', e.target.value)} className="settings-inline-input" /> : (item.category || '-')}
                                   </td>
                                 </>
                               )}
 
-                              <td className="px-6 py-4 border-b border-theme/30">
+
+
+                              <td className="px-2 py-3 border-b border-theme/30">
                                 <span
                                   onClick={() => !isEditingRow && handleToggleStatus(item)}
                                   className={`text-[9px] font-black px-3 py-1 rounded-full border flex items-center gap-1.5 w-fit ${item.status === 'active' ? 'bg-theme-success/10 text-theme-success border-theme-success/20' : 'bg-theme-base/20 text-theme-dim border-theme'} ${!isEditingRow ? 'cursor-pointer hover:scale-105 transition-transform active:scale-95' : 'opacity-50'}`}
@@ -933,11 +1245,11 @@ export function Definitions() {
                                   {item.status === 'active' ? 'AKTİF' : 'PASİF'}
                                 </span>
                               </td>
-                              <td className="px-6 py-4 border-b border-theme/30 text-right opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                              <td className="px-2 py-3 border-b border-theme/30 text-center transition-opacity whitespace-nowrap">
                                 {!isEditingRow && (
-                                  <div className="flex justify-end gap-2 text-right">
-                                    <button onClick={() => handleEdit(item)} className="p-2.5 bg-theme-primary/10 text-theme-primary rounded-xl hover:bg-theme-primary-hover hover:text-white transition-all"><Edit className="w-4 h-4" /></button>
-                                    <button onClick={() => handleDelete(item.id)} className="p-2.5 bg-theme-danger/10 text-theme-danger rounded-xl hover:bg-theme-danger hover:text-white transition-all"><Trash2 className="w-4 h-4" /></button>
+                                  <div className="flex justify-center gap-2 text-center">
+                                    <button onClick={() => handleEdit(item)} className="p-2 bg-theme-main/5 text-theme-dim rounded-lg hover:bg-theme-primary/10 hover:text-theme-primary transition-all"><Edit className="w-4 h-4" /></button>
+                                    <button onClick={() => handleDelete(item.id)} className="p-2 bg-theme-main/5 text-theme-dim rounded-lg hover:bg-theme-danger/10 hover:text-theme-danger transition-all"><Trash2 className="w-4 h-4" /></button>
                                   </div>
                                 )}
                               </td>
@@ -949,8 +1261,68 @@ export function Definitions() {
                   </SortableTableProvider>
                 )}
               </div>
+
+              {/* Pagination Footer */}
+              <div className="p-4 border-t border-theme bg-theme-base/20 flex flex-col md:flex-row items-center justify-between gap-6">
+                <div className="flex items-center gap-6 order-2 md:order-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-black text-theme-dim whitespace-nowrap uppercase tracking-widest">SAYFADA:</span>
+                    <div className="w-24">
+                      <CustomSelect
+                        options={[
+                          { id: 10, label: '10' },
+                          { id: 50, label: '50' },
+                          { id: 250, label: '250' },
+                          { id: 500, label: '500' },
+                          { id: 1000, label: '1000' },
+                          { id: 999999, label: 'Tümü' }
+                        ]}
+                        value={pageSize}
+                        onChange={value => {
+                          setPageSize(Number(value));
+                          setCurrentPage(0);
+                        }}
+                        searchable={false}
+                      />
+                    </div>
+                  </div>
+                  <div className="h-4 w-px bg-theme hidden md:block" />
+                  <span className="text-[11px] font-black text-theme-dim uppercase tracking-widest">
+                    TOPLAM <span className="text-theme-primary">{filteredData.length}</span> KAYIT
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3 order-1 md:order-2">
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
+                    disabled={currentPage === 0}
+                    className="p-3 rounded-xl bg-theme-base border border-theme text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+                  >
+                    <ChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
+                  </button>
+
+                  <div className="flex items-center gap-2 px-4 py-2 bg-theme-base border border-theme rounded-2xl">
+                    <span className="text-theme-primary font-black text-sm min-w-[20px] text-center">
+                      {currentPage + 1}
+                    </span>
+                    <span className="text-theme-dim font-bold text-xs uppercase tracking-widest">/</span>
+                    <span className="text-theme-muted font-black text-sm min-w-[20px] text-center">
+                      {pageCount || 1}
+                    </span>
+                  </div>
+
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(pageCount - 1, prev + 1))}
+                    disabled={currentPage >= pageCount - 1}
+                    className="p-3 rounded-xl bg-theme-base border border-theme text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+                  >
+                    <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+                  </button>
+                </div>
+              </div>
             </>
-          )}
+            )
+          ) }
         </div>
       </div>
 
@@ -963,80 +1335,19 @@ export function Definitions() {
         onConfirm={confirmModal.onConfirm}
       />
 
-      {/* Floating Bulk Action Bar */}
-      {selectedIds.size > 0 && (
-        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-10 fade-in duration-500 w-fit max-w-[95vw]">
-          <div className="bg-theme-surface backdrop-blur-2xl border border-theme-primary/20 rounded-2xl p-3 flex items-center gap-6 shadow-[0_20px_60px_-10px_rgba(0,0,0,0.8)] ring-1 ring-white/10">
-            <div className="flex items-center gap-3 border-r border-theme pr-6">
-              <div className="w-9 h-9 bg-theme-primary rounded-xl flex items-center justify-center font-bold text-white text-sm shadow-lg shadow-theme-primary/20">
-                {selectedIds.size}
-              </div>
-              <div className="whitespace-nowrap">
-                <p className="text-[10px] font-medium text-theme-primary uppercase tracking-widest leading-none">SECHILI</p>
-                <p className="text-theme-main font-medium text-xs mt-0.5">İşlem Bekliyor</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              {isBulkEditing ? (
-                <button
-                  onClick={handleBulkSave}
-                  className="flex items-center gap-2 px-4 py-2 bg-theme-success hover:bg-theme-success-hover text-white border border-theme-success/20 rounded-lg font-medium text-[10px] uppercase tracking-wider transition-all active:scale-95 shadow-lg shadow-theme-success/10"
-                >
-                  <Settings className="w-3 h-3" />
-                  Değişiklikleri Kaydet
-                </button>
-              ) : (
-                <button
-                  onClick={() => setIsBulkEditing(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/5 rounded-lg text-theme-primary font-medium text-[10px] uppercase tracking-wider transition-all active:scale-95"
-                >
-                  <Edit className="w-3 h-3 text-theme-primary" />
-                  Tabloyu Düzenle
-                </button>
-              )}
-
-              <button
-                onClick={() => handleBulkStatusUpdate('active')}
-                className="flex items-center gap-2 px-4 py-2 bg-theme-success/5 hover:bg-theme-success/10 border border-theme-success/20 rounded-lg text-theme-success font-medium text-[10px] uppercase tracking-wider transition-all active:scale-95"
-              >
-                <CheckCircle2 className="w-3 h-3" />
-                Aktif Yap
-              </button>
-
-              <button
-                onClick={() => handleBulkStatusUpdate('passive')}
-                className="flex items-center gap-2 px-4 py-2 bg-theme-warning/5 hover:bg-theme-warning/10 border border-theme-warning/20 rounded-lg text-theme-warning font-medium text-[10px] uppercase tracking-wider transition-all active:scale-95"
-              >
-                <AlertCircle className="w-3 h-3" />
-                Pasif Yap
-              </button>
-
-              <button
-                onClick={handleBulkDelete}
-                className="flex items-center gap-2 px-4 py-2 bg-theme-danger/5 hover:bg-theme-danger/10 border border-theme-danger/20 rounded-lg text-theme-danger font-medium text-[10px] uppercase tracking-wider transition-all active:scale-95"
-              >
-                <Trash2 className="w-3 h-3" />
-                Sil
-              </button>
-
-              <div className="w-px h-6 bg-theme-base/20 mx-2" />
-
-              <button
-                onClick={() => {
-                  setSelectedIds(new Set());
-                  setIsBulkEditing(false);
-                  setLocalChanges({});
-                }}
-                className="flex items-center gap-2 px-3 py-2 text-theme-muted hover:text-theme-main transition-colors text-[10px] font-medium uppercase tracking-widest"
-              >
-                <XCircle className="w-4 h-4" />
-                İptal
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <BulkActionBar
+        selectedCount={selectedIds.size}
+        isEditing={isBulkEditing}
+        onSave={handleBulkSave}
+        onEditToggle={setIsBulkEditing}
+        onStatusUpdate={handleBulkStatusUpdate}
+        onDelete={handleBulkDelete}
+        onCancel={() => {
+          setSelectedIds(new Set());
+          setIsBulkEditing(false);
+          setLocalChanges({});
+        }}
+      />
     </div>
   );
 }

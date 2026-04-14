@@ -14,7 +14,9 @@ import {
   X,
   History,
   Factory,
-  BarChart3
+  BarChart3,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { Loading } from '../../components/common/Loading';
 import { CustomSelect } from '../../components/common/CustomSelect';
@@ -31,6 +33,9 @@ export function ReportsOperators() {
     startDate: new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0],
     endDate: new Date().toISOString().split('T')[0],
   });
+
+  const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(0);
 
   const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' }>({
     key: 'avgOee',
@@ -125,12 +130,21 @@ export function ReportsOperators() {
   const sortedOperators = useMemo(() => {
     return [...operatorStats].sort((a, b) => {
       const { key, direction } = sortConfig;
-      let valA = a[key];
-      let valB = b[key];
-      const res = valA > valB ? 1 : -1;
+      const valA = a[key] || 0;
+      const valB = b[key] || 0;
+      const res = valA > valB ? 1 : valA < valB ? -1 : 0;
       return direction === 'asc' ? res : -res;
     });
   }, [operatorStats, sortConfig]);
+
+  const paginatedOperators = useMemo(() => {
+    return sortedOperators.slice(
+      currentPage * pageSize,
+      (currentPage + 1) * pageSize
+    );
+  }, [sortedOperators, currentPage, pageSize]);
+
+  const pageCount = Math.ceil(sortedOperators.length / pageSize);
 
   const exportToExcel = async () => {
     try {
@@ -146,13 +160,13 @@ export function ReportsOperators() {
   if (loading) return <Loading size="lg" fullScreen />;
 
   return (
-    <div className="p-6 lg:p-10 w-full space-y-8 animate-in fade-in duration-700 bg-theme-base">
+    <div className="p-4 lg:p-6 w-full space-y-8 animate-in fade-in duration-700 bg-theme-base">
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
         <div>
-          <h2 className="text-3xl font-black text-theme-main tracking-tight flex items-center gap-3">
-            <Users className="w-10 h-10 text-theme-primary" /> PERSONEL VERİMLİLİK ANALİZİ
+          <h2 className="text-xl font-black text-theme-main tracking-tight flex items-center gap-2">
+            <Users className="w-6 h-6 text-theme-primary" /> PERSONEL VERİMLİLİK ANALİZİ
           </h2>
-          <p className="text-theme-muted text-sm mt-1 font-medium italic">Personel bazlı üretim performansı, kalite skorları ve verimlilik karşılaştırmaları.</p>
+          <p className="text-theme-muted text-xs mt-1 font-medium">Personel bazlı üretim performansı, kalite skorları ve verimlilik karşılaştırmaları.</p>
         </div>
         <button
           onClick={exportToExcel}
@@ -162,7 +176,7 @@ export function ReportsOperators() {
         </button>
       </div>
 
-      <div className="bg-theme-card backdrop-blur-xl border border-theme rounded-2xl p-6 flex flex-wrap gap-6 items-end shadow-2xl">
+      <div className="modern-glass-card flex flex-wrap gap-6 items-end">
         <div className="flex-1 min-w-[200px] space-y-2">
           <label className="text-[10px] font-black text-theme-dim uppercase tracking-widest flex items-center gap-2 px-1">
             <Calendar size={12} /> BAŞLANGIÇ
@@ -204,7 +218,7 @@ export function ReportsOperators() {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-6">
-          <div className="bg-theme-card backdrop-blur-xl border border-theme rounded-2xl overflow-hidden shadow-2xl">
+          <div className="modern-glass-card p-0 overflow-hidden">
             <div className="p-6 border-b border-theme flex items-center justify-between bg-theme-surface/30">
               <h3 className="text-sm font-black text-theme-muted uppercase tracking-widest flex items-center gap-2">
                 <Trophy size={16} className="text-theme-primary" /> PERSONEL BAŞARI SIRALAMASI
@@ -235,43 +249,105 @@ export function ReportsOperators() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-theme/40">
-                  {sortedOperators.map((o, idx) => (
-                    <tr key={o.id} className="group hover:bg-theme-primary/5 transition-all">
-                      <td className="px-6 py-4">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-xs ${idx === 0 ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20' : idx === 1 ? 'bg-slate-300 text-slate-950 shadow-lg shadow-slate-300/20' : idx === 2 ? 'bg-amber-800 text-white shadow-lg shadow-amber-800/20' : 'bg-theme-surface text-theme-dim'}`}>
-                          {idx + 1}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 font-black text-theme-main text-sm">
-                        <div className="flex flex-col">
-                          <span>{o.name}</span>
-                          <span className="text-[10px] text-theme-muted uppercase tracking-widest font-bold">{o.entries.length} Kayıt</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-right text-theme-main font-bold text-sm">{o.produced.toLocaleString()}</td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex flex-col items-end gap-1">
-                          <span className="text-theme-main font-black text-xs">%{o.efficiency}</span>
-                          <div className="w-20 h-1 bg-theme-base rounded-full overflow-hidden">
-                            <div className="h-full bg-theme-primary transition-all duration-1000" style={{ width: `${Math.min(o.efficiency, 100)}%` }} />
+                  {paginatedOperators.map((o, index) => {
+                    const idx = currentPage * pageSize + index;
+                    return (
+                      <tr key={o.id} className="group hover:bg-theme-primary/5 transition-all">
+                        <td className="px-6 py-4">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-xs ${idx === 0 ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20' : idx === 1 ? 'bg-slate-300 text-slate-950 shadow-lg shadow-slate-300/20' : idx === 2 ? 'bg-amber-800 text-white shadow-lg shadow-amber-800/20' : 'bg-theme-surface text-theme-dim'}`}>
+                            {idx + 1}
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <span className={`px-3 py-1 rounded-lg font-black text-[11px] ${o.avgOee >= 80 ? 'bg-theme-success/10 text-theme-success' : o.avgOee >= 60 ? 'bg-theme-warning/10 text-theme-warning' : 'bg-theme-danger/10 text-theme-danger'}`}>
-                          %{o.avgOee}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right text-theme-danger font-bold text-sm">{o.defects.toLocaleString()}</td>
-                      <td className="px-6 py-4 text-right">
-                        <button onClick={() => setSelectedOperator(o)} className="p-2 bg-theme-base hover:bg-theme-primary/20 text-theme-dim hover:text-theme-primary rounded-lg transition-all border border-theme">
-                          <BarChart3 className="w-4 h-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="px-6 py-4 font-black text-theme-main text-sm">
+                          <div className="flex flex-col">
+                            <span>{o.name}</span>
+                            <span className="text-[10px] text-theme-muted uppercase tracking-widest font-bold">{o.entries.length} Kayıt</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-right text-theme-main font-bold text-sm">{o.produced.toLocaleString()}</td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex flex-col items-end gap-1">
+                            <span className="text-theme-main font-black text-xs">%{o.efficiency}</span>
+                            <div className="w-20 h-1 bg-theme-base rounded-full overflow-hidden">
+                              <div className="h-full bg-theme-primary transition-all duration-1000" style={{ width: `${Math.min(o.efficiency, 100)}%` }} />
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <span className={`px-3 py-1 rounded-lg font-black text-[11px] ${o.avgOee >= 80 ? 'bg-theme-success/10 text-theme-success' : o.avgOee >= 60 ? 'bg-theme-warning/10 text-theme-warning' : 'bg-theme-danger/10 text-theme-danger'}`}>
+                            %{o.avgOee}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-right text-theme-danger font-bold text-sm">{o.defects.toLocaleString()}</td>
+                        <td className="px-6 py-4 text-right">
+                          <button onClick={() => setSelectedOperator(o)} className="p-2 bg-theme-base hover:bg-theme-primary/20 text-theme-dim hover:text-theme-primary rounded-lg transition-all border border-theme">
+                            <BarChart3 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
+            </div>
+
+            {/* Pagination Controls */}
+            <div className="p-4 border-t border-theme bg-theme-base/20 flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="flex items-center gap-6 order-2 md:order-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-black text-theme-dim whitespace-nowrap uppercase tracking-widest">SAYFADA:</span>
+                  <div className="w-24">
+                    <CustomSelect
+                      options={[
+                        { id: 10, label: '10' },
+                        { id: 50, label: '50' },
+                        { id: 250, label: '250' },
+                        { id: 500, label: '500' },
+                        { id: 1000, label: '1000' },
+                        { id: 999999, label: 'Tümü' }
+                      ]}
+                      value={pageSize}
+                      onChange={value => {
+                        setPageSize(Number(value));
+                        setCurrentPage(0);
+                      }}
+                      searchable={false}
+                    />
+                  </div>
+                </div>
+                <div className="h-4 w-px bg-theme hidden md:block" />
+                <span className="text-[11px] font-black text-theme-dim uppercase tracking-widest">
+                  TOPLAM <span className="text-theme-primary">{sortedOperators.length}</span> KAYIT
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3 order-1 md:order-2">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
+                  disabled={currentPage === 0}
+                  className="p-3 rounded-xl bg-theme-base border border-theme text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+                >
+                  <ChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
+                </button>
+
+                <div className="flex items-center gap-2 px-4 py-2 bg-theme-base border border-theme rounded-2xl">
+                  <span className="text-theme-primary font-black text-sm min-w-[20px] text-center">
+                    {currentPage + 1}
+                  </span>
+                  <span className="text-theme-dim font-bold text-xs uppercase tracking-widest">/</span>
+                  <span className="text-theme-muted font-black text-sm min-w-[20px] text-center">
+                    {pageCount || 1}
+                  </span>
+                </div>
+
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(pageCount - 1, prev + 1))}
+                  disabled={currentPage >= pageCount - 1}
+                  className="p-3 rounded-xl bg-theme-base border border-theme text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+                >
+                  <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -306,7 +382,7 @@ export function ReportsOperators() {
 
               <div className="bg-theme-base/50 rounded-2xl border border-theme p-6">
                 <h4 className="text-xs font-black text-theme-dim uppercase tracking-widest mb-6 flex items-center gap-2">
-                  <History size={14} /> SON KAYITLAR VE TEZGAH GEÇMİŞİ
+                  <History size={14} /> SON KAYITLAR VE MAKİNE GEÇMİŞİ
                 </h4>
                 <div className="space-y-3">
                   {selectedOperator.entries.map((r: any, i: number) => (

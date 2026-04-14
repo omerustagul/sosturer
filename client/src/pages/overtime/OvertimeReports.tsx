@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { api } from '../../lib/api';
-import { BarChart3, Users, Settings, Calendar, Filter, TrendingUp, ShieldCheck } from 'lucide-react';
+import { BarChart3, Users, Settings, Calendar, Filter, TrendingUp, ShieldCheck, ChevronLeft, ChevronRight } from 'lucide-react';
 import { CustomSelect } from '../../components/common/CustomSelect';
 
 interface Operator { id: string; fullName: string; }
@@ -33,6 +33,8 @@ export function OvertimeReports() {
   const [machineId, setMachineId] = useState('');
   const [productId, setProductId] = useState('');
   const [shiftId, setShiftId] = useState('');
+  const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(0);
 
   useEffect(() => {
     Promise.all([
@@ -48,7 +50,10 @@ export function OvertimeReports() {
     });
   }, []);
 
-  useEffect(() => { fetchReport(); }, []);
+  useEffect(() => {
+    fetchReport();
+    setCurrentPage(0);
+  }, []);
 
   const fetchReport = async () => {
     setLoading(true);
@@ -70,6 +75,16 @@ export function OvertimeReports() {
     }
   };
 
+  const paginatedPlans = useMemo(() => {
+    if (!report) return [];
+    return report.plans.slice(
+      currentPage * pageSize,
+      (currentPage + 1) * pageSize
+    );
+  }, [report, currentPage, pageSize]);
+
+  const pageCount = report ? Math.ceil(report.plans.length / pageSize) : 0;
+
   const clearFilters = () => {
     setStartDate('');
     setEndDate('');
@@ -81,7 +96,7 @@ export function OvertimeReports() {
   };
 
   return (
-    <div className="p-8 mx-auto animate-premium-page">
+    <div className="p-4 lg:p-6 animate-premium-page">
       <div className="flex items-center gap-4 mb-10">
         <div className="p-3 bg-theme-primary/10 rounded-2xl border border-theme-primary/20">
           <BarChart3 className="w-7 h-7 text-theme-primary" />
@@ -117,7 +132,7 @@ export function OvertimeReports() {
             />
           </div>
           <div>
-            <label className="label-sm mb-1 block">Tezgah</label>
+            <label className="label-sm mb-1 block">Makine</label>
             <CustomSelect
               options={[{ id: '', label: 'Tümü' }, ...machines.map(m => ({ id: m.id, label: m.name }))]}
               value={machineId}
@@ -145,7 +160,7 @@ export function OvertimeReports() {
           </div>
         </div>
         <div className="flex items-center gap-3 mt-5">
-          <button onClick={fetchReport} className="btn-primary text-xs flex items-center gap-2 px-6">
+          <button onClick={() => { fetchReport(); setCurrentPage(0); }} className="btn-primary text-xs flex items-center gap-2 px-6">
             <Filter className="w-4 h-4" /> FİLTRELE
           </button>
           <button onClick={clearFilters} className="btn-secondary text-xs px-6">TEMİZLE</button>
@@ -164,9 +179,9 @@ export function OvertimeReports() {
               { icon: BarChart3, label: 'TOPLAM PLAN', value: report.totalPlans, color: 'text-theme-primary' },
               { icon: Calendar, label: 'TOPLAM GÜN', value: report.totalDays, color: 'text-blue-400' },
               { icon: Users, label: 'TOPLAM PERSONEL', value: report.totalOperators, color: 'text-emerald-400' },
-              { icon: Settings, label: 'TOPLAM TEZGAH', value: report.totalMachines, color: 'text-amber-400' },
+              { icon: Settings, label: 'TOPLAM MAKİNE', value: report.totalMachines, color: 'text-amber-400' },
               { icon: TrendingUp, label: 'EN ÇOK MESAİ', value: report.topOperator?.name || '–', sub: report.topOperator ? `${report.topOperator.count} kez` : '', color: 'text-purple-400' },
-              { icon: TrendingUp, label: 'EN AKTİF TEZGAH', value: report.topMachine?.name || '–', sub: report.topMachine ? `${report.topMachine.count} kez` : '', color: 'text-rose-400' }
+              { icon: TrendingUp, label: 'EN AKTİF MAKİNE', value: report.topMachine?.name || '–', sub: report.topMachine ? `${report.topMachine.count} kez` : '', color: 'text-rose-400' }
             ].map((card, i) => (
               <div key={i} className="premium-card p-5">
                 <card.icon className={`w-5 h-5 mb-3 ${card.color}`} />
@@ -186,13 +201,13 @@ export function OvertimeReports() {
                   <th className="text-left px-5 py-3 text-[10px] font-black text-theme-dim uppercase tracking-widest">Tarih Aralığı</th>
                   <th className="text-left px-5 py-3 text-[10px] font-black text-theme-dim uppercase tracking-widest">Vardiya</th>
                   <th className="text-left px-5 py-3 text-[10px] font-black text-theme-dim uppercase tracking-widest">Personel</th>
-                  <th className="text-left px-5 py-3 text-[10px] font-black text-theme-dim uppercase tracking-widest">Tezgah</th>
+                  <th className="text-left px-5 py-3 text-[10px] font-black text-theme-dim uppercase tracking-widest">Makine</th>
                   <th className="text-left px-5 py-3 text-[10px] font-black text-theme-dim uppercase tracking-widest">Atama</th>
                   <th className="text-left px-5 py-3 text-[10px] font-black text-theme-dim uppercase tracking-widest">Durum</th>
                 </tr>
               </thead>
               <tbody>
-                {report.plans.map((plan: any) => {
+                {paginatedPlans.map((plan: any) => {
                   const uniqueOps = [...new Set(plan.items.map((i: any) => i.operator.fullName))] as string[];
                   const uniqueMachines = [...new Set(plan.items.filter((i: any) => i.machine).map((i: any) => i.machine.name))] as string[];
                   return (
@@ -227,9 +242,9 @@ export function OvertimeReports() {
                       <td className="px-5 py-3 text-xs font-black text-theme-primary">{plan.items.length}</td>
                       <td className="px-5 py-3">
                         <span className={`px-2.5 py-0.5 text-[9px] font-black rounded-full border uppercase tracking-widest ${plan.status === 'active' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                            plan.status === 'completed' ? 'bg-theme-dim/10 text-theme-dim border-theme/20' :
-                              plan.status === 'cancelled' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
-                                'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                          plan.status === 'completed' ? 'bg-theme-dim/10 text-theme-dim border-theme/20' :
+                            plan.status === 'cancelled' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
+                              'bg-blue-500/10 text-blue-400 border-blue-500/20'
                           }`}>
                           {plan.status === 'active' ? 'Aktif' : plan.status === 'completed' ? 'Tamamlandı' : plan.status === 'cancelled' ? 'İptal' : 'Planlanmış'}
                         </span>
@@ -239,6 +254,65 @@ export function OvertimeReports() {
                 })}
               </tbody>
             </table>
+
+            {/* Pagination Controls */}
+            <div className="p-4 border-t border-theme bg-theme-base/20 flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="flex items-center gap-6 order-2 md:order-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-black text-theme-dim whitespace-nowrap uppercase tracking-widest">SAYFADA:</span>
+                  <div className="w-24">
+                    <CustomSelect
+                      options={[
+                        { id: 10, label: '10' },
+                        { id: 50, label: '50' },
+                        { id: 250, label: '250' },
+                        { id: 500, label: '500' },
+                        { id: 1000, label: '1000' },
+                        { id: 999999, label: 'Tümü' }
+                      ]}
+                      value={pageSize}
+                      onChange={value => {
+                        setPageSize(Number(value));
+                        setCurrentPage(0);
+                      }}
+                      searchable={false}
+                    />
+                  </div>
+                </div>
+                <div className="h-4 w-px bg-theme hidden md:block" />
+                <span className="text-[11px] font-black text-theme-dim uppercase tracking-widest">
+                  TOPLAM <span className="text-theme-primary">{report.plans.length}</span> KAYIT
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3 order-1 md:order-2">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
+                  disabled={currentPage === 0}
+                  className="p-3 rounded-xl bg-theme-base border border-theme text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+                >
+                  <ChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
+                </button>
+
+                <div className="flex items-center gap-2 px-4 py-2 bg-theme-base border border-theme rounded-2xl">
+                  <span className="text-theme-primary font-black text-sm min-w-[20px] text-center">
+                    {currentPage + 1}
+                  </span>
+                  <span className="text-theme-dim font-bold text-xs uppercase tracking-widest">/</span>
+                  <span className="text-theme-muted font-black text-sm min-w-[20px] text-center">
+                    {pageCount || 1}
+                  </span>
+                </div>
+
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(pageCount - 1, prev + 1))}
+                  disabled={currentPage >= pageCount - 1}
+                  className="p-3 rounded-xl bg-theme-base border border-theme text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+                >
+                  <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+                </button>
+              </div>
+            </div>
             {report.plans.length === 0 && (
               <div className="text-center py-16 opacity-40">
                 <p className="text-sm font-black text-theme-dim uppercase tracking-widest">Filtreye uygun sonuç bulunamadı</p>

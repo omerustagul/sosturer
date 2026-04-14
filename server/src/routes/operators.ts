@@ -7,8 +7,11 @@ const getCompanyId = (req: AuthRequest) => req.user?.companyId;
 
 router.get('/', async (req: AuthRequest, res) => {
   try {
+    const companyId = getCompanyId(req);
+    if (!companyId) return res.json([]);
+
     const operators = await prisma.operator.findMany({
-      where: { companyId: getCompanyId(req) },
+      where: { companyId },
       include: { 
         department: true,
         role: true 
@@ -16,7 +19,10 @@ router.get('/', async (req: AuthRequest, res) => {
       orderBy: [{ displayOrder: 'asc' }, { fullName: 'asc' }],
     });
     res.json(operators);
-  } catch (error) { res.status(500).json({ error: 'Failed to fetch operators' }); }
+  } catch (error) { 
+    console.error('[Operators] Fetch error:', error);
+    res.status(500).json({ error: 'Failed to fetch operators' }); 
+  }
 });
 
 router.get('/:id', async (req: AuthRequest, res) => {

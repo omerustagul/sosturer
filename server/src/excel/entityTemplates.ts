@@ -196,8 +196,8 @@ export function createMachinesTemplateWorkbook() {
   wb.created = new Date();
 
   const cols: ColumnDef[] = [
-    { col: 'A', header: 'Tezgah Kodu ★ (Benzersiz)', required: true, width: 18 },
-    { col: 'B', header: 'Tezgah Adı ★', required: true, width: 26 },
+    { col: 'A', header: 'Makine Kodu ★ (Benzersiz)', required: true, width: 18 },
+    { col: 'B', header: 'Makine Adı ★', required: true, width: 26 },
     { col: 'C', header: 'Marka', required: false, width: 18 },
     { col: 'D', header: 'Model', required: false, width: 18 },
     { col: 'E', header: 'Kurulum Tarihi (YYYY-MM-DD)', required: false, width: 22 },
@@ -221,7 +221,7 @@ export function createMachinesTemplateWorkbook() {
     '====================',
     '',
     '1) "Data" sayfasında sarı örnek satırları doldurun.',
-    '2) Tezgah Kodu benzersiz olmalıdır.',
+    '2) Makine Kodu benzersiz olmalıdır.',
   ]);
 
   addReferenceSheet(wb, [{ header: 'Durum', values: ['Active', 'Inactive', 'Maintenance'] }]);
@@ -277,7 +277,7 @@ export function createProductionStandardsTemplateWorkbook(args: { machineCodes: 
   wb.created = new Date();
 
   const cols: ColumnDef[] = [
-    { col: 'A', header: 'Tezgah Kodu ★ (Dropdown)', required: true, width: 18 },
+    { col: 'A', header: 'Makine Kodu ★ (Dropdown)', required: true, width: 18 },
     { col: 'B', header: 'Ürün Kodu ★ (Dropdown)', required: true, width: 18 },
     { col: 'C', header: 'Birim Süre ★ (dk/adet)', required: true, width: 18 },
     { col: 'D', header: 'Kabul Edilen Duruş %', required: false, width: 18 },
@@ -304,13 +304,13 @@ export function createProductionStandardsTemplateWorkbook(args: { machineCodes: 
     '====================',
     '',
     '1) "Data" sayfasında sarı örnek satırları doldurun.',
-    '2) Tezgah/Ürün alanlarını dropdown’dan seçin.',
+    '2) Makine/Ürün alanlarını dropdown’dan seçin.',
     '3) Tarih formatı YYYY-MM-DD olmalıdır.',
   ]);
 
   // Reference sheet for dropdowns
   addReferenceSheet(wb, [
-    { header: 'Tezgahlar', values: args.machineCodes },
+    { header: 'Makinalar', values: args.machineCodes },
     { header: 'Ürünler', values: args.productCodes },
     { header: 'Durum', values: ['Active', 'Inactive'] },
   ]);

@@ -19,7 +19,7 @@ export function ReportsList() {
       const map: Record<string, { url: string; filename: string }> = {
         production_records_excel: { url: '/reports/excel/export', filename: 'Uretim_Kayitlari.xlsx' },
         production_template_excel: { url: '/reports/excel/template', filename: 'Uretim_Sablonu.xlsx' },
-        machine_efficiency_excel: { url: '/reports/excel/machine-efficiency', filename: 'Tezgah_Verimlilik_Ozeti.xlsx' },
+        machine_efficiency_excel: { url: '/reports/excel/machine-efficiency', filename: 'Makine_Verimlilik_Ozeti.xlsx' },
         oee_trend_excel: { url: '/reports/excel/oee-trend', filename: 'OEE_Trend.xlsx' },
       };
       const chosen = map[selectedReport] || map.production_records_excel;
@@ -108,10 +108,10 @@ export function ReportsList() {
             <table style="width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
               <thead>
                 <tr style="background: #f1f5f9;">
-                  <th style="padding: 12px 15px; text-align: left; font-size: 11px; font-weight: 800; color: #475569; border-bottom: 1px solid #e2e8f0;">TARÄ°H</th>
-                  <th style="padding: 12px 15px; text-align: left; font-size: 11px; font-weight: 800; color: #475569; border-bottom: 1px solid #e2e8f0;">TEZGAH</th>
-                  <th style="padding: 12px 15px; text-align: left; font-size: 11px; font-weight: 800; color: #475569; border-bottom: 1px solid #e2e8f0;">ÃœRÃœN</th>
-                  <th style="padding: 12px 15px; text-align: right; font-size: 11px; font-weight: 800; color: #475569; border-bottom: 1px solid #e2e8f0;">ÃœRETÄ°LEN</th>
+                  <th style="padding: 12px 15px; text-align: left; font-size: 11px; font-weight: 800; color: #475569; border-bottom: 1px solid #e2e8f0;">TARİH</th>
+                  <th style="padding: 12px 15px; text-align: left; font-size: 11px; font-weight: 800; color: #475569; border-bottom: 1px solid #e2e8f0;">MAKİNE</th>
+                  <th style="padding: 12px 15px; text-align: left; font-size: 11px; font-weight: 800; color: #475569; border-bottom: 1px solid #e2e8f0;">ÜRÜN</th>
+                  <th style="padding: 12px 15px; text-align: right; font-size: 11px; font-weight: 800; color: #475569; border-bottom: 1px solid #e2e8f0;">ÜRETİLEN</th>
                   <th style="padding: 12px 15px; text-align: right; font-size: 11px; font-weight: 800; color: #475569; border-bottom: 1px solid #e2e8f0;">OEE</th>
                 </tr>
               </thead>
@@ -143,19 +143,19 @@ export function ReportsList() {
 
         reportHTML = `
           <div style="padding: 40px; font-family: 'Inter', sans-serif;">
-            ${getHeader('TEZGAH VERÄ°MLÄ°LÄ°K MATRÄ°SÄ°')}
+            ${getHeader('MAKİNE VERİMLİLİK MATRİSİ')}
             ${getSummaryCards([
-          { label: 'TOPLAM TEZGAH', value: String(machines.length), color: '#3b82f6' },
-          { label: 'AKTÄ°F Ã‡ALIÅMA', value: String(machineStats.filter((s: any) => s.recordCount > 0).length), color: '#10b981' },
-          { label: 'GENEL VERÄ°M', value: `%${summaryStats.avgOee}`, color: '#8b5cf6' },
+          { label: 'TOPLAM MAKİNE', value: String(machines.length), color: '#3b82f6' },
+          { label: 'AKTİF ÇALIŞMA', value: String(machineStats.filter((s: any) => s.recordCount > 0).length), color: '#10b981' },
+          { label: 'GENEL VERİM', value: `%${summaryStats.avgOee}`, color: '#8b5cf6' },
           { label: 'TOPLAM ADET', value: summaryStats.totalProduced.toLocaleString(), color: '#f59e0b' }
         ])}
 
             <table style="width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
               <thead>
                 <tr style="background: #1e293b; color: white;">
-                  <th style="padding: 15px; text-align: left; font-size: 11px; font-weight: 800; text-transform: uppercase;">TEZGAH KODU</th>
-                  <th style="padding: 15px; text-align: left; font-size: 11px; font-weight: 800; text-transform: uppercase;">TEZGAH ADI</th>
+                  <th style="padding: 15px; text-align: left; font-size: 11px; font-weight: 800; text-transform: uppercase;">MAKİNE KODU</th>
+                  <th style="padding: 15px; text-align: left; font-size: 11px; font-weight: 800; text-transform: uppercase;">MAKİNE ADI</th>
                   <th style="padding: 15px; text-align: right; font-size: 11px; font-weight: 800; text-transform: uppercase;">TOPLAM ADET</th>
                   <th style="padding: 15px; text-align: right; font-size: 11px; font-weight: 800; text-transform: uppercase;">ORT. OEE</th>
                 </tr>
@@ -190,9 +190,9 @@ export function ReportsList() {
             <table style="width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
               <thead>
                 <tr style="background: #fef2f2;">
-                  <th style="padding: 15px; text-align: left; font-size: 11px; font-weight: 800; color: #991b1b;">TARÄ°H</th>
-                  <th style="padding: 15px; text-align: left; font-size: 11px; font-weight: 800; color: #991b1b;">TEZGAH</th>
-                  <th style="padding: 15px; text-align: right; font-size: 11px; font-weight: 800; color: #991b1b;">SÃœRE (DK)</th>
+                  <th style="padding: 15px; text-align: left; font-size: 11px; font-weight: 800; color: #991b1b;">TARİH</th>
+                  <th style="padding: 15px; text-align: left; font-size: 11px; font-weight: 800; color: #991b1b;">MAKİNE</th>
+                  <th style="padding: 15px; text-align: right; font-size: 11px; font-weight: 800; color: #991b1b;">SÜRE (DK)</th>
                   <th style="padding: 15px; text-align: left; font-size: 11px; font-weight: 800; color: #991b1b;">SEBEP / NOT</th>
                 </tr>
               </thead>
@@ -330,7 +330,7 @@ export function ReportsList() {
               <CustomSelect
                 options={[
                   { id: 'production_records_excel', label: 'Üretim Kayıtları (Excel)' },
-                  { id: 'machine_efficiency_excel', label: 'Tezgah Verimlilik Özeti (Excel)' },
+                  { id: 'machine_efficiency_excel', label: 'Makine Verimlilik Özeti (Excel)' },
                   { id: 'oee_trend_excel', label: 'Günlük OEE Trend (Excel)' },
                   { id: 'production_template_excel', label: 'Üretim Excel Şablonu (Excel)' }
                 ]}
@@ -367,7 +367,7 @@ export function ReportsList() {
             <div className="grid grid-cols-1 gap-3 pt-4">
               {[
                 { id: 'performance', title: 'Performans Raporu', desc: 'Genel OEE ve üretim performansı', icon: TrendingUp, color: 'text-rose-400' },
-                { id: 'machine', title: 'Tezgah Bazlı Analiz', desc: 'Her tezgahın detaylı performans özeti', icon: Factory, color: 'text-theme-primary' },
+                { id: 'machine', title: 'Makine Bazlı Analiz', desc: 'Her makinenin detaylı performans özeti', icon: Factory, color: 'text-theme-primary' },
                 { id: 'downtime', title: 'Duruş Analizi', desc: 'Duruş süreleri ve sebepleri', icon: Activity, color: 'text-amber-400' },
                 { id: 'quality', title: 'Kalite Analizi', desc: 'Hatalı ürün ve kalite metrikleri', icon: BarChart3, color: 'text-emerald-400' },
               ].map((r) => (
@@ -408,16 +408,16 @@ export function ReportsList() {
             <div>
               <h3 className="text-3xl font-black text-theme-main tracking-tight">EXCEL RAPORLARI</h3>
               <p className="text-theme-muted font-medium mt-3 leading-relaxed">
-                Ham veri, tezgah özeti ve OEE trend gibi farklı Excel raporlarını seçerek indirebilirsiniz.
+                Ham veri, makine özeti ve OEE trend gibi farklı Excel raporlarını seçerek indirebilirsiniz.
               </p>
             </div>
 
             <div className="grid grid-cols-1 gap-3 pt-4">
               {[
-                { id: 'production_records_excel', title: 'Ãœretim KayÄ±tlarÄ±', desc: 'TÃ¼m kayÄ±tlarÄ±n ham verisi (XLSX).', icon: Factory, color: 'text-emerald-400' },
-                { id: 'machine_efficiency_excel', title: 'Tezgah Verimlilik Ã–zeti', desc: 'Tezgah bazlÄ± Ã¼retim, duruÅŸ, OEE (XLSX).', icon: BarChart3, color: 'text-theme-primary' },
-                { id: 'oee_trend_excel', title: 'GÃ¼nlÃ¼k OEE Trend', desc: 'GÃ¼nlÃ¼k ortalama OEE/KPI trendi (XLSX).', icon: Activity, color: 'text-theme-primary' },
-                { id: 'production_template_excel', title: 'Ãœretim Excel Åablonu', desc: 'Toplu iÃ§e aktarma ÅŸablonu + referans kodlar (XLSX).', icon: ClipboardList, color: 'text-amber-400' },
+                { id: 'production_records_excel', title: 'Üretim Kayıtları', desc: 'Tüm kayıtların ham verisi (XLSX).', icon: Factory, color: 'text-emerald-400' },
+                { id: 'machine_efficiency_excel', title: 'Makine Verimlilik Özeti', desc: 'Makine bazlı üretim, duruş, OEE (XLSX).', icon: BarChart3, color: 'text-theme-primary' },
+                { id: 'oee_trend_excel', title: 'Günlük OEE Trend', desc: 'Günlük ortalama OEE/KPI trendi (XLSX).', icon: Activity, color: 'text-theme-primary' },
+                { id: 'production_template_excel', title: 'Üretim Excel Şablonu', desc: 'Toplu içe aktarma şablonu + referans kodlar (XLSX).', icon: ClipboardList, color: 'text-amber-400' },
               ].map((r) => (
                 <button
                   key={r.id}

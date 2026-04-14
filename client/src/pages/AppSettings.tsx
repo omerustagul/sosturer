@@ -12,7 +12,7 @@ import { api } from '../lib/api';
 import { CustomSelect } from '../components/common/CustomSelect';
 
 export function AppSettings() {
-  const { t } = useTranslation();
+  useTranslation();
   const {
     settings,
     updateSettings,
@@ -30,11 +30,30 @@ export function AppSettings() {
   const [isSaving, setIsSaving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
+  const [locations, setLocations] = useState<any[]>([]);
+  const [shifts, setShifts] = useState<any[]>([]);
+
   useEffect(() => {
     if (settings) {
       setLocalSettings(settings);
     }
   }, [settings]);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [locRes, shiftRes] = await Promise.all([
+          api.get('/system/company/locations'),
+          api.get('/shifts')
+        ]);
+        setLocations(locRes);
+        setShifts(shiftRes.filter((s: any) => s.status === 'active'));
+      } catch (error) {
+        console.error('Data fetch failed');
+      }
+    }
+    fetchData();
+  }, []);
 
   if (loading && !isInitialized) {
     return (
@@ -46,8 +65,8 @@ export function AppSettings() {
 
   if (!settings || !localSettings) {
     return (
-      <div className="p-10 text-center space-y-4">
-        <h2 className="text-2xl font-black text-theme-main uppercase tracking-tighter">AYARLAR YÜKLENEMEDİ</h2>
+      <div className="p-4 lg:p-6 text-center space-y-4">
+        <h2 className="text-xl font-black text-theme-main uppercase">AYARLAR YÜKLENEMEDİ</h2>
         <p className="text-theme-muted font-bold">Şirket bilgileriniz ulaşılamıyor. Lütfen çıkış yapıp tekrar girmeyi deneyin.</p>
       </div>
     );
@@ -95,28 +114,32 @@ export function AppSettings() {
     { id: 'display', label: 'GÖRÜNÜM', icon: Monitor, description: 'Ekran, tema ve tablo tercihleri' },
     { id: 'notifications', label: 'BİLDİRİMLER', icon: Bell, description: 'E-posta ve sistem uyarıları' },
     { id: 'security', label: 'GÜVENLİK', icon: Shield, description: 'Erişim kontrolü ve oturum yönetimi' },
-    { id: 'integration', label: 'ENTEGRASYON', icon: Share2, description: 'Harici sistem bağlantıları' }
+    { id: 'integration', label: 'ENTEGRASYON', icon: Share2, description: 'Harici sistem bağlantıları' },
+    { id: 'connections', label: 'BAĞLANTILAR', icon: Share2, description: 'Sistem parametreleri ve eşleşmeler' }
   ];
 
   return (
-    <div className="p-6 lg:p-10 w-full mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="p-6 lg:p-8 w-full mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-2 border-b border-theme">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-4 border-b border-theme">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-theme-primary/10 rounded-xl border border-theme-primary/20">
-              <Settings className="w-8 h-8 text-theme-primary" />
+              <Settings className="w-6 h-6 text-theme-primary" />
             </div>
-            <h2 className="text-3xl font-black text-theme-main tracking-tight uppercase italic">Genel Ayarlar</h2>
+            <div>
+              <h2 className="text-xl font-black text-theme-main uppercase">Genel Ayarlar</h2>
+              <p className="text-theme-muted text-xs font-medium opacity-70 mt-0.15">Uygulama tercihlerini ve sistem parametrelerini buradan özelleştirin.</p>
+            </div>
+
           </div>
-          <p className="text-theme-muted text-sm font-bold pl-1 opacity-70 uppercase tracking-wide">Uygulama tercihlerini ve sistem parametrelerini buradan özelleştirin.</p>
         </div>
         <button
           onClick={handleSave}
           disabled={isSaving}
-          className="flex items-center w-auto h-12 gap-3 px-4 bg-theme-primary hover:opacity-90 disabled:opacity-50 text-white font-black rounded-xl transition-all shadow-xl shadow-theme-primary/20 active:scale-95 group"
+          className="flex items-center w-auto h-10 gap-2 p-4 bg-theme-primary hover:opacity-90 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-all shadow-xl shadow-theme-primary/20 hover:scale-105 active:scale-95 group"
         >
-          {isSaving ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5 group-hover:scale-110 transition-transform" />}
+          {isSaving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4 group-hover:scale-110 transition-transform mb-0.5" />}
           {isSaving ? 'KAYDEDİLİYOR...' : 'AYARLARI KAYDET'}
         </button>
       </div>
@@ -130,34 +153,34 @@ export function AppSettings() {
               onClick={() => setActiveSection(s.id)}
               className={`w-full text-left group transition-all duration-300 ${activeSection === s.id ? 'bg-theme-primary/15 border-theme-primary/30 shadow-lg shadow-theme-primary/5'
                 : 'hover:bg-theme-surface/40 border-transparent'
-                } border p-4 rounded-2xl relative overflow-hidden`}
+                } border px-4 py-2 rounded-2xl relative overflow-hidden`}
             >
               {activeSection === s.id && (
                 <div className="absolute left-0 top-0 bottom-0 w-1 bg-theme-primary" />
               )}
               <div className="flex items-center gap-3 mb-1">
                 <s.icon className={`w-5 h-5 ${activeSection === s.id ? 'text-theme-primary' : 'text-theme-muted group-hover:text-theme-main'}`} />
-                <span className={`font-black text-sm uppercase tracking-wider ${activeSection === s.id ? 'text-theme-main' : 'text-theme-muted group-hover:text-theme-main'}`}>
+                <span className={`font-black text-sm ${activeSection === s.id ? 'text-theme-main' : 'text-theme-muted group-hover:text-theme-main'}`}>
                   {s.label}
                 </span>
               </div>
-              <p className="text-[10px] font-bold text-theme-muted group-hover:text-theme-main truncate opacity-60 uppercase tracking-widest">{s.description}</p>
+              <p className="text-[10px] font-bold text-theme-muted group-hover:text-theme-main truncate">{s.description}</p>
             </button>
           ))}
         </div>
 
         {/* Content Area */}
         <div className="lg:col-span-3">
-          <div className="bg-theme-surface/60 backdrop-blur-3xl border border-theme rounded-2xl p-6 shadow-2xl space-y-12 min-h-[600px] ring-1 ring-white/5 relative overflow-hidden">
+          <div className="bg-theme-surface/30 backdrop-blur-xl border border-theme rounded-2xl p-6 shadow-xl shadow-theme-surface/5 space-y-12 min-h-[calc(55vh)] relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-theme-primary/5 rounded-full blur-[100px] -mr-32 -mt-32" />
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-theme-primary/5 rounded-full blur-[100px] -ml-32 -mb-32" />
 
             {activeSection === 'system' && (
               <div className="space-y-10 animate-in fade-in slide-in-from-right-4 duration-500 relative z-10">
                 <div className="flex items-center justify-between border-b border-theme pb-6">
-                  <h3 className="text-2xl font-black text-theme-main flex items-center gap-4 uppercase tracking-tighter">
-                    <div className="p-3 bg-theme-primary/10 rounded-2xl border border-theme-primary/20">
-                      <Database className="w-7 h-7 text-theme-primary" />
+                  <h3 className="text-xl font-bold text-theme-main flex items-center gap-3 uppercase">
+                    <div className="p-2 bg-theme-primary/10 rounded-xl border border-theme-primary/20">
+                      <Database className="w-5 h-5 text-theme-primary" />
                     </div>
                     Sistem Parametreleri
                   </h3>
@@ -238,9 +261,9 @@ export function AppSettings() {
             {activeSection === 'display' && (
               <div className="space-y-10 animate-in fade-in slide-in-from-right-4 duration-500 relative z-10">
                 <div className="flex items-center justify-between border-b border-theme pb-6">
-                  <h3 className="text-2xl font-black text-theme-main flex items-center gap-4 uppercase tracking-tighter">
-                    <div className="p-3 bg-theme-primary/10 rounded-2xl border border-theme-primary/20">
-                      <Palette className="w-7 h-7 text-theme-primary" />
+                  <h3 className="text-xl font-bold text-theme-main flex items-center gap-4 uppercase">
+                    <div className="p-2 bg-theme-primary/10 rounded-xl border border-theme-primary/20">
+                      <Palette className="w-5 h-5 text-theme-primary" />
                     </div>
                     Görünüm & Tema Ayarları
                   </h3>
@@ -250,10 +273,10 @@ export function AppSettings() {
                   <SettingItem label="ARAYÜZ TEMASI" description="Uygulamanın genel renk paleti ve atmosferi">
                     <div className="grid grid-cols-4 gap-3">
                       {[
-                        { id: 'dark', color: '#020617', label: 'DARK' },
-                        { id: 'blue', color: '#0ea5e9', label: 'OCEAN' },
-                        { id: 'emerald', color: '#10b981', label: 'GRASS' },
-                        { id: 'amber', color: '#f59e0b', label: 'GOLD' }
+                        { id: 'dark', color: '#1068ffff', label: 'OKYANUS' },
+                        { id: 'blue', color: '#0ea5e9', label: 'MERCAN' },
+                        { id: 'emerald', color: '#10b981', label: 'DOĞA' },
+                        { id: 'amber', color: '#f59e0b', label: 'ALTIN' }
                       ].map(t => (
                         <ThemeOption
                           key={t.id}
@@ -270,7 +293,7 @@ export function AppSettings() {
                   </SettingItem>
 
                   <SettingItem label="TABLO YOĞUNLUĞU" description="Veri listelerinin ekrandaki yerleşim sıklığı">
-                    <div className="flex bg-theme-base/50 p-1.5 rounded-xl border border-theme shadow-inner">
+                    <div className="flex h-10 bg-theme-base/50 p-1 rounded-xl border border-theme shadow-inner">
                       {[
                         { id: 'large', label: 'GENİŞ' },
                         { id: 'medium', label: 'ORTA' },
@@ -282,7 +305,7 @@ export function AppSettings() {
                             setLocalSettings({ ...localSettings, tableDensity: d.id });
                             applyDensity(d.id); // Real-time preview
                           }}
-                          className={`flex-1 py-3 px-4 rounded-xl text-[10px] font-black tracking-widest transition-all ${localSettings.tableDensity === d.id ? 'bg-theme-primary text-white shadow-lg shadow-theme-primary/20' : 'text-theme-muted hover:text-theme-main'}`}
+                          className={`flex-1 h-8 p-2 rounded-[8px] text-[10px] font-black tracking-widest transition-all ${localSettings.tableDensity === d.id ? 'bg-theme-primary text-white shadow-lg shadow-theme-primary/20' : 'text-theme-muted hover:text-theme-main'}`}
                         >
                           {d.label}
                         </button>
@@ -332,9 +355,9 @@ export function AppSettings() {
             {activeSection === 'notifications' && (
               <div className="space-y-10 animate-in fade-in slide-in-from-right-4 duration-500 relative z-10">
                 <div className="flex items-center justify-between border-b border-theme pb-6">
-                  <h3 className="text-2xl font-black text-theme-main flex items-center gap-4 uppercase tracking-tighter">
-                    <div className="p-3 bg-theme-primary/10 rounded-2xl border border-theme-primary/20">
-                      <Bell className="w-7 h-7 text-theme-primary" />
+                  <h3 className="text-xl font-bold text-theme-main flex items-center gap-4 uppercase">
+                    <div className="p-2 bg-theme-primary/10 rounded-xl border border-theme-primary/20">
+                      <Bell className="w-5 h-5 text-theme-primary" />
                     </div>
                     Bildirim Yapılandırması
                   </h3>
@@ -360,14 +383,14 @@ export function AppSettings() {
             {activeSection === 'security' && (
               <div className="space-y-10 animate-in fade-in slide-in-from-right-4 duration-500 relative z-10">
                 <div className="flex items-center justify-between border-b border-theme pb-6">
-                  <h3 className="text-2xl font-black text-theme-main flex items-center gap-4 uppercase tracking-tighter">
-                    <div className="p-3 bg-theme-primary/10 rounded-2xl border border-theme-primary/20">
-                      <Lock className="w-7 h-7 text-theme-primary" />
+                  <h3 className="text-xl font-bold text-theme-main flex items-center gap-4 uppercase">
+                    <div className="p-2 bg-theme-primary/10 rounded-xl border border-theme-primary/20">
+                      <Lock className="w-5 h-5 text-theme-primary" />
                     </div>
                     Erişim & Güvenlik
                   </h3>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-10">
                   <SettingItem label="İKİ FAKTÖRLÜ DOĞRULAMA" description="Hesabınızı ek bir güvenlik katmanı ile koruyun">
                     <Toggle
                       active={localSettings.twoFactorEnabled}
@@ -409,50 +432,124 @@ export function AppSettings() {
             {activeSection === 'integration' && (
               <div className="space-y-10 animate-in fade-in slide-in-from-right-4 duration-500 relative z-10">
                 <div className="flex items-center justify-between border-b border-theme pb-6">
-                  <h3 className="text-2xl font-black text-theme-main flex items-center gap-4 uppercase tracking-tighter">
-                    <div className="p-3 bg-theme-primary/10 rounded-2xl border border-theme-primary/20">
-                      <Share2 className="w-7 h-7 text-theme-primary" />
+                  <h3 className="text-xl font-bold text-theme-main flex items-center gap-4 uppercase">
+                    <div className="p-2 bg-theme-primary/10 rounded-xl border border-theme-primary/20">
+                      <Share2 className="w-5 h-5 text-theme-primary" />
                     </div>
-                    Endüstri 4.0 Entegrasyonları
+                    Endüstri Entegrasyonları
                   </h3>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="h-24 p-4 bg-theme-base/40 border border-theme rounded-2xl flex items-center justify-between group hover:border-theme-primary/30 transition-all hover:bg-theme-base/60">
-                    <div className="flex items-center gap-6">
-                      <div className="w-16 h-16 bg-white rounded-2xl p-3.5 flex items-center justify-center shadow-2xl ring-1 ring-black/5">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/0/08/SAP_logo.svg" className="w-full h-full object-contain" alt="SAP" />
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  <div className="h-20 p-3 bg-theme-base/40 border border-theme rounded-2xl flex items-center justify-between group hover:border-theme-primary/30 transition-all hover:bg-theme-base/60">
+                    <div className="flex items-center gap-3">
+                      <div className="w-13 h-13 bg-theme-dim/10 backdrop-blur-xl rounded-xl p-2 flex items-center justify-center shadow-2xl ring-1 ring-black/5">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/8/8f/SAP-Logo.svg" className="w-full h-full object-contain" alt="SAP" />
                       </div>
                       <div>
-                        <h6 className="font-black text-theme-main text-sm uppercase tracking-tighter">SAP S/4HANA</h6>
-                        <p className="text-[10px] text-theme-muted font-black uppercase tracking-widest mt-1">LİSANS GEREKLİ</p>
+                        <h6 className="font-black text-theme-main text-[13px] uppercase tracking-tighter">SAP S/4HANA</h6>
+                        <p className="text-[11px] text-theme-muted font-black mt-0.5">Lisans Gerekli</p>
                       </div>
                     </div>
                     <button
                       onClick={() => setLocalSettings({ ...localSettings, sapIntegrationEnabled: !localSettings.sapIntegrationEnabled })}
-                      className={`text-[10px] font-black py-2 px-4 rounded-xl transition-all ${localSettings.sapIntegrationEnabled ? 'bg-rose-500/10 text-rose-500' : 'bg-theme-primary/10 text-theme-primary'} uppercase tracking-widest`}
+                      className={`text-[10px] font-black py-2 px-4 rounded-[8px] transition-all ${localSettings.sapIntegrationEnabled ? 'bg-rose-500/10 text-rose-500' : 'bg-theme-primary/10 text-theme-primary'} uppercase tracking-widest`}
                     >
                       {localSettings.sapIntegrationEnabled ? 'BAĞLANTIYI KES' : 'BAĞLA'}
                     </button>
                   </div>
 
-                  <div className="h-24 p-4 bg-theme-base/40 border border-theme rounded-2xl flex items-center justify-between group hover:border-theme-primary/30 transition-all hover:bg-theme-base/60">
-                    <div className="flex items-center gap-6">
-                      <div className="w-16 h-16 bg-theme-primary/10 rounded-2xl p-4 flex items-center justify-center shadow-2xl ring-1 ring-white/5">
-                        <RefreshCw className="w-8 h-8 text-theme-primary" />
+                  <div className="h-20 p-3 bg-theme-base/40 border border-theme rounded-2xl flex items-center justify-between group hover:border-theme-primary/30 transition-all hover:bg-theme-base/60">
+                    <div className="flex items-center gap-3">
+                      <div className="w-13 h-13 bg-theme-dim/10 backdrop-blur-xl rounded-xl p-2 flex items-center justify-center shadow-2xl ring-1 ring-black/5">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/8/8f/SAP-Logo.svg" className="w-full h-full object-contain" alt="SAP" />
                       </div>
                       <div>
-                        <h6 className="font-black text-theme-main text-sm uppercase tracking-tighter">API WEBHOOKS</h6>
-                        <p className={`text-[10px] ${localSettings.webhooksEnabled ? 'text-emerald-500' : 'text-theme-muted'} font-black uppercase tracking-widest mt-1`}>{localSettings.webhooksEnabled ? 'AKTİF DİNLENİYOR' : 'PASİF'}</p>
+                        <h6 className="font-black text-theme-main text-[13px] uppercase tracking-tighter">SAP S/4HANA</h6>
+                        <p className="text-[11px] text-theme-muted font-black mt-0.5">Lisans Gerekli</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setLocalSettings({ ...localSettings, sapIntegrationEnabled: !localSettings.sapIntegrationEnabled })}
+                      className={`text-[10px] font-black py-2 px-4 rounded-[8px] transition-all ${localSettings.sapIntegrationEnabled ? 'bg-rose-500/10 text-rose-500' : 'bg-theme-primary/10 text-theme-primary'} uppercase tracking-widest`}
+                    >
+                      {localSettings.sapIntegrationEnabled ? 'BAĞLANTIYI KES' : 'BAĞLA'}
+                    </button>
+                  </div>
+
+                  <div className="h-20 p-3 bg-theme-base/40 border border-theme rounded-2xl flex items-center justify-between group hover:border-theme-primary/30 transition-all hover:bg-theme-base/60">
+                    <div className="flex items-center gap-3">
+                      <div className="w-13 h-13 bg-theme-dim/10 backdrop-blur-xl rounded-xl p-2 flex items-center justify-center shadow-2xl ring-1 ring-black/5">
+                        <RefreshCw className="w-6 h-6 text-theme-primary" />
+                      </div>
+                      <div>
+                        <h6 className="font-black text-theme-main text-[13px] uppercase tracking-tighter">API WEBHOOKS</h6>
+                        <p className={`text-[11px] ${localSettings.webhooksEnabled ? 'text-emerald-500' : 'text-theme-muted'} font-black mt-0.5`}>{localSettings.webhooksEnabled ? 'Aktif' : 'Pasif'}</p>
                       </div>
                     </div>
                     <button
                       onClick={() => setLocalSettings({ ...localSettings, webhooksEnabled: !localSettings.webhooksEnabled })}
-                      className={`text-[10px] font-black py-2 px-4 rounded-xl transition-all ${localSettings.webhooksEnabled ? 'bg-rose-500/10 text-rose-500' : 'bg-theme-primary/10 text-theme-primary'} uppercase tracking-widest`}
+                      className={`text-[10px] font-black py-2 px-4 rounded-[8px] transition-all ${localSettings.webhooksEnabled ? 'bg-rose-500/10 text-rose-500' : 'bg-theme-primary/10 text-theme-primary'} uppercase tracking-widest`}
                     >
                       {localSettings.webhooksEnabled ? 'DURDUR' : 'YAPILANDIR'}
                     </button>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {activeSection === 'connections' && (
+              <div className="space-y-10 animate-in fade-in slide-in-from-right-4 duration-500 relative z-10">
+                <div className="flex items-center justify-between border-b border-theme pb-6">
+                  <h3 className="text-xl font-bold text-theme-main flex items-center gap-4 uppercase">
+                    <div className="p-2 bg-theme-primary/10 rounded-xl border border-theme-primary/20">
+                      <Share2 className="w-5 h-5 text-theme-primary" />
+                    </div>
+                    Bağlantılar ve Parametreler
+                  </h3>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
+                  <SettingItem
+                    label="ÜRETİM TAKVİMİ REFERANS LOKASYONU"
+                    description="Eksik üretim kayıtları ve OEE hesaplamaları için hangi lokasyonun (Örn. Merkez Üretim Tesisi) çalışma saatleri referans alınsın?"
+                  >
+                    <CustomSelect
+                      options={[
+                        { id: '', label: 'Varsayılan (Tüm Takvim Aktif)' },
+                        ...locations.map(l => ({ id: l.id, label: l.name, subLabel: l.type === 'factory' ? 'Fabrika' : 'Depo' }))
+                      ]}
+                      value={localSettings.referenceLocationId || ''}
+                      onChange={(val) => setLocalSettings({ ...localSettings, referenceLocationId: val })}
+                      searchable={true}
+                    />
+                  </SettingItem>
+
+                  <SettingItem
+                    label="STANDART ÇALIŞMA VARDİYALARI"
+                    description="Üretim takvimi içerisinde kayıt girilmesi zorunlu olan vardiyaları seçin. Seçtiğiniz vardiyalardan herhangi birine kayıt girilmesi o gün için yeterli sayılacaktır."
+                  >
+                    <CustomSelect
+                      options={shifts.map(s => ({ id: s.id, label: s.shiftName, subLabel: `${s.startTime}-${s.endTime}` }))}
+                      value={(() => {
+                        try {
+                          return JSON.parse(localSettings.standardShiftIds || '[]');
+                        } catch (e) {
+                          return [];
+                        }
+                      })()}
+                      onChange={(val) => setLocalSettings({ ...localSettings, standardShiftIds: JSON.stringify(val) })}
+                      isMulti={true}
+                      searchable={true}
+                    />
+                  </SettingItem>
+                </div>
+
+                <div className="mt-6 flex items-start gap-4 p-6 bg-theme-primary/5 border border-theme-primary/10 rounded-2xl">
+                  <AlertCircle className="w-6 h-6 text-theme-primary shrink-0 mt-0.5" />
+                  <p className="text-[10px] font-bold text-theme-muted leading-relaxed uppercase tracking-wide">
+                    SEÇİLEN LOKASYONUN ÇALIŞMA SAATLERİ (PAZARTESİ-PAZAR) SİSTEMİN GENELİNDE AKTİF İŞ GÜNLERİNİ BELİRLEMEK İÇİN KULLANILACAK VE ANALİZ RAPORLARINA BU ŞEKİLDE YANSIYACAKTIR.
+                  </p>
                 </div>
               </div>
             )}
@@ -468,10 +565,10 @@ function SettingItem({ label, description, children }: { label: string, descript
   return (
     <div className="space-y-4 group">
       <div>
-        <h5 className="text-[13px] font-black text-theme-main uppercase tracking-[0.1em] group-hover:text-theme-primary transition-colors flex items-center gap-2">
+        <h5 className="text-[13px] font-black text-theme-main group-hover:text-theme-primary transition-colors flex items-center gap-2">
           {label}
         </h5>
-        <p className="text-[10px] font-bold text-theme-muted mt-1 uppercase tracking-widest opacity-60 leading-relaxed">{description}</p>
+        <p className="text-[10px] font-bold text-theme-muted mt-0 opacity-60 leading-relaxed">{description}</p>
       </div>
       <div className="pt-2">
         {children}
@@ -484,7 +581,7 @@ function ThemeOption({ color, label, active = false, onClick }: { color: string,
   return (
     <button
       onClick={onClick}
-      className={`relative p-4 rounded-2xl border flex flex-col items-center gap-2 transition-all ${active ? 'bg-theme-primary/10 border-theme-primary shadow-[0_0_30px_rgba(var(--primary-rgb),0.2)]' : 'bg-theme-base/30 border-theme hover:border-theme-primary/40'
+      className={`relative p-3 rounded-2xl border flex flex-col items-center gap-2 transition-all ${active ? 'bg-theme-primary/10 border-theme-primary shadow-[0_0_30px_rgba(var(--primary-rgb),0.2)]' : 'bg-theme-base/30 border-theme hover:border-theme-primary/40'
         }`}
     >
       <div className={`w-12 h-12 aspect-square rounded-full border border-white/10 shadow-lg`} style={{ backgroundColor: color }} />

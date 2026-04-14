@@ -3,22 +3,28 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { api } from '../../lib/api';
-import { Save, ArrowLeft, Clock, Target, Info, CheckCircle2, Plus, List, Download } from 'lucide-react';
+import { Save, ArrowLeft, Clock, Target, Info, CheckCircle2, Plus, List, Download, Wrench } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { format } from 'date-fns';
+import { format, subDays, isBefore, startOfToday } from 'date-fns';
 import { Loading } from '../../components/common/Loading';
 import { CustomSelect } from '../../components/common/CustomSelect';
+import { cn } from '../../lib/utils';
 
 const schema = z.object({
-  productionDate: z.string().min(1, 'Üretim tarihi zorunludur'),
+  productionDate: z.string()
+    .min(1, 'Üretim tarihi zorunludur')
+    .refine(val => isBefore(new Date(val), startOfToday()), {
+      message: 'Üretim kaydı yalnızca geçmiş tarihler için girilebilir. Bugünün planlaması için Planlama modülünü kullanın.'
+    }),
   shiftId: z.string().min(1, 'Vardiya seçimi zorunludur'),
-  machineId: z.string().min(1, 'Tezgah seçimi zorunludur'),
-  operatorId: z.string().min(1, 'Operatör seçimi zorunludur'),
-  productId: z.string().min(1, 'Ürün seçimi zorunludur'),
-  cycleTimeSeconds: z.number().min(0.1, 'Birim süre (Cycle Time) girilmelidir'),
-  producedQuantity: z.number().min(1, 'Üretim adeti tanımlanmalıdır'),
+  machineId: z.string().min(1, 'Makine seçimi zorunludur'),
+  operatorId: z.string().optional().default(''),
+  productId: z.string().optional().default(''),
+  cycleTimeSeconds: z.number().min(0).optional().default(0),
+  producedQuantity: z.number().min(0).optional().default(0),
   defectQuantity: z.number().min(0).optional().default(0),
   plannedDowntimeMinutes: z.number().min(0).optional().default(0),
+  effectiveDurationMinutes: z.number().min(1).optional(),
   notes: z.string().optional(),
 });
 
@@ -40,7 +46,7 @@ export function RecordForm() {
   const { register, handleSubmit, watch, control, reset, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
-      productionDate: format(new Date(), 'yyyy-MM-dd'),
+      productionDate: format(subDays(new Date(), 1), 'yyyy-MM-dd'),
       defectQuantity: 0,
       plannedDowntimeMinutes: 0,
       cycleTimeSeconds: 0,
@@ -49,6 +55,9 @@ export function RecordForm() {
   });
 
   const [shiftContext, setShiftContext] = useState({ totalActual: 0, totalPlanned: 0 });
+  const [isManualDurationEnabled, setIsManualDurationEnabled] = useState(false);
+  const [manualDurationMinutes, setManualDurationMinutes] = useState<number>(0);
+  const [isDowntime, setIsDowntime] = useState(false);
 
   // Watch only necessary fields for context to avoid unnecessary renders
   const watchContext = watch(['productionDate', 'machineId', 'shiftId']);
@@ -76,11 +85,14 @@ export function RecordForm() {
   const automationResult = useMemo(() => {
     const selectedShift = shifts.find(s => s.id === watchedShiftId);
 
-    if (selectedShift && cycleTimeSeconds > 0 && producedQuantity > 0) {
+    if (selectedShift && (cycleTimeSeconds || 0) > 0 && (producedQuantity || 0) > 0) {
       const shiftDurationMinutes = selectedShift.durationMinutes;
+      const effectiveDuration = isManualDurationEnabled && manualDurationMinutes > 0
+        ? manualDurationMinutes
+        : shiftDurationMinutes;
 
       // Calculations for the CURRENT product
-      const currentActualMin = (producedQuantity * cycleTimeSeconds) / 60;
+      const currentActualMin = ((producedQuantity || 0) * (cycleTimeSeconds || 0)) / 60;
       const currentPlannedDowntime = plannedDowntimeMinutes || 0;
 
       // Aggregates (Current + Other products in same shift)
@@ -88,22 +100,22 @@ export function RecordForm() {
       const totalPlannedDowntime = currentPlannedDowntime + shiftContext.totalPlanned;
 
       // Shift-wide availability
-      const ppt = shiftDurationMinutes - totalPlannedDowntime;
+      const ppt = effectiveDuration - totalPlannedDowntime;
       let availability = ppt > 0 ? (totalActualMin / ppt) * 100 : 0;
       availability = Math.min(100, Math.max(0, availability));
 
       // Global (Shift) Downtime
-      const totalDowntimeMin = Math.max(0, shiftDurationMinutes - totalActualMin);
+      const totalDowntimeMin = Math.max(0, effectiveDuration - totalActualMin);
       const shiftUnplannedDowntime = Math.max(0, totalDowntimeMin - totalPlannedDowntime);
 
       // Current Product Quality and OEE
-      let quality = producedQuantity > 0 ? ((producedQuantity - (defectQuantity || 0)) / producedQuantity) * 100 : 0;
+      let quality = (producedQuantity || 0) > 0 ? (((producedQuantity || 0) - (defectQuantity || 0)) / (producedQuantity || 0)) * 100 : 0;
       quality = Math.min(100, Math.max(0, quality));
 
       const oee = (availability / 100) * 1 * (quality / 100) * 100;
 
       return {
-        plannedQuantity: Math.floor((shiftDurationMinutes * 60) / cycleTimeSeconds),
+        plannedQuantity: Math.floor((effectiveDuration * 60) / (cycleTimeSeconds || 1)),
         actualWorkingMinutes: currentActualMin.toFixed(1),
         occupiedMinutes: shiftContext.totalActual.toFixed(1),
         currentUnplanned: (shiftUnplannedDowntime * (currentActualMin / totalActualMin)).toFixed(1),
@@ -112,11 +124,19 @@ export function RecordForm() {
         availability: availability.toFixed(1),
         oee: oee.toFixed(1),
         performance: 100,
-        shiftTotal: shiftDurationMinutes
+        shiftTotal: effectiveDuration
       };
     }
     return null;
-  }, [watchedShiftId, producedQuantity, cycleTimeSeconds, plannedDowntimeMinutes, defectQuantity, shifts, shiftContext]);
+  }, [watchedShiftId, producedQuantity, cycleTimeSeconds, plannedDowntimeMinutes, defectQuantity, shifts, shiftContext, isManualDurationEnabled, manualDurationMinutes]);
+
+  useEffect(() => {
+    const selectedShift = shifts.find((s) => s.id === watchedShiftId);
+    if (!selectedShift) return;
+    if (!isManualDurationEnabled) {
+      setManualDurationMinutes(selectedShift.durationMinutes || 0);
+    }
+  }, [watchedShiftId, shifts, isManualDurationEnabled]);
 
   useEffect(() => {
     async function loadInitialData() {
@@ -137,6 +157,13 @@ export function RecordForm() {
           if (editData.productionDate) {
             editData.productionDate = format(new Date(editData.productionDate), 'yyyy-MM-dd');
           }
+          if ((editData.plannedDurationMinutes || 0) > 0) {
+            setManualDurationMinutes(editData.plannedDurationMinutes);
+            const shift = sRes.find((s: any) => s.id === editData.shiftId);
+            if (shift && editData.plannedDurationMinutes !== shift.durationMinutes) {
+              setIsManualDurationEnabled(true);
+            }
+          }
           reset(editData);
         }
       } catch (err) {
@@ -152,10 +179,24 @@ export function RecordForm() {
   const onSubmit = async (data: FormData) => {
     try {
       setServerError('');
+      const payload = {
+        ...data,
+        // Downtime mode: zero out all production values
+        operatorId: isDowntime ? (data.operatorId || '') : data.operatorId,
+        productId: isDowntime ? (data.productId || '') : data.productId,
+        producedQuantity: isDowntime ? 0 : (data.producedQuantity || 0),
+        defectQuantity: isDowntime ? 0 : (data.defectQuantity || 0),
+        cycleTimeSeconds: isDowntime ? 0 : (data.cycleTimeSeconds || 0),
+        plannedDowntimeMinutes: isDowntime ? 0 : (data.plannedDowntimeMinutes || 0),
+        effectiveDurationMinutes: isDowntime ? 0 : (isManualDurationEnabled && manualDurationMinutes > 0 ? manualDurationMinutes : 0),
+        notes: isDowntime
+          ? `[ARIZA/BAKIM]${data.notes ? ' ' + data.notes : ''}`
+          : (data.notes || ''),
+      };
       if (isEditMode) {
-        await api.put(`/production-records/${id}`, data);
+        await api.put(`/production-records/${id}`, payload);
       } else {
-        await api.post('/production-records', data);
+        await api.post('/production-records', payload);
       }
       setIsSuccess(true);
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -168,7 +209,7 @@ export function RecordForm() {
   if (loading) return <Loading size="lg" fullScreen />;
 
   return (
-    <div className="p-6 lg:p-8 w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="p-4 lg:p-6 w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="flex flex-col gap-4">
@@ -179,7 +220,7 @@ export function RecordForm() {
             >
               <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> Kayıt Listesine Dön
             </button>
-            <h2 className="text-3xl font-bold text-theme-main tracking-tight leading-tight">
+            <h2 className="text-2xl font-bold text-theme-main tracking-tight leading-tight">
               {isEditMode ? 'Kayıt Düzenle' : 'Yeni Üretim Kaydı'}
             </h2>
             <p className="text-theme-muted text-sm mt-1">Sistem verileri veritabanına <strong className="text-theme-primary">güvenli</strong> bir şekilde işler.</p>
@@ -189,9 +230,9 @@ export function RecordForm() {
         {!isEditMode && !isSuccess && (
           <button
             onClick={() => navigate('/settings', { state: { activeTab: 'import', importType: 'production_records' } })}
-            className="flex items-center gap-3 px-6 py-4 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-2xl transition-all group shrink-0"
+            className="flex items-center gap-3 p-3 bg-emerald-500/10 hover:bg-emerald-500/20 hover:scale-105 text-emerald-400 border border-emerald-500/20 rounded-2xl transition-all group shrink-0"
           >
-            <div className="w-8 h-8 bg-emerald-500/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+            <div className="w-8 h-8 bg-emerald-500/10 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
               <Download className="w-4 h-4 text-emerald-400" />
             </div>
             <div className="text-left">
@@ -210,46 +251,46 @@ export function RecordForm() {
       )}
 
       {isSuccess ? (
-        <div className="bg-theme-surface/40 backdrop-blur-md border-2 border-theme-primary/20 rounded-[3rem] p-12 md:p-20 flex flex-col items-center text-center space-y-8 shadow-2xl shadow-theme-primary/5 animate-in zoom-in-95 duration-500">
+        <div className="modern-glass-card py-10 flex flex-col items-center text-center space-y-8 shadow-theme-primary/5 animate-in zoom-in-95 duration-500">
           <div className="relative">
             <div className="absolute inset-0 bg-theme-primary/20 blur-3xl rounded-full scale-150 animate-pulse"></div>
-            <div className="relative w-24 h-24 bg-theme-primary rounded-2xl flex items-center justify-center shadow-2xl shadow-theme-primary/50 rotate-3 hover:rotate-0 transition-transform duration-500">
-              <CheckCircle2 className="w-12 h-12 text-white" />
+            <div className="relative w-16 h-16 bg-theme-primary/10 border border-theme-primary/50 rounded-2xl flex items-center justify-center shadow-2xl shadow-theme-primary/50 rotate-3 hover:rotate-0 transition-transform duration-500">
+              <CheckCircle2 className="w-8 h-8 text-theme-primary" />
             </div>
           </div>
 
           <div className="max-w-md">
-            <h3 className="text-4xl font-black text-theme-main mb-4 tracking-tight">HARİKA! BAŞARIYLA KAYDEDİLDİ.</h3>
-            <p className="text-theme-muted text-lg leading-relaxed">
+            <h3 className="text-xl font-black text-theme-primary mb-2 tracking-tight">HARİKA! BAŞARIYLA KAYDEDİLDİ.</h3>
+            <p className="text-theme-muted text-sm leading-relaxed">
               Üretim verileri sisteme başarıyla işlendi. Şimdi ne yapmak istersiniz
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 pt-8 w-full max-w-lg">
+          <div className="flex flex-col sm:flex-row gap-4 pt-4 w-full max-w-lg justify-center">
             <button
               onClick={() => {
                 setIsSuccess(false);
                 reset();
                 if (isEditMode) navigate('/records/new');
               }}
-              className="flex-1 px-8 py-5 bg-theme-primary hover:bg-theme-primary-hover text-white font-black rounded-2xl shadow-xl shadow-theme-primary/20 active:scale-95 transition-all flex items-center justify-center gap-3"
+              className="flex-1 px-4 py-2 h-12 bg-theme-primary hover:bg-theme-primary-hover text-white font-black rounded-xl shadow-xl shadow-theme-primary/20 active:scale-95 transition-all flex items-center justify-center gap-3"
             >
               <Plus className="w-6 h-6" /> YENİ KAYIT EKLE
             </button>
             <button
               onClick={() => navigate('/records')}
-              className="flex-1 px-8 py-5 bg-theme-surface hover:bg-theme-surface/80 text-theme-main font-black rounded-2xl border border-theme active:scale-95 transition-all flex items-center justify-center gap-3"
+              className="flex-1 px-4 py-2 h-12 bg-theme-surface hover:bg-theme-surface/80 text-theme-main font-black rounded-xl border border-theme active:scale-95 transition-all flex items-center justify-center gap-3"
             >
               <List className="w-6 h-6" /> LİSTEYE DÖN
             </button>
           </div>
         </div>
       ) : (
-        <form onSubmit={handleSubmit(onSubmit)} className="bg-theme-surface/40 backdrop-blur-md border border-theme rounded-2xl overflow-hidden shadow-2xl">
-          <div className="p-6 md:p-10 grid grid-cols-1 lg:grid-cols-12 gap-10">
+        <form onSubmit={handleSubmit(onSubmit)} className="modern-glass-card overflow-hidden p-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
 
             <div className="lg:col-span-12 xl:col-span-4 space-y-6">
-              <div className="p-8 bg-theme-surface rounded-2xl border border-theme space-y-8 shadow-inner ring-1 ring-theme-main/5 h-full">
+              <div className="p-4 bg-theme-surface/10 rounded-2xl border border-theme space-y-8 shadow-inner shadow-theme-main/5 h-full">
                 <div className="flex items-center gap-3 border-b border-theme pb-4">
                   <Target className="w-5 h-5 text-theme-primary" />
                   <h3 className="text-lg font-semibold text-theme-main">Otomatik Hesaplama</h3>
@@ -305,64 +346,157 @@ export function RecordForm() {
             <div className="lg:col-span-12 xl:col-span-8 space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-theme-dim uppercase tracking-widest ml-1">Üretim Tarihi</label>
-                  <input type="date" {...register('productionDate')} className="form-input" />
+                  <label className="text-xs font-bold text-theme-dim ml-1">Üretim Tarihi</label>
+                  <input type="date" {...register('productionDate')} className="form-input" max={format(subDays(new Date(), 1), 'yyyy-MM-dd')} />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-theme-dim uppercase tracking-widest ml-1">Vardiya</label>
+                  <label className="text-xs font-bold text-theme-dim ml-1">Vardiya</label>
                   <Controller name="shiftId" control={control} render={({ field }) => (
-                    <CustomSelect options={shifts.map((s: any) => ({ id: s.id, label: s.shiftName, subLabel: `${s.durationMinutes} dk` }))} value={field.value} onChange={field.onChange} error={errors.shiftId?.message} searchable={false} />
+                    <CustomSelect options={(shifts || []).map((s: any) => ({ id: s.id, label: s.shiftName, subLabel: `${s.durationMinutes} dk` }))} value={field.value} onChange={field.onChange} error={errors.shiftId?.message} searchable={false} />
                   )} />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-theme-dim uppercase tracking-widest ml-1">Operatör</label>
-                  <Controller name="operatorId" control={control} render={({ field }) => (
-                    <CustomSelect options={operators.map((o: any) => ({ id: o.id, label: o.fullName, subLabel: o.department }))} value={field.value} onChange={field.onChange} error={errors.operatorId?.message} />
-                  )} />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-theme-dim uppercase tracking-widest ml-1">Tezgah</label>
+                  <label className="text-xs font-bold text-theme-dim ml-1">Makine</label>
                   <Controller name="machineId" control={control} render={({ field }) => (
-                    <CustomSelect options={machines.map((m: any) => ({ id: m.id, label: m.code, subLabel: m.name }))} value={field.value} onChange={field.onChange} error={errors.machineId?.message} />
+                    <CustomSelect options={(machines || []).map((m: any) => ({ id: m.id, label: m.code, subLabel: m.name }))} value={field.value} onChange={field.onChange} error={errors.machineId?.message} />
+                  )} />
+                </div>
+                <div className={`space-y-2 transition-opacity ${isDowntime ? 'opacity-40 pointer-events-none' : ''}`}>
+                  <label className="text-xs font-bold text-theme-dim ml-1">Operatör</label>
+                  <Controller name="operatorId" control={control} render={({ field }) => (
+                    <CustomSelect options={(operators || []).map((o: any) => ({ id: o.id, label: o.fullName, subLabel: o.department?.name || o.employeeId }))} value={field.value} onChange={field.onChange} error={isDowntime ? undefined : errors.operatorId?.message} disabled={isDowntime} />
                   )} />
                 </div>
               </div>
 
-              <div className="space-y-6 pt-6 border-t border-theme">
+              {/* Arıza / Bakım Toggle */}
+              <div className={`p-4 rounded-2xl border-2 transition-all duration-300 ${isDowntime
+                ? 'bg-rose-500/10 border-rose-500/40 shadow-lg shadow-rose-500/10'
+                : 'bg-theme-surface/10 border-theme'
+                }`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${isDowntime ? 'bg-rose-500/20' : 'bg-theme-main/5'
+                      }`}>
+                      <Wrench className={`w-4 h-4 transition-colors ${isDowntime ? 'text-rose-400' : 'text-theme-dim'}`} />
+                    </div>
+                    <div>
+                      <p className={`text-xs font-black uppercase tracking-widest transition-colors ${isDowntime ? 'text-rose-400' : 'text-theme-main'
+                        }`}>Arıza / Bakım Modu</p>
+                      <p className="text-[11px] text-theme-dim font-bold">
+                        {isDowntime
+                          ? 'Bu makine bu vardiyada çalışmadı. Üretim değerleri sıfır olarak kaydedilecek.'
+                          : 'Aktif edilirse tüm üretim alanları devre dışı kalır, OEE %0 hesaplanır.'}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsDowntime(prev => !prev)}
+                    className={cn(
+                      'relative h-7 w-14 rounded-full border-2 transition-all duration-300',
+                      isDowntime ? 'bg-rose-500 border-rose-500 shadow-lg shadow-rose-500/30' : 'bg-theme-main/10 border-theme'
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all duration-300 flex items-center justify-center',
+                        isDowntime ? 'left-[30px]' : 'left-0.75'
+                      )}
+                    >
+                      {isDowntime && <Wrench className="w-2.5 h-2.5 text-rose-500" />}
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              <div className={`space-y-6 pt-6 border-t border-theme transition-all ${isDowntime ? 'opacity-40 pointer-events-none select-none' : ''}`}>
+                <div className="p-4 rounded-2xl border border-theme bg-theme-surface/20 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-black text-theme-main uppercase tracking-widest">Etkin Çalışma Süresi</p>
+                      <p className="text-[11px] text-theme-dim font-bold">Varsayılan olarak vardiya süresi kullanılır. Arıza/değişim senaryolarında manuel değiştirebilirsiniz.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsManualDurationEnabled((prev) => !prev)}
+                      disabled={isDowntime}
+                      className={cn(
+                        'relative h-6.5 w-14 rounded-full border transition-all',
+                        isManualDurationEnabled ? 'bg-theme-primary border-theme-primary' : 'bg-theme-main/10 border-theme'
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          'absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all',
+                          isManualDurationEnabled ? 'left-8' : 'left-0.75 '
+                        )}
+                      />
+                    </button>
+                  </div>
+                  {isManualDurationEnabled && (
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-theme-primary ml-1">Manuel Çalışma Süresi (Dk)</label>
+                      <input
+                        type="number"
+                        min={1}
+                        value={manualDurationMinutes || ''}
+                        onChange={(e) => setManualDurationMinutes(Number(e.target.value) || 0)}
+                        className="form-input rounded-xl border-theme-primary/30 font-black"
+                        placeholder="dk"
+                      />
+                    </div>
+                  )}
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-theme-dim uppercase tracking-widest ml-1">Ürün</label>
+                    <label className="text-xs font-bold text-theme-dim ml-1">Ürün</label>
                     <Controller name="productId" control={control} render={({ field }) => (
-                      <CustomSelect options={products.map((p: any) => ({ id: p.id, label: p.productCode, subLabel: p.productName }))} value={field.value} onChange={field.onChange} error={errors.productId?.message} />
+                      <CustomSelect options={(products || []).map((p: any) => ({ id: p.id, label: p.productCode, subLabel: p.productName }))} value={field.value} onChange={field.onChange} error={errors.productId?.message} disabled={isDowntime} />
                     )} />
                   </div>
-                  <div className="p-4 bg-red-500/5 border border-red-500/20 rounded-2xl flex flex-col justify-center">
-                    <label className="text-[10px] font-black text-red-400 uppercase tracking-widest mb-1">⭐ Birim Süre (Cycle - Saniye)</label>
-                    <input type="number" step="0.1" {...register('cycleTimeSeconds', { valueAsNumber: true })} className="bg-transparent border-none text-2xl font-black text-theme-main focus:outline-none placeholder:text-theme-dim" placeholder="0" />
-                    {errors.cycleTimeSeconds && <p className="text-red-400 text-[10px] mt-1 font-bold">{errors.cycleTimeSeconds.message}</p>}
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-red-400 ml-1 flex items-center gap-2">
+                      ⭐ Cycle Time (Sn)
+                    </label>
+                    <div className="relative group/cycle">
+                      <input
+                        type="number"
+                        step="0.1"
+                        disabled={isDowntime}
+                        {...register('cycleTimeSeconds', { valueAsNumber: true })}
+                        className="h-10 w-full bg-red-500/5 border border-red-500/20 rounded-xl px-4 py-2 text-xl font-black text-theme-main focus:outline-none focus:ring-2 focus:ring-red-500/30 transition-all placeholder:text-theme-dim/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                        placeholder="0"
+                      />
+                      {errors.cycleTimeSeconds && !isDowntime && (
+                        <p className="text-red-400 text-[10px] mt-1 font-bold absolute -bottom-5 left-1">
+                          {errors.cycleTimeSeconds.message}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-emerald-400 uppercase tracking-widest ml-1">Üretilen Adet *</label>
-                    <input type="number" {...register('producedQuantity', { valueAsNumber: true })} className="form-input rounded-xl border-emerald-500/20 text-emerald-100 text-lg font-bold" placeholder="0" />
-                    {errors.producedQuantity && <p className="error-text">{errors.producedQuantity.message}</p>}
+                    <label className="text-xs font-bold text-emerald-400 ml-1">Üretilen Adet *</label>
+                    <input type="number" disabled={isDowntime} {...register('producedQuantity', { valueAsNumber: true })} className="form-input rounded-xl border-emerald-500/20 text-emerald-100 text-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed" placeholder="0" />
+                    {errors.producedQuantity && !isDowntime && <p className="error-text">{errors.producedQuantity.message}</p>}
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-theme-dim uppercase tracking-widest ml-1">Planlı Duruş (Dk)</label>
-                    <input type="number" {...register('plannedDowntimeMinutes', { valueAsNumber: true })} className="form-input rounded-xl" placeholder="0" />
+                    <label className="text-xs font-bold text-theme-dim ml-1">Planlı Duruş (Dk)</label>
+                    <input type="number" disabled={isDowntime} {...register('plannedDowntimeMinutes', { valueAsNumber: true })} className="form-input rounded-xl disabled:opacity-50 disabled:cursor-not-allowed" placeholder="0" />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-theme-dim uppercase tracking-widest ml-1">Hatalı Adet</label>
-                    <input type="number" {...register('defectQuantity', { valueAsNumber: true })} className="form-input rounded-xl" placeholder="0" />
+                    <label className="text-xs font-bold text-theme-dim ml-1">Hatalı Adet</label>
+                    <input type="number" disabled={isDowntime} {...register('defectQuantity', { valueAsNumber: true })} className="form-input rounded-xl disabled:opacity-50 disabled:cursor-not-allowed" placeholder="0" />
                   </div>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-theme-dim uppercase tracking-widest ml-1">Notlar</label>
-                <textarea {...register('notes')} rows={2} className="form-input rounded-xl resize-none" placeholder="Opsiyonel açıklamalar..." />
+              <div className={`space-y-2 transition-opacity ${isDowntime ? 'opacity-40' : ''}`}>
+                <label className="text-xs font-bold text-theme-dim ml-1">Notlar</label>
+                <textarea {...register('notes')} rows={2} className="form-input h-20 rounded-xl resize-none" placeholder="Opsiyonel açıklamalar..." />
               </div>
 
               <div className="pt-6 flex justify-end gap-4">

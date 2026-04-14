@@ -1,6 +1,6 @@
 const API_URL =
   import.meta.env.VITE_API_URL ||
-  (import.meta.env.PROD ? '/api' : `http://${window.location.hostname}:3001/api`);
+  (import.meta.env.PROD ? '/api' : `http://${window.location.hostname}:3005/api`);
 
 const getHeaders = () => {
   const token = sessionStorage.getItem('token');
@@ -37,7 +37,8 @@ const handleResponse = async (res: Response) => {
 export const api = {
   get: async (endpoint: string) => {
     const res = await fetch(`${API_URL}${endpoint}`, {
-      headers: getHeaders()
+      headers: getHeaders(),
+      cache: 'no-store'
     });
     return handleResponse(res);
   },

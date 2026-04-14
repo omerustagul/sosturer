@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import prisma from '../lib/prisma';
 import { calculateOEE, rebalanceShift } from '../services/oeeCalculator';
+import { adjustStockFromProduction } from '../services/inventoryService';
 import { endOfDay, isValid, parseISO, startOfDay } from 'date-fns';
 import { AuthRequest, authenticateToken } from '../middleware/auth';
 
@@ -31,7 +32,10 @@ router.get('/shift-context', authenticateToken, async (req: AuthRequest, res) =>
       }
     });
 
-    const totalActual = records.reduce((acc, r) => acc + (r.producedQuantity * r.cycleTimeSeconds) / 60, 0);
+    const totalActual = records.reduce(
+      (acc, r) => acc + (r.actualDurationMinutes ?? (r.producedQuantity * r.cycleTimeSeconds) / 60),
+      0
+    );
     const totalPlanned = records.reduce((acc, r) => acc + (r.plannedDowntimeMinutes || 0), 0);
 
     res.json({ totalActual, totalPlanned });
@@ -44,7 +48,9 @@ router.get('/shift-context', authenticateToken, async (req: AuthRequest, res) =>
 router.get('/', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const companyId = getCompanyId(req);
-    if (!companyId) return res.status(400).json({ error: 'Company ID is missing' });
+    console.log('[DEBUG] Fetching records for companyId:', companyId);
+    
+    if (!companyId) return res.json([]);
 
     const q = req.query as Record<string, unknown>;
     const startParam = (q.start ?? q.startDate ?? q.start_date) as string | undefined;
@@ -124,23 +130,27 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
       machineId,
       operatorId,
       productId,
-      producedQuantity,
-      cycleTimeSeconds,
+      producedQuantity = 0,
+      cycleTimeSeconds = 0,
       plannedDowntimeMinutes = 0,
       defectQuantity = 0,
+      effectiveDurationMinutes,
       notes = ''
     } = req.body;
+
+    const isDowntime = !productId || !operatorId || (producedQuantity === 0 && cycleTimeSeconds === 0);
 
     const shift = await prisma.shift.findFirst({ where: { id: shiftId, companyId } });
     if (!shift) return res.status(400).json({ error: 'Selected shift not found' });
 
-    // Initial simple calculation for creation
+    // For downtime records, OEE is 0% across the board
     const oeeResult = await calculateOEE({
-      producedQuantity,
-      cycleTimeSeconds,
+      producedQuantity: isDowntime ? 0 : producedQuantity,
+      cycleTimeSeconds: isDowntime ? 0 : cycleTimeSeconds,
       plannedDowntimeMinutes,
-      defectQuantity,
-      shiftDurationMinutes: shift.durationMinutes
+      defectQuantity: isDowntime ? 0 : defectQuantity,
+      shiftDurationMinutes: shift.durationMinutes,
+      effectiveDurationMinutes: isDowntime ? undefined : effectiveDurationMinutes
     });
 
     const record = await prisma.productionRecord.create({
@@ -149,20 +159,20 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
         productionDate: new Date(productionDate),
         shiftId,
         machineId,
-        operatorId,
-        productId,
-        producedQuantity,
+        operatorId: operatorId || null,
+        productId: productId || null,
+        producedQuantity: isDowntime ? 0 : producedQuantity,
         actualDurationMinutes: oeeResult.actualDurationMinutes || 0,
-        cycleTimeSeconds,
+        cycleTimeSeconds: isDowntime ? 0 : cycleTimeSeconds,
         plannedDowntimeMinutes,
         unplannedDowntimeMinutes: oeeResult.unplannedDowntimeMinutes || 0,
         downtimeMinutes: oeeResult.downtimeMinutes || 0,
-        plannedDurationMinutes: oeeResult.plannedDurationMinutes,
+        plannedDurationMinutes: oeeResult.plannedDurationMinutes ?? null,
         availability: oeeResult.availability,
         performance: oeeResult.performance,
         quality: oeeResult.quality,
         oee: oeeResult.oee,
-        defectQuantity,
+        defectQuantity: isDowntime ? 0 : defectQuantity,
         plannedQuantity: oeeResult.plannedQuantity,
         notes
       },
@@ -170,6 +180,17 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
 
     // REBALANCE for multi-product
     await rebalanceShift(new Date(productionDate), machineId, shiftId, companyId);
+
+    // AUTO STOCK MOVEMENT - only for actual production
+    if (!isDowntime && productId) {
+      await adjustStockFromProduction({
+        companyId,
+        productId,
+        quantity: producedQuantity,
+        type: 'ADD',
+        referenceId: record.id
+      });
+    }
 
     const updated = await prisma.productionRecord.findUnique({ where: { id: record.id as string } });
     res.status(201).json(updated);
@@ -191,6 +212,7 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res) => {
       defectQuantity,
       productionDate,
       machineId,
+      effectiveDurationMinutes,
       ...rest
     } = req.body;
 
@@ -204,12 +226,20 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res) => {
     const shift = await prisma.shift.findFirst({ where: { id: targetShiftId, companyId } });
     if (!shift) return res.status(400).json({ error: 'Shift not found' });
 
+    const hasEffectiveDurationInput = Object.prototype.hasOwnProperty.call(req.body, 'effectiveDurationMinutes');
+    const normalizedEffectiveDuration = hasEffectiveDurationInput
+      ? (typeof effectiveDurationMinutes === 'number' && effectiveDurationMinutes > 0
+        ? effectiveDurationMinutes
+        : undefined)
+      : (existing.plannedDurationMinutes ?? undefined);
+
     const oeeResult = await calculateOEE({
       producedQuantity: producedQuantity ?? existing.producedQuantity,
       cycleTimeSeconds: cycleTimeSeconds ?? existing.cycleTimeSeconds,
       plannedDowntimeMinutes: plannedDowntimeMinutes ?? existing.plannedDowntimeMinutes,
       defectQuantity: defectQuantity ?? existing.defectQuantity,
-      shiftDurationMinutes: shift.durationMinutes
+      shiftDurationMinutes: shift.durationMinutes,
+      effectiveDurationMinutes: normalizedEffectiveDuration
     });
 
     const record = await prisma.productionRecord.update({
@@ -225,7 +255,9 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res) => {
         plannedDowntimeMinutes,
         unplannedDowntimeMinutes: oeeResult.unplannedDowntimeMinutes,
         downtimeMinutes: oeeResult.downtimeMinutes,
-        plannedDurationMinutes: oeeResult.plannedDurationMinutes,
+        plannedDurationMinutes: hasEffectiveDurationInput
+          ? (oeeResult.plannedDurationMinutes ?? null)
+          : undefined,
         availability: oeeResult.availability,
         performance: oeeResult.performance,
         quality: oeeResult.quality,
@@ -328,27 +360,36 @@ router.post('/bulk-entry', authenticateToken, async (req: AuthRequest, res) => {
           machineId,
           operatorId,
           productId,
-          producedQuantity,
+          producedQuantity = 0,
           defectQuantity = 0,
           plannedDowntimeMinutes = 0, 
           notes = '',
-          cycleTimeSeconds: providedCycleTime
+          cycleTimeSeconds: providedCycleTime,
+          effectiveDurationMinutes
         } = recordData;
 
-        const product = await tx.product.findFirst({ where: { id: productId, companyId } });
-        if (!product) throw new Error(`Product not found: ${productId}`);
-
-        const cycleTimeSeconds = providedCycleTime || product.cycleTimeSeconds || 30;
+        // Downtime record: no product or no production
+        const isDowntime = !productId || !operatorId || (producedQuantity === 0 && (providedCycleTime === 0 || !providedCycleTime));
 
         const shift = await tx.shift.findFirst({ where: { id: shiftId, companyId } });
         if (!shift) throw new Error(`Shift not found: ${shiftId}`);
 
+        let cycleTimeSeconds = 0;
+        if (!isDowntime && productId) {
+          const product = await tx.product.findFirst({ where: { id: productId, companyId } });
+          if (!product) throw new Error(`Product not found: ${productId}`);
+          cycleTimeSeconds = providedCycleTime || product.cycleTimeSeconds || 30;
+        } else {
+          cycleTimeSeconds = 0;
+        }
+
         const oeeResult = await calculateOEE({
-          producedQuantity,
+          producedQuantity: isDowntime ? 0 : producedQuantity,
           cycleTimeSeconds,
           plannedDowntimeMinutes, 
-          defectQuantity,
-          shiftDurationMinutes: shift.durationMinutes
+          defectQuantity: isDowntime ? 0 : defectQuantity,
+          shiftDurationMinutes: shift.durationMinutes,
+          effectiveDurationMinutes: isDowntime ? undefined : effectiveDurationMinutes
         });
 
         const created = await tx.productionRecord.create({
@@ -357,20 +398,20 @@ router.post('/bulk-entry', authenticateToken, async (req: AuthRequest, res) => {
             productionDate: new Date(productionDate),
             shiftId,
             machineId,
-            operatorId,
-            productId,
-            producedQuantity,
+            operatorId: operatorId || null,
+            productId: productId || null,
+            producedQuantity: isDowntime ? 0 : producedQuantity,
             actualDurationMinutes: oeeResult.actualDurationMinutes || 0,
             cycleTimeSeconds,
             plannedDowntimeMinutes,
             unplannedDowntimeMinutes: oeeResult.unplannedDowntimeMinutes || 0,
             downtimeMinutes: oeeResult.downtimeMinutes || 0,
-            plannedDurationMinutes: oeeResult.plannedDurationMinutes,
+            plannedDurationMinutes: oeeResult.plannedDurationMinutes ?? null,
             availability: oeeResult.availability,
             performance: oeeResult.performance,
             quality: oeeResult.quality,
             oee: oeeResult.oee,
-            defectQuantity,
+            defectQuantity: isDowntime ? 0 : defectQuantity,
             plannedQuantity: oeeResult.plannedQuantity,
             notes
           }

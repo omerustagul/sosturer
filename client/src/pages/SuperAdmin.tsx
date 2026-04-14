@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { api } from '../lib/api';
 import {
   Building2, ShieldAlert, LayoutDashboard, Search,
   Edit, ShieldCheck, Users, Activity,
-  Globe, Database, Server, Trash2, CheckCircle2, Clock, X, Plus, UserMinus
+  Globe, Database, Server, Trash2, CheckCircle2, Clock, X, Plus, UserMinus,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { Loading } from '../components/common/Loading';
@@ -12,6 +13,8 @@ import { tr } from 'date-fns/locale';
 import { ConfirmModal } from '../components/common/ConfirmModal';
 import { useNotificationStore } from '../store/notificationStore';
 import { CustomSelect } from '../components/common/CustomSelect';
+import { BulkActionBar } from '../components/common/BulkActionBar';
+import { cn } from '../lib/utils';
 
 interface Company {
   id: string;
@@ -50,6 +53,8 @@ export function SuperAdmin() {
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(0);
 
   // Modals
   const [isCompanyModalOpen, setIsCompanyModalOpen] = useState(false);
@@ -85,9 +90,52 @@ export function SuperAdmin() {
     info: (title: string, message: string = '') => addNotification({ type: 'info', title, message }),
   };
 
+  // Selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    setSelectedIds(new Set());
+    setCurrentPage(0);
+  }, [activeTab]);
+
   useEffect(() => {
     fetchData();
   }, [activeTab]);
+
+  const handleBulkDelete = () => {
+    const typeLabel = activeTab === 'companies' ? 'Şirketi' : 'Kullanıcıyı';
+    setConfirmState({
+      isOpen: true,
+      type: 'danger',
+      title: 'Toplu Sil',
+      message: `${selectedIds.size} adet ${typeLabel.toLowerCase()} silmek istediğinize emin misiniz?`,
+      onConfirm: async () => {
+        try {
+          const endpoint = activeTab === 'companies' ? '/system/companies/bulk-delete' : '/system/users/bulk-delete';
+          await api.post(endpoint, { ids: Array.from(selectedIds) });
+          notify.success('İşlem Başarılı', 'Seçili kayıtlar silindi.');
+          setSelectedIds(new Set());
+          fetchData();
+        } catch (error) {
+          notify.error('Hata', 'Toplu silme işlemi başarısız oldu.');
+        } finally {
+          setConfirmState(prev => ({ ...prev, isOpen: false }));
+        }
+      }
+    });
+  };
+
+  const handleBulkStatusUpdate = async (status: string) => {
+    try {
+      const endpoint = activeTab === 'companies' ? '/system/companies/bulk-status' : '/system/users/bulk-status';
+      await api.post(endpoint, { ids: Array.from(selectedIds), status });
+      notify.success('Güncellendi', 'Seçili kayıtların durumu güncellendi.');
+      setSelectedIds(new Set());
+      fetchData();
+    } catch (error) {
+      notify.error('Hata', 'Durum güncellenemedi.');
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -230,6 +278,24 @@ export function SuperAdmin() {
     return name.includes(search) || email.includes(search);
   });
 
+  const paginatedCompanies = useMemo(() => {
+    return filteredCompanies.slice(
+      currentPage * pageSize,
+      (currentPage + 1) * pageSize
+    );
+  }, [filteredCompanies, currentPage, pageSize]);
+
+  const paginatedUsers = useMemo(() => {
+    return filteredUsers.slice(
+      currentPage * pageSize,
+      (currentPage + 1) * pageSize
+    );
+  }, [filteredUsers, currentPage, pageSize]);
+
+  const pageCount = Math.ceil(
+    (activeTab === 'companies' ? filteredCompanies.length : filteredUsers.length) / pageSize
+  );
+
   // Modal Computed Data
   const assignedUsers = editingCompany
     ? users.filter(u => {
@@ -366,6 +432,21 @@ export function SuperAdmin() {
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-theme-main/5 border-b border-theme/50">
+                      <th className="w-12 px-6 py-4">
+                        <div
+                          onClick={() => {
+                            const data = activeTab === 'companies' ? filteredCompanies : filteredUsers;
+                            if (selectedIds.size === data.length) setSelectedIds(new Set());
+                            else setSelectedIds(new Set(data.map(i => i.id)));
+                          }}
+                          className={cn(
+                            "w-5 h-5 rounded border-2 flex items-center justify-center cursor-pointer transition-all",
+                            selectedIds.size === (activeTab === 'companies' ? filteredCompanies : filteredUsers).length ? "bg-theme-primary border-theme-primary" : "border-theme-border/40 hover:border-theme-primary"
+                          )}
+                        >
+                          {selectedIds.size === (activeTab === 'companies' ? filteredCompanies : filteredUsers).length && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+                        </div>
+                      </th>
                       <th className="px-6 py-4 text-[10px] font-black text-theme-muted uppercase tracking-[0.2em]">{activeTab === 'companies' ? 'Şirket' : 'Kullanıcı'}</th>
                       <th className="px-6 py-4 text-[10px] font-black text-theme-muted uppercase tracking-[0.2em]">{activeTab === 'companies' ? 'Sektör' : 'Şirket'}</th>
                       <th className="px-6 py-4 text-[10px] font-black text-theme-muted uppercase tracking-[0.2em]">{activeTab === 'companies' ? 'Üye / Kayıt' : 'Rol'}</th>
@@ -375,8 +456,31 @@ export function SuperAdmin() {
                   </thead>
                   <tbody className="divide-y divide-theme/30">
                     {activeTab === 'companies' ? (
-                      filteredCompanies.map(c => (
-                        <tr key={c.id} className="hover:bg-theme-main/5 transition-colors group">
+                      paginatedCompanies.map(c => (
+                        <tr 
+                          key={c.id} 
+                          onClick={(e) => {
+                            if ((e.target as HTMLElement).closest('button, input, select, a')) return;
+                            const newSelected = new Set(selectedIds);
+                            if (newSelected.has(c.id)) newSelected.delete(c.id);
+                            else newSelected.add(c.id);
+                            setSelectedIds(newSelected);
+                          }}
+                          className={cn(
+                            "hover:bg-theme-main/5 transition-colors group cursor-pointer",
+                            selectedIds.has(c.id) && "bg-theme-primary/5"
+                          )}
+                        >
+                          <td className="px-6 py-4">
+                            <div
+                              className={cn(
+                                "w-5 h-5 rounded border-2 flex items-center justify-center transition-all",
+                                selectedIds.has(c.id) ? "bg-theme-primary border-theme-primary" : "border-theme-border/40 hover:border-theme-primary"
+                              )}
+                            >
+                              {selectedIds.has(c.id) && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+                            </div>
+                          </td>
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-4">
                               <div className="w-10 h-10 bg-theme-primary/10 rounded-xl flex items-center justify-center border border-theme-primary/20 group-hover:scale-110 transition-transform shrink-0">
@@ -435,8 +539,31 @@ export function SuperAdmin() {
                         </tr>
                       ))
                     ) : (
-                      filteredUsers.map(u => (
-                        <tr key={u.id} className="hover:bg-theme-main/5 transition-colors group">
+                      paginatedUsers.map(u => (
+                        <tr 
+                          key={u.id} 
+                          onClick={(e) => {
+                            if ((e.target as HTMLElement).closest('button, input, select, a')) return;
+                            const newSelected = new Set(selectedIds);
+                            if (newSelected.has(u.id)) newSelected.delete(u.id);
+                            else newSelected.add(u.id);
+                            setSelectedIds(newSelected);
+                          }}
+                          className={cn(
+                            "hover:bg-theme-main/5 transition-colors group cursor-pointer",
+                            selectedIds.has(u.id) && "bg-theme-primary/5"
+                          )}
+                        >
+                          <td className="px-6 py-4">
+                            <div
+                              className={cn(
+                                "w-5 h-5 rounded border-2 flex items-center justify-center transition-all",
+                                selectedIds.has(u.id) ? "bg-theme-primary border-theme-primary" : "border-theme-border/40 hover:border-theme-primary"
+                              )}
+                            >
+                              {selectedIds.has(u.id) && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+                            </div>
+                          </td>
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-4">
                               <div className="w-10 h-10 bg-theme-base rounded-xl flex items-center justify-center border border-theme group-hover:border-theme-primary/30 transition-colors shrink-0">
@@ -489,6 +616,67 @@ export function SuperAdmin() {
                     )}
                   </tbody>
                 </table>
+              </div>
+
+              {/* Pagination Controls */}
+              <div className="p-4 border-t border-theme bg-theme-base/20 flex flex-col md:flex-row items-center justify-between gap-6">
+                <div className="flex items-center gap-6 order-2 md:order-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-black text-theme-dim whitespace-nowrap uppercase tracking-widest">SAYFADA:</span>
+                    <div className="w-24">
+                      <CustomSelect
+                        options={[
+                          { id: 10, label: '10' },
+                          { id: 50, label: '50' },
+                          { id: 250, label: '250' },
+                          { id: 500, label: '500' },
+                          { id: 1000, label: '1000' },
+                          { id: 999999, label: 'Tümü' }
+                        ]}
+                        value={pageSize}
+                        onChange={value => {
+                          setPageSize(Number(value));
+                          setCurrentPage(0);
+                        }}
+                        searchable={false}
+                      />
+                    </div>
+                  </div>
+                  <div className="h-4 w-px bg-theme hidden md:block" />
+                  <span className="text-[11px] font-black text-theme-dim uppercase tracking-widest">
+                    TOPLAM <span className="text-theme-primary">
+                      {activeTab === 'companies' ? filteredCompanies.length : filteredUsers.length}
+                    </span> KAYIT
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3 order-1 md:order-2">
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
+                    disabled={currentPage === 0}
+                    className="p-3 rounded-xl bg-theme-base border border-theme text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+                  >
+                    <ChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
+                  </button>
+
+                  <div className="flex items-center gap-2 px-4 py-2 bg-theme-base border border-theme rounded-2xl">
+                    <span className="text-theme-primary font-black text-sm min-w-[20px] text-center">
+                      {currentPage + 1}
+                    </span>
+                    <span className="text-theme-dim font-bold text-xs uppercase tracking-widest">/</span>
+                    <span className="text-theme-muted font-black text-sm min-w-[20px] text-center">
+                      {pageCount || 1}
+                    </span>
+                  </div>
+
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(pageCount - 1, prev + 1))}
+                    disabled={currentPage >= pageCount - 1}
+                    className="p-3 rounded-xl bg-theme-base border border-theme text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+                  >
+                    <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -821,6 +1009,15 @@ export function SuperAdmin() {
         type={confirmState.type}
         confirmLabel="Evet, Sil"
         cancelLabel="Vazgeç"
+      />
+      <BulkActionBar
+        selectedCount={selectedIds.size}
+        isEditing={false}
+        onSave={() => {}}
+        onEditToggle={() => {}}
+        onStatusUpdate={handleBulkStatusUpdate}
+        onDelete={handleBulkDelete}
+        onCancel={() => setSelectedIds(new Set())}
       />
     </div>
   );

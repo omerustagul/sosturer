@@ -15,7 +15,9 @@ import {
   Target,
   X,
   History,
-  BarChart3
+  BarChart3,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { Loading } from '../../components/common/Loading';
 import { CustomSelect } from '../../components/common/CustomSelect';
@@ -32,6 +34,9 @@ export function ReportsProducts() {
     startDate: new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0],
     endDate: new Date().toISOString().split('T')[0],
   });
+
+  const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(0);
 
   const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' }>({
     key: 'produced',
@@ -117,7 +122,7 @@ export function ReportsProducts() {
       stats[pId].downtime += r.downtimeMinutes || 0;
       stats[pId].defects += r.defectQuantity || 0;
       stats[pId].entries.push(r);
-      
+
       if (r.cycleTimeSeconds) {
         stats[pId].cycleTimeSum += r.cycleTimeSeconds;
         stats[pId].cycleTimeCount += 1;
@@ -137,12 +142,21 @@ export function ReportsProducts() {
   const sortedProducts = useMemo(() => {
     return [...productStats].sort((a, b) => {
       const { key, direction } = sortConfig;
-      let valA = a[key];
-      let valB = b[key];
-      const res = valA > valB ? 1 : -1;
+      const valA = a[key] || 0;
+      const valB = b[key] || 0;
+      const res = valA > valB ? 1 : valA < valB ? -1 : 0;
       return direction === 'asc' ? res : -res;
     });
   }, [productStats, sortConfig]);
+
+  const paginatedProducts = useMemo(() => {
+    return sortedProducts.slice(
+      currentPage * pageSize,
+      (currentPage + 1) * pageSize
+    );
+  }, [sortedProducts, currentPage, pageSize]);
+
+  const pageCount = Math.ceil(sortedProducts.length / pageSize);
 
   const exportToExcel = async () => {
     try {
@@ -158,13 +172,13 @@ export function ReportsProducts() {
   if (loading) return <Loading size="lg" fullScreen />;
 
   return (
-    <div className="p-6 lg:p-10 w-full space-y-8 animate-in fade-in duration-700 bg-theme-base">
+    <div className="p-4 lg:p-6 w-full space-y-8 animate-in fade-in duration-700 bg-theme-base">
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
         <div>
-          <h2 className="text-3xl font-black text-theme-main tracking-tight flex items-center gap-3">
-            <Package className="w-10 h-10 text-theme-primary" /> ÜRÜN BAZLI ANALİZ
+          <h2 className="text-xl font-black text-theme-main tracking-tight flex items-center gap-2">
+            <Package className="w-6 h-6 text-theme-primary" /> ÜRÜN BAZLI ANALİZ
           </h2>
-          <p className="text-theme-muted text-sm mt-1 font-medium italic">Üretilen ürünlerin kalite oranları, üretim hacimleri ve verimlilik metrikleri.</p>
+          <p className="text-theme-muted text-xs mt-1 font-medium">Üretilen ürünlerin kalite oranları, üretim hacimleri ve verimlilik metrikleri.</p>
         </div>
         <button
           onClick={exportToExcel}
@@ -174,7 +188,7 @@ export function ReportsProducts() {
         </button>
       </div>
 
-      <div className="bg-theme-card backdrop-blur-xl border border-theme rounded-2xl p-6 flex flex-wrap gap-6 items-end shadow-2xl">
+      <div className="modern-glass-card flex flex-wrap gap-6 items-end">
         <div className="flex-1 min-w-[200px] space-y-2">
           <label className="text-[10px] font-black text-theme-dim uppercase tracking-widest flex items-center gap-2 px-1">
             <Calendar size={12} /> BAŞLANGIÇ
@@ -215,7 +229,7 @@ export function ReportsProducts() {
           <p className="text-theme-primary font-black text-xs uppercase tracking-widest mt-4">Ürün Verileri Hazırlanıyor...</p>
         </div>
       ) : (
-        <div className="bg-theme-card backdrop-blur-xl border border-theme rounded-2xl overflow-hidden shadow-2xl">
+        <div className="modern-glass-card p-0 ">
           <div className="p-6 border-b border-theme flex items-center justify-between bg-theme-surface/30">
             <h3 className="text-sm font-black text-theme-muted uppercase tracking-widest flex items-center gap-2">
               <Target size={16} className="text-theme-primary" /> ÜRÜN ANALİZ MATRİSİ
@@ -238,7 +252,7 @@ export function ReportsProducts() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-theme/40">
-                {sortedProducts.map((p) => (
+                {paginatedProducts.map((p) => (
                   <tr key={p.id} className="group hover:bg-theme-primary/5 transition-all">
                     <td className="px-6 py-4 font-black text-theme-primary text-sm">{p.code}</td>
                     <td className="px-6 py-4 text-theme-main font-medium text-sm truncate max-w-[300px]">{p.name}</td>
@@ -249,9 +263,9 @@ export function ReportsProducts() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <SmartCycleTooltip 
-                        value={p.avgCycle} 
-                        uniqueCycles={p.uniqueCycles} 
+                      <SmartCycleTooltip
+                        value={p.avgCycle}
+                        uniqueCycles={p.uniqueCycles}
                       />
                     </td>
 
@@ -269,6 +283,65 @@ export function ReportsProducts() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Pagination Controls */}
+          <div className="p-4 border-t border-theme bg-theme-base/20 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-6 order-2 md:order-1">
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-black text-theme-dim whitespace-nowrap uppercase tracking-widest">SAYFADA:</span>
+                <div className="w-24">
+                  <CustomSelect
+                    options={[
+                      { id: 10, label: '10' },
+                      { id: 50, label: '50' },
+                      { id: 250, label: '250' },
+                      { id: 500, label: '500' },
+                      { id: 1000, label: '1000' },
+                      { id: 999999, label: 'Tümü' }
+                    ]}
+                    value={pageSize}
+                    onChange={value => {
+                      setPageSize(Number(value));
+                      setCurrentPage(0);
+                    }}
+                    searchable={false}
+                  />
+                </div>
+              </div>
+              <div className="h-4 w-px bg-theme hidden md:block" />
+              <span className="text-[11px] font-black text-theme-dim uppercase tracking-widest">
+                TOPLAM <span className="text-theme-primary">{sortedProducts.length}</span> KAYIT
+              </span>
+            </div>
+
+            <div className="flex items-center gap-3 order-1 md:order-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
+                disabled={currentPage === 0}
+                className="p-3 rounded-xl bg-theme-base border border-theme text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+              >
+                <ChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
+              </button>
+
+              <div className="flex items-center gap-2 px-4 py-2 bg-theme-base border border-theme rounded-2xl">
+                <span className="text-theme-primary font-black text-sm min-w-[20px] text-center">
+                  {currentPage + 1}
+                </span>
+                <span className="text-theme-dim font-bold text-xs uppercase tracking-widest">/</span>
+                <span className="text-theme-muted font-black text-sm min-w-[20px] text-center">
+                  {pageCount || 1}
+                </span>
+              </div>
+
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(pageCount - 1, prev + 1))}
+                disabled={currentPage >= pageCount - 1}
+                className="p-3 rounded-xl bg-theme-base border border-theme text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+              >
+                <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -302,7 +375,7 @@ export function ReportsProducts() {
 
               <div className="bg-theme-base/50 rounded-2xl border border-theme p-6">
                 <h4 className="text-xs font-black text-theme-dim uppercase tracking-widest mb-6 flex items-center gap-2">
-                  <History size={14} /> ÜRÜNÜN ÜRETİLDİĞİ TEZGAHLAR VE PERFORMANS
+                  <History size={14} /> ÜRÜNÜN ÜRETİLDİĞİ MAKİNELER VE PERFORMANS
                 </h4>
                 <div className="space-y-3">
                   {selectedProduct.entries.map((r: any, i: number) => (
@@ -359,7 +432,7 @@ function SmartCycleTooltip({ value, uniqueCycles }: { value: number, uniqueCycle
   };
 
   return (
-    <div 
+    <div
       ref={triggerRef}
       className="inline-block"
       onMouseEnter={() => {
@@ -373,10 +446,10 @@ function SmartCycleTooltip({ value, uniqueCycles }: { value: number, uniqueCycle
       </span>
 
       {isVisible && createPortal(
-        <div 
+        <div
           className="fixed z-[9999] animate-in fade-in zoom-in slide-in-from-bottom-2 duration-300 pointer-events-none"
-          style={{ 
-            top: coords.top - 12, 
+          style={{
+            top: coords.top - 12,
             left: coords.left + coords.width,
             transform: 'translate(-100%, -100%)'
           }}
