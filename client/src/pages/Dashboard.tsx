@@ -131,7 +131,7 @@ function Dashboard() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [machinesRes, recordsRes, stockRes, salesRes, shiftsRes, missingRes] = await Promise.all([
+        const [machinesRes, recordsRes, stockRes, salesRes, , missingRes] = await Promise.all([
           api.get('/machines'),
           api.get('/production-records'),
           api.get('/analytics/stock-summary'),

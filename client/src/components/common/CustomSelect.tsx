@@ -191,7 +191,7 @@ export const CustomSelect = memo(({
                 className={cn(
                   "px-2 py-2 flex items-center justify-between cursor-pointer transition-all duration-200 group/opt w-full",
                   active ? "bg-theme-primary/10 text-theme-primary border-l-4 border-theme-primary font-bold"
-                    : "hover:bg-theme-main/5 text-theme-muted hover:text-theme-main border-l-4 border-transparent"
+                    : "hover:bg-theme-main/5 text-theme-main hover:text-theme-primary border-l-4 border-transparent"
                 )}
               >
                 <div className="flex flex-col min-w-0 flex-1">
@@ -213,8 +213,8 @@ export const CustomSelect = memo(({
           })
         ) : (
           <div className="px-6 py-10 flex flex-col items-center gap-2 text-theme-dim w-full">
-            <Search size={24} className="opacity-20" />
-            <span className="text-[10px] font-black tracking-[0.2em]">SONUÇ BULUNAMADI</span>
+            <Search size={16} className="opacity-20" />
+            <span className="text-[10px] font-bold text-center">Sonuç Bulunamadı</span>
           </div>
         )}
       </div>
@@ -229,7 +229,7 @@ export const CustomSelect = memo(({
         onClick={() => !disabled && setIsOpen(!isOpen)}
         className={cn(
           "relative w-auto min-w-30 bg-theme-base border border-theme rounded-xl flex items-center justify-between cursor-pointer transition-all duration-300 group",
-          variant === 'inline' ? "h-8 px-2 py-1" : "h-10 px-2 py-1",
+          variant === 'inline' ? "h-10 px-2 py-1" : "h-10 px-2 py-1",
           isOpen && "ring-4 ring-theme-primary/10 border-theme-primary/40 bg-theme-surface shadow-primary-glow",
           !isOpen && !disabled && "hover:border-theme-primary/40 hover:bg-theme-surface/50",
           disabled && "opacity-40 cursor-not-allowed grayscale",

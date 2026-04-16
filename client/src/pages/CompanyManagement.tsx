@@ -1241,41 +1241,41 @@ function NextGenUnits({ units, locations, onAdd, onDelete, onUpdate, onRefreshLo
         </div>
       ) : (
         <div className="modern-glass-card p-0 overflow-hidden border-theme-border/20">
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-theme-surface/30 border-b border-theme-border/30">
-              <tr>
-                <th className="w-2 px-2 py-4"></th>
-                <th className="px-2 py-2 text-[10px] font-black text-theme-dim uppercase tracking-widest">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (isAllPageSelected) {
+          <SortableTableProvider items={units} onReorder={handleReorder}>
+            <table className="w-full text-left border-collapse density-aware-table">
+              <thead className="bg-theme-surface/30 border-b border-theme-border/30">
+                <tr>
+                  <th className="w-2 px-2 py-4"></th>
+                  <th className="px-2 py-2 text-[10px] font-black text-theme-dim uppercase tracking-widest">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (isAllPageSelected) {
+                          const next = new Set(selectedIds);
+                          paginatedUnits.forEach((u: any) => next.delete(u.id));
+                          setSelectedIds(next);
+                          return;
+                        }
                         const next = new Set(selectedIds);
-                        paginatedUnits.forEach((u: any) => next.delete(u.id));
+                        paginatedUnits.forEach((u: any) => next.add(u.id));
                         setSelectedIds(next);
-                        return;
-                      }
-                      const next = new Set(selectedIds);
-                      paginatedUnits.forEach((u: any) => next.add(u.id));
-                      setSelectedIds(next);
-                    }}
-                    className={cn(
-                      "w-5 h-5 rounded-md border border-theme-border flex items-center justify-center shadow shadow-theme-main/10",
-                      isAllPageSelected ? "bg-theme-primary border-theme-primary" : "border-theme-border/40 hover:border-theme-primary"
-                    )}
-                  >
-                    {isAllPageSelected && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
-                  </button>
-                </th>
-                <th className="px-2 py-3 text-[10px] font-black text-theme-dim">AD</th>
-                <th className="px-2 py-3 text-[10px] font-black text-theme-dim">KOD</th>
-                <th className="px-2 py-3 text-[10px] font-black text-theme-dim">DURUM</th>
-                <th className="px-2 py-3 text-[10px] font-black text-theme-dim whitespace-nowrap">AÇILIŞ</th>
-                <th className="px-2 py-3 text-[10px] font-black text-theme-dim">BAĞLI LOKASYON</th>
-                <th className="px-2 py-3 text-center text-[10px] font-black text-theme-dim w-32">İŞLEMLER</th>
-              </tr>
-            </thead>
-            <SortableTableProvider items={units} onReorder={handleReorder}>
+                      }}
+                      className={cn(
+                        "w-5 h-5 rounded-md border border-theme-border flex items-center justify-center shadow shadow-theme-main/10",
+                        isAllPageSelected ? "bg-theme-primary border-theme-primary" : "border-theme-border/40 hover:border-theme-primary"
+                      )}
+                    >
+                      {isAllPageSelected && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+                    </button>
+                  </th>
+                  <th className="px-2 py-3 text-[10px] font-black text-theme-dim">AD</th>
+                  <th className="px-2 py-3 text-[10px] font-black text-theme-dim">KOD</th>
+                  <th className="px-2 py-3 text-[10px] font-black text-theme-dim">DURUM</th>
+                  <th className="px-2 py-3 text-[10px] font-black text-theme-dim whitespace-nowrap">AÇILIŞ</th>
+                  <th className="px-2 py-3 text-[10px] font-black text-theme-dim">BAĞLI LOKASYON</th>
+                  <th className="px-2 py-3 text-center text-[10px] font-black text-theme-dim w-32">İŞLEMLER</th>
+                </tr>
+              </thead>
               <tbody className="divide-y divide-theme-border/10">
                 {paginatedUnits.map((unit: any) => {
                   const linkedLocation = locations.find((l: any) => l.id === unit.locationId);
@@ -1287,6 +1287,10 @@ function NextGenUnits({ units, locations, onAdd, onDelete, onUpdate, onRefreshLo
                       key={unit.id}
                       id={unit.id}
                       className={cn("hover:bg-theme-primary/5 transition-all", isSelected && "bg-theme-primary/5")}
+                      onClick={(e) => {
+                        if ((e.target as HTMLElement).closest('button, input, select, a, .cursor-pointer, [role="button"]')) return;
+                        toggleRowSelection(unit.id);
+                      }}
                     >
                       <td className="w-8 px-2 py-3">
                         <button
@@ -1305,7 +1309,7 @@ function NextGenUnits({ units, locations, onAdd, onDelete, onUpdate, onRefreshLo
                           {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
                         </button>
                       </td>
-                      <td className="px-2 py-3" onClick={isInlineEditing ? stopRowToggle : () => toggleRowSelection(unit.id)}>
+                      <td className="px-2 py-3">
                         {isInlineEditing ? (
                           <input
                             value={localChanges[unit.id]?.name ?? unit.name}
@@ -1316,7 +1320,7 @@ function NextGenUnits({ units, locations, onAdd, onDelete, onUpdate, onRefreshLo
                           <span className="text-sm font-semibold text-theme-main">{unit.name}</span>
                         )}
                       </td>
-                      <td className="px-2 py-3" onClick={isInlineEditing ? stopRowToggle : () => toggleRowSelection(unit.id)}>
+                      <td className="px-2 py-3">
                         {isInlineEditing ? (
                           <input
                             value={localChanges[unit.id]?.code ?? (unit.code ?? '')}
@@ -1327,7 +1331,7 @@ function NextGenUnits({ units, locations, onAdd, onDelete, onUpdate, onRefreshLo
                           <span className="text-xs font-bold text-theme-muted">{unit.code || '—'}</span>
                         )}
                       </td>
-                      <td className="px-2 py-3 min-w-[120px]" onClick={isInlineEditing ? stopRowToggle : () => toggleRowSelection(unit.id)}>
+                      <td className="px-2 py-3 min-w-[120px]">
                         {isInlineEditing ? (
                           <CustomSelect
                             value={localChanges[unit.id]?.status ?? (unit.status || 'active')}
@@ -1339,7 +1343,7 @@ function NextGenUnits({ units, locations, onAdd, onDelete, onUpdate, onRefreshLo
                           <span className="text-[10px] font-black text-theme-dim uppercase">{operationalStatusLabel(unit.status)}</span>
                         )}
                       </td>
-                      <td className="px-2 py-3" onClick={isInlineEditing ? stopRowToggle : () => toggleRowSelection(unit.id)}>
+                      <td className="px-2 py-3">
                         {isInlineEditing ? (
                           <input
                             type="date"
@@ -1356,7 +1360,7 @@ function NextGenUnits({ units, locations, onAdd, onDelete, onUpdate, onRefreshLo
                           <span className="text-xs font-bold text-theme-muted">{unit.openingDate ? dateInputValue(unit.openingDate) : '—'}</span>
                         )}
                       </td>
-                      <td className="px-2 py-3" onClick={isInlineEditing ? stopRowToggle : () => toggleRowSelection(unit.id)}>
+                      <td className="px-2 py-3">
                         {isInlineEditing ? (
                           <CustomSelect
                             value={localChanges[unit.id]?.locationId ?? (unit.locationId || '__none__')}
@@ -1370,7 +1374,7 @@ function NextGenUnits({ units, locations, onAdd, onDelete, onUpdate, onRefreshLo
                           </div>
                         )}
                       </td>
-                      <td className="px-2 py-3" onClick={stopRowToggle}>
+                      <td className="px-2 py-3">
                         <div className="flex items-center justify-end gap-2">
                           <button onClick={() => { setEditingId(unit.id); setViewMode('grid'); }} className="p-2 bg-theme-primary/5 rounded-lg text-theme-muted hover:text-theme-primary"><Settings2 className="w-4 h-4" /></button>
                           <button onClick={() => handleDeleteUnit(unit.id)} className="p-2 bg-theme-danger/5 rounded-lg text-theme-muted hover:text-rose-500"><Trash2 className="w-4 h-4" /></button>
@@ -1380,8 +1384,8 @@ function NextGenUnits({ units, locations, onAdd, onDelete, onUpdate, onRefreshLo
                   );
                 })}
               </tbody>
-            </SortableTableProvider>
-          </table>
+            </table>
+          </SortableTableProvider>
         </div>
       )}
 

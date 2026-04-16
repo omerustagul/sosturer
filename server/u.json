@@ -1,0 +1,20 @@
+[
+  {
+    "id": "6dce8ea9-72c1-4a73-8f4c-67c90e2c1f81",
+    "email": "msalih.bozoglu@medisolaris.com",
+    "companyId": "medisolaris",
+    "role": "admin"
+  },
+  {
+    "id": "fe223455-c5a9-4cdd-8e50-6794f63986bd",
+    "email": "grafik@medisolaris.com",
+    "companyId": "medisolaris",
+    "role": "admin"
+  },
+  {
+    "id": "e7bf284b-ea0b-48f5-baed-34f12a3de971",
+    "email": "omerustagul@mail.com",
+    "companyId": "medisolaris",
+    "role": "superadmin"
+  }
+]

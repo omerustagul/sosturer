@@ -5,17 +5,17 @@ export function ToastContainer() {
   const { notifications, removeNotification } = useNotificationStore();
 
   const icons = {
-    success: <CheckCircle2 className="w-5 h-5 text-emerald-400" />,
-    error: <AlertCircle className="w-5 h-5 text-rose-400" />,
-    warning: <AlertTriangle className="w-5 h-5 text-amber-400" />,
-    info: <Info className="w-5 h-5 text-blue-400" />
+    success: <CheckCircle2 className="w-5 h-5 text-theme-success" />,
+    error: <AlertCircle className="w-5 h-5 text-theme-danger" />,
+    warning: <AlertTriangle className="w-5 h-5 text-theme-warning" />,
+    info: <Info className="w-5 h-5 text-theme-primary" />
   };
 
   const borders = {
-    success: 'border-emerald-500/20 bg-emerald-500/5',
-    error: 'border-rose-500/20 bg-rose-500/5',
-    warning: 'border-amber-500/20 bg-amber-500/5',
-    info: 'border-blue-500/20 bg-blue-500/5'
+    success: 'border-theme-success/20 bg-theme-success/5',
+    error: 'border-theme-danger/20 bg-theme-danger/5',
+    warning: 'border-theme-warning/20 bg-theme-warning/5',
+    info: 'border-theme-primary/20 bg-theme-primary/5'
   };
 
   return (

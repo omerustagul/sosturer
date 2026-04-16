@@ -1,9 +1,7 @@
 import exceljs from 'exceljs';
 import { SchemaAnalyzer, ModelMetadata } from './schemaAnalyzer';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../lib/prisma';
 import { getDisplayName } from '../utils/fieldTranslations';
-
-const prisma = new PrismaClient();
 
 export interface ImportResult {
   totalRows: number;
@@ -25,7 +23,11 @@ export class DynamicImportService {
       'shifts': 'Shift',
       'departments': 'Department',
       'department_roles': 'DepartmentRole',
-      'production_standards': 'ProductionStandard'
+      'production_standards': 'ProductionStandard',
+      'warehouses': 'Warehouse',
+      'operations': 'Operation',
+      'stations': 'Station',
+      'routes': 'ProductionRoute'
     };
     return typeToModel[type] || '';
   }
@@ -33,7 +35,7 @@ export class DynamicImportService {
   /**
    * Validates and parses an Excel workbook for a specific model
    */
-  static async validate(modelName: string, workbook: exceljs.Workbook): Promise<ImportResult> {
+  static async validate(modelName: string, workbook: exceljs.Workbook, companyId?: string): Promise<ImportResult> {
     const metadata = SchemaAnalyzer.getModelMetadata(modelName);
     if (!metadata) throw new Error(`Model not found: ${modelName}`);
 
@@ -48,13 +50,17 @@ export class DynamicImportService {
 
     // Prepare reverse lookups for direct text entries (e.g. "Yiğit Öztürk" -> UUID)
     const reverseLookups: Record<string, string> = {};
-    const [shifts, machines, operators, products, departments, roles] = await Promise.all([
-      prisma.shift.findMany({ select: { id: true, shiftCode: true, shiftName: true } }),
-      prisma.machine.findMany({ select: { id: true, code: true, name: true } }),
-      prisma.operator.findMany({ select: { id: true, employeeId: true, fullName: true } }),
-      prisma.product.findMany({ select: { id: true, productCode: true, productName: true } }),
-      prisma.department.findMany({ select: { id: true, name: true, code: true } }),
-      prisma.departmentRole.findMany({ select: { id: true, name: true } })
+    const where = companyId ? { companyId } : {};
+
+    const [shifts, machines, operators, products, departments, roles, stations, warehouses] = await Promise.all([
+      prisma.shift.findMany({ where, select: { id: true, shiftCode: true, shiftName: true } }),
+      prisma.machine.findMany({ where, select: { id: true, code: true, name: true } }),
+      prisma.operator.findMany({ where, select: { id: true, employeeId: true, fullName: true } }),
+      prisma.product.findMany({ where, select: { id: true, productCode: true, productName: true } }),
+      prisma.department.findMany({ where, select: { id: true, name: true, code: true } }),
+      prisma.departmentRole.findMany({ where, select: { id: true, name: true } }),
+      (prisma as any).station.findMany({ where, select: { id: true, name: true, code: true } }),
+      prisma.warehouse.findMany({ where, select: { id: true, name: true } })
     ]);
 
     shifts.forEach(s => {
@@ -80,6 +86,13 @@ export class DynamicImportService {
     roles.forEach(r => {
       reverseLookups[r.name.toLowerCase()] = r.id;
     });
+    stations.forEach(s => {
+      if (s.code) reverseLookups[s.code.toLowerCase()] = s.id;
+      reverseLookups[s.name.toLowerCase()] = s.id;
+    });
+    warehouses.forEach(w => {
+      if (w.name) reverseLookups[w.name.toLowerCase()] = w.id;
+    });
 
     ws.eachRow({ includeEmpty: false }, (row, rowNumber) => {
       if (rowNumber < this.DATA_START_ROW) return;
@@ -87,9 +100,15 @@ export class DynamicImportService {
       const rowData: any = {};
       const rowErrors: string[] = [];
 
-      metadata.fields.forEach(field => {
-        if (field.isRelation || ['id', 'createdAt', 'updatedAt'].includes(field.name) || field.isUpdatedAt) return;
+      const fields = metadata.fields.filter(f => 
+        !f.isId && 
+        !f.isRelation && 
+        !f.isUpdatedAt && 
+        f.name !== 'createdAt' && 
+        f.name !== 'companyId'
+      );
 
+      fields.forEach(field => {
         const displayName = getDisplayName(field.name);
         // Find column by display name (or display name + *)
         const colIndex = headerMap[displayName] || headerMap[displayName + ' ★'];
@@ -120,11 +139,15 @@ export class DynamicImportService {
 
         // Type conversion & validation
         const { val, error } = this.processValue(value, field);
-        if (error) rowErrors.push(`${displayName}: ${error}`);
+        if (error) {
+          console.error(`!!! Validation Error [Row ${rowNumber}, Field ${displayName}]: ${error}`);
+          rowErrors.push(`${displayName}: ${error}`);
+        }
         if (val !== undefined) rowData[field.name] = val;
       });
 
       if (rowErrors.length > 0) {
+        console.error(`!!! Row ${rowNumber} has ${rowErrors.length} validation errors:`, rowErrors);
         errors.push({ row: rowNumber, message: rowErrors.join('; ') });
       } else {
         parsedRows.push(rowData);
@@ -146,19 +169,34 @@ export class DynamicImportService {
 
       for (let i = 0; i < parsedRows.length; i++) {
         const data = parsedRows[i];
-        const created = await txModel.create({ data });
-        count++;
+        try {
+          const created = await txModel.create({ data });
+          count++;
 
-        // Friendly log generator
-        let identifier = '';
-        if (data.productCode) identifier = `Ürün: ${data.productCode}`;
-        else if (data.code) identifier = `Makine: ${data.code}`;
-        else if (data.fullName) identifier = `Operatör: ${data.fullName}`;
-        else if (data.shiftCode) identifier = `Vardiya: ${data.shiftCode}`;
-        else if (data.productionDate) identifier = `Üretim Kaydı: ${new Date(data.productionDate).toLocaleDateString('tr-TR')}`;
-        else identifier = `Kayıt ${i + 1}`;
-
-        logs.push(`✅ [${i + 1}] ${identifier} başarıyla sisteme eklendi.`);
+          // Type-specific logging
+          if (modelName === 'ProductionRecord') {
+            logs.push(`Üretim kaydı (${(created as any).id}) başarıyla eklendi`);
+          } else if (modelName === 'Product') {
+            logs.push(`${(created as any).productName} (${(created as any).productCode}) başarıyla eklendi`);
+          } else if (modelName === 'Operator') {
+            logs.push(`${(created as any).fullName} başarıyla eklendi`);
+          } else if (modelName === 'Machine') {
+            logs.push(`${(created as any).name} (${(created as any).code}) başarıyla eklendi`);
+          } else if (modelName === 'Shift') {
+            logs.push(`${(created as any).shiftName} başarıyla eklendi`);
+          } else if (modelName === 'Operation') {
+            logs.push(`${(created as any).name} (${(created as any).code}) başarıyla eklendi`);
+          } else if (modelName === 'Station') {
+            logs.push(`${(created as any).name} (${(created as any).code}) başarıyla eklendi`);
+          } else if (modelName === 'Warehouse') {
+            logs.push(`${(created as any).name} (${(created as any).code || 'W'}) başarıyla eklendi`);
+          } else {
+            logs.push(`${modelName} başarıyla eklendi`);
+          }
+        } catch (rowError: any) {
+          console.error(`Error inserting row ${i + 1} for ${modelName}:`, rowError);
+          throw new Error(`Satır ${i + 1} aktarılırken hata: ${rowError.message || 'Bilinmeyen hata'}`);
+        }
       }
     });
 

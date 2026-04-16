@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { AuthRequest } from '../middleware/auth';
+import { AuthRequest, authenticateToken } from '../middleware/auth';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -77,6 +77,55 @@ router.post('/reorder', async (req: AuthRequest, res) => {
     res.json({ message: 'Reordered successfully' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to reorder roles' });
+  }
+});
+
+router.post('/bulk-update', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const companyId = getCompanyId(req);
+    const { updates } = req.body;
+    
+    await prisma.$transaction(
+      updates.map((u: any) => {
+        const { id, data: originalData } = u;
+        const { department, company, createdAt, updatedAt, ...rest } = originalData;
+        return prisma.departmentRole.update({
+          where: { id, companyId },
+          data: rest
+        });
+      })
+    );
+    
+    res.json({ success: true });
+  } catch (error) {
+    res.status(400).json({ error: 'Toplu güncelleme başarısız oldu' });
+  }
+});
+
+router.post('/bulk-delete', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const companyId = getCompanyId(req);
+    const { ids } = req.body;
+    await prisma.departmentRole.deleteMany({
+      where: { id: { in: ids }, companyId }
+    });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(400).json({ error: 'Toplu silme başarısız oldu' });
+  }
+});
+
+router.post('/bulk-update-status', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const companyId = getCompanyId(req);
+    const { ids, status } = req.body;
+    await prisma.departmentRole.updateMany({
+      where: { id: { in: ids }, companyId },
+      data: { status }
+    });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(400).json({ error: 'Toplu durum güncelleme başarısız oldu' });
   }
 });
 

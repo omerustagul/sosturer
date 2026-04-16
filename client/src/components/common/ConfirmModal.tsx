@@ -65,11 +65,11 @@ export function ConfirmModal({
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 animate-in fade-in duration-500 overflow-hidden">
       {/* Background with deep blur and dark overlay */}
       <div
-        className="absolute inset-0 bg-theme-surface/60 backdrop-blur-xs"
+        className="absolute inset-0 bg-theme-surface/70 backdrop-blur-xs"
         onClick={onClose}
       />
 
-      <div className={`relative w-auto max-w-lg bg-theme-card border border-white/10 rounded-2xl p-4 shadow-[0_32px_128px_rgba(0,0,0,0.2)] animate-in zoom-in-95 slide-in-from-bottom-10 duration-700 overflow-hidden ring-1 ring-white/10`}>
+      <div className={`relative w-auto max-w-sm bg-theme-card border border-white/10 rounded-2xl p-4 shadow-[0_32px_128px_rgba(0,0,0,0.2)] animate-in zoom-in-95 slide-in-from-bottom-10 duration-700 overflow-hidden ring-1 ring-white/10`}>
 
         {/* Animated background glow */}
         <div className={`absolute -top-32 -right-32 w-64 h-64 ${style.bg} transition-all duration-1000 blur-[120px] rounded-full animate-pulse`} />

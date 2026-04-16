@@ -337,15 +337,15 @@ export function OvertimeCreate() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 relative z-10">
           <div className="space-y-1">
-            <label className="text-[9px] font-black text-theme-dim uppercase tracking-[0.2em] px-1 opacity-60 mb-2 block">PLAn ADI</label>
+            <label className="text-[9px] font-black text-theme-dim uppercase px-1 opacity-60 mb-2 block">PLAn ADI</label>
             <input type="text" value={planName} onChange={e => setPlanName(e.target.value)} className="form-input h-10 bg-theme-base/30 border-theme/30 text-xs font-bold" placeholder="..." />
           </div>
           <div className="space-y-1">
-            <label className="text-[9px] font-black text-theme-dim uppercase tracking-[0.2em] px-1 opacity-60 mb-2 block">{toTRUpper('Başlangıç')}</label>
+            <label className="text-[9px] font-black text-theme-dim uppercase px-1 opacity-60 mb-2 block">{toTRUpper('Başlangıç')}</label>
             <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="form-input h-10 bg-theme-base/30 border-theme/30 text-xs font-bold" />
           </div>
           <div className="space-y-1">
-            <label className="text-[9px] font-black text-theme-dim uppercase tracking-[0.2em] px-1 opacity-60 mb-2 block">{toTRUpper('Bitiş')}</label>
+            <label className="text-[9px] font-black text-theme-dim uppercase px-1 opacity-60 mb-2 block">{toTRUpper('Bitiş')}</label>
             <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="form-input h-10 bg-theme-base/30 border-theme/30 text-xs font-bold" />
           </div>
           <div className="space-y-1">
@@ -451,7 +451,7 @@ export function OvertimeCreate() {
                 </div>
                 <div className="flex items-center gap-3 relative z-10">
                   <button onClick={() => copyToAllDays(activeDayIndex)} className="btn-secondary h-10 px-5 flex items-center gap-2 text-[9px] font-black" title="Kopyala"><Copy size={14} /> {toTRUpper('Hepsine Aktar')}</button>
-                  <button onClick={() => importPersonnelFromUnits(activeDayIndex)} className="btn-secondary h-10 px-5 flex items-center gap-2 text-[9px] font-black text-theme-primary border-theme-primary/20"><Users size={14} /> {toTRUpper('Birim Çağır')}</button>
+                  <button onClick={() => importPersonnelFromUnits(activeDayIndex)} className="btn-secondary h-10 px-5 flex items-center gap-2 text-[9px] font-black bg-theme-primary/10 text-theme-primary border-theme-primary/20"><Users size={14} /> {toTRUpper('Birim Çağır')}</button>
                 </div>
               </div>
 

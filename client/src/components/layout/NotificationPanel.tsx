@@ -5,6 +5,7 @@ import { api } from '../../lib/api';
 import { History, BellOff, CheckCircle2, Search, Trash2, CheckSquare, Clock, Bell, Eye } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useNavigate } from 'react-router-dom';
+import { socket } from '../../lib/socket';
 
 interface AuditLog {
   id: string;
@@ -81,6 +82,22 @@ export function NotificationPanel({ isOpen, onClose, anchorRef }: { isOpen: bool
 
     return () => window.removeEventListener('resize', updateCoords);
   }, [isOpen, anchorRef]);
+
+  useEffect(() => {
+    socket.on('activity:new', (newLog: AuditLog) => {
+      setLogs(prev => [newLog, ...prev]);
+      // Optional: Play subtle notification sound if needed
+    });
+
+    socket.on('notification:new', (newNotification: SystemNotification) => {
+      setNotifications(prev => [newNotification, ...prev]);
+    });
+
+    return () => {
+      socket.off('activity:new');
+      socket.off('notification:new');
+    };
+  }, []);
 
   const fetchData = async () => {
     setLoading(true);
@@ -302,7 +319,7 @@ export function NotificationPanel({ isOpen, onClose, anchorRef }: { isOpen: bool
                   const isApprovalRequired = n.title.toLowerCase().includes('onay');
 
                   return (
-                    <div key={n.id} className="p-2 bg-theme-base border-2 border-theme-primary/20 rounded-xl group relative overflow-hidden transition-all hover:border-theme-primary/40 shadow-[0_15px_50px_-15px_rgba(0,0,0,0.4)] ring-1 ring-white/10 mb-2">
+                    <div key={n.id} className="p-2 bg-theme-primary/5 border-2 border-theme-primary/10 rounded-xl group relative overflow-hidden transition-all hover:border-theme-primary/40 shadow-md shadow-theme-primary/10 mb-2">
                       {/* Active Pulse Indicator */}
                       <div className="absolute top-3 right-3 flex items-center gap-1.5">
                         <div className="w-1.5 h-1.5 bg-theme-primary rounded-full animate-pulse shadow-[0_0_8px_rgba(var(--theme-primary-rgb),0.8)]" />
@@ -310,7 +327,7 @@ export function NotificationPanel({ isOpen, onClose, anchorRef }: { isOpen: bool
                       </div>
 
                       <div className="flex items-start gap-4">
-                        <div className="p-2 bg-theme-primary rounded-xl shrink-0 shadow-lg shadow-theme-primary/20">
+                        <div className="p-2 bg-theme-primary rounded-xl shrink-0 shadow-md shadow-theme-primary/10">
                           {isOvertimeStarted ? <History className="w-4 h-4 text-white" /> : <Clock className="w-4 h-4 text-white" />}
                         </div>
                         <div className="min-w-0 flex-1 pt-0.5">
@@ -350,7 +367,7 @@ export function NotificationPanel({ isOpen, onClose, anchorRef }: { isOpen: bool
                                       onClose();
                                     }
                                   }}
-                                  className="w-auto px-3 p-2 h-7 bg-theme-primary text-white text-[8px] font-semibold rounded-lg hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-theme-primary/30 flex items-center justify-center gap-1"
+                                  className="w-auto px-3 p-2 h-7 bg-theme-primary text-white text-[8px] font-semibold rounded-lg hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-theme-main/5 flex items-center justify-center gap-1"
                                 >
                                   <Eye className="w-3 h-3" />
                                   MESAİ DETAYINI GÖR

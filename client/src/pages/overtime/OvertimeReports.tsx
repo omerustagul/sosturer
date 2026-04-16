@@ -163,7 +163,7 @@ export function OvertimeReports() {
           <button onClick={() => { fetchReport(); setCurrentPage(0); }} className="btn-primary text-xs flex items-center gap-2 px-6">
             <Filter className="w-4 h-4" /> FİLTRELE
           </button>
-          <button onClick={clearFilters} className="btn-secondary text-xs px-6">TEMİZLE</button>
+          <button onClick={clearFilters} className="btn-secondary h-10 px-5 flex items-center gap-2 text-[9px] font-black text-theme-primary border-theme-primary/20">TEMİZLE</button>
         </div>
       </div>
 
@@ -208,7 +208,7 @@ export function OvertimeReports() {
               </thead>
               <tbody>
                 {paginatedPlans.map((plan: any) => {
-                  const uniqueOps = [...new Set(plan.items.map((i: any) => i.operator.fullName))] as string[];
+                  const uniqueOps = [...new Set(plan.items.filter((i: any) => i.operator).map((i: any) => i.operator.fullName))] as string[];
                   const uniqueMachines = [...new Set(plan.items.filter((i: any) => i.machine).map((i: any) => i.machine.name))] as string[];
                   return (
                     <tr key={plan.id} className="border-b border-theme/50 hover:bg-theme-main/5 transition-colors">

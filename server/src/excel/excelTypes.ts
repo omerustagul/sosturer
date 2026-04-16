@@ -6,6 +6,10 @@ export type ImportType =
   | 'shifts'
   | 'departments'
   | 'department_roles'
+  | 'warehouses'
+  | 'operations'
+  | 'stations'
+  | 'routes'
   | 'production_standards';
 
 export type CellAddress = {

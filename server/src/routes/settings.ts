@@ -35,7 +35,8 @@ router.post('/', async (req: AuthRequest, res: Response) => {
       'language', 'timezone', 'dataRetentionMonths', 'autoBackup', 'theme',
       'tableDensity', 'animationsEnabled', 'notificationsEnabled', 'twoFactorEnabled',
       'ipRestrictionEnabled', 'allowSupportAccess', 'sapIntegrationEnabled', 'webhooksEnabled',
-      'colorMode', 'dashboardLayout', 'referenceLocationId', 'standardShiftIds'
+      'colorMode', 'dashboardLayout', 'referenceLocationId', 'standardShiftIds',
+      'smtpHost', 'smtpPort', 'smtpUser', 'smtpPass', 'smtpFrom'
     ];
     
     validFields.forEach(field => {

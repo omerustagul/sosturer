@@ -3,14 +3,27 @@ import prisma from './prisma';
 
 export async function sendResetCode(email: string, code: string) {
   try {
-    const config = await prisma.system_config.findFirst();
+    // Find user to get their company settings
+    const userWithSettings = await prisma.user.findUnique({
+      where: { email },
+      include: {
+        company: {
+          include: {
+            appSettings: true
+          }
+        }
+      }
+    });
+
+    const companySettings = userWithSettings?.company?.appSettings;
+    const systemConfig = await prisma.system_config.findFirst();
     
-    // Use config from DB if available, otherwise fallback to env
-    const host = config?.smtp_host || process.env.SMTP_HOST;
-    const port = config?.smtp_port || Number(process.env.SMTP_PORT) || 587;
-    const user = config?.smtp_user || process.env.SMTP_USER;
-    const pass = config?.smtp_pass || process.env.SMTP_PASS;
-    const from = config?.smtp_from || process.env.SMTP_FROM || 'Sosturer <noreply@sosturer.com>';
+    // Priority: Company Settings > System Config > Env
+    const host = companySettings?.smtpHost || systemConfig?.smtp_host || process.env.SMTP_HOST;
+    const port = companySettings?.smtpPort || systemConfig?.smtp_port || Number(process.env.SMTP_PORT) || 587;
+    const user = companySettings?.smtpUser || systemConfig?.smtp_user || process.env.SMTP_USER;
+    const pass = companySettings?.smtpPass || systemConfig?.smtp_pass || process.env.SMTP_PASS;
+    const from = companySettings?.smtpFrom || systemConfig?.smtp_from || process.env.SMTP_FROM || 'Sosturer <noreply@sosturer.com>';
 
     if (!host || !user || !pass) {
       console.warn('SMTP settings are missing. Email not sent, code:', code);

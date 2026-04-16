@@ -48,6 +48,10 @@ export class ExcelTemplateBuilder {
       'Shift': ['companyId'],
       'Department': ['companyId'],
       'DepartmentRole': ['companyId'],
+      'Operation': ['companyId'],
+      'Warehouse': ['companyId'],
+      'Station': ['companyId'],
+      'ProductionRoute': ['companyId'],
       'ProductionStandard': ['companyId']
     };
 

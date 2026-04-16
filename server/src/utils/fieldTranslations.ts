@@ -5,10 +5,10 @@ export const fieldTranslations: Record<string, string> = {
   'updatedAt': 'Güncelleme Tarihi',
   'status': 'Durum',
   'notes': 'Notlar',
+  'code': 'Kod',
+  'name': 'Ad / Tanım',
 
   // Machine
-  'code': 'Makine Kodu',
-  'name': 'Makine Adı',
   'brand': 'Marka',
   'model': 'Model',
   'installedDate': 'Kurulum Tarihi',
@@ -67,6 +67,26 @@ export const fieldTranslations: Record<string, string> = {
   'qualityTargetPercent': 'Kalite Hedefi %',
   'effectiveDate': 'Yürürlüğe Giriş Tarihi',
   'endDate': 'Yürürlükten Çıkış Tarihi',
+
+  // New Fields for Production & Inventory
+  'unitId': 'İş Merkezi / Birim',
+  'type': 'Tip / Tür',
+  'estimatedTime': 'Tahmini Süre (dk)',
+  'sequence': 'İşlem Sırası',
+  'productGroup': 'Ürün Grubu',
+  'trackingType': 'İzlenebilirlik Tipi',
+  'stockType': 'Stok Tipi',
+  'productClass': 'Ürün Sınıfı',
+  'targetWarehouseId': 'Hedef Depo',
+  'routeId': 'Reçete',
+  'stationId': 'İstasyon',
+  'barcode': 'Barkod',
+  'defaultProductionQty': 'Varsayılan Üretim Adedi',
+  'completionTriggerStep': 'Tamamlanma Tetikleme Adımı',
+  'displayOrder': 'Görüntüleme Sırası',
+  'warehouseName': 'Depo Adı',
+  'warehouseCode': 'Depo Kodu',
+  'isDefault': 'Varsayılan Depo mu?',
 };
 
 export function getDisplayName(fieldName: string): string {

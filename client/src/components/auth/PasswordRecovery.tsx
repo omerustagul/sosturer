@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, Lock, Key, Smartphone, User, ArrowRight, RotateCcw, CheckCircle2, ChevronLeft } from 'lucide-react';
 import { api } from '../../lib/api';
@@ -17,10 +18,10 @@ export function PasswordRecovery({ onClose }: PasswordRecoveryProps) {
   const [phone, setPhone] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  
+
   const [maskedData, setMaskedData] = useState({ phone: '', name: '' });
   const [timeLeft, setTimeLeft] = useState(120);
   const [canResend, setCanResend] = useState(false);
@@ -109,13 +110,13 @@ export function PasswordRecovery({ onClose }: PasswordRecoveryProps) {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <div 
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm" 
-        onClick={step === 'success' ? onClose : undefined} 
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={step === 'success' ? onClose : undefined}
       />
-      
+
       <motion.div
         variants={containerVariants}
         initial="hidden"
@@ -130,7 +131,7 @@ export function PasswordRecovery({ onClose }: PasswordRecoveryProps) {
         <div className="relative z-10">
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-2xl font-bold text-theme-main">Şifremi Unuttum</h2>
-            <button 
+            <button
               onClick={onClose}
               className="p-2 hover:bg-theme-hover rounded-lg transition-colors text-theme-muted"
             >
@@ -153,13 +154,13 @@ export function PasswordRecovery({ onClose }: PasswordRecoveryProps) {
                   </div>
                   <p className="text-theme-muted">Doğrulama kodu göndermek için e-posta adresinizi girin.</p>
                 </div>
-                
+
                 <div className="relative">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-theme-dim" />
                   <input
                     type="email"
                     placeholder="E-posta Adresiniz"
-                    className="input-primary h-10 w-full rounded-xl pl-12"
+                    className="input-primary h-10 w-full border border-theme-border rounded-xl pl-12"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                   />
@@ -206,7 +207,7 @@ export function PasswordRecovery({ onClose }: PasswordRecoveryProps) {
                     value={code}
                     onChange={(e) => setCode(e.target.value.replace(/[^0-9]/g, ''))}
                   />
-                  
+
                   <div className="flex items-center justify-between text-sm">
                     <span className={`flex items-center gap-1.5 ${timeLeft === 0 ? 'text-red-400' : 'text-theme-muted'}`}>
                       <RotateCcw className={`w-4 h-4 ${timeLeft > 0 ? 'animate-spin-slow' : ''}`} />
@@ -261,7 +262,7 @@ export function PasswordRecovery({ onClose }: PasswordRecoveryProps) {
                       />
                     </div>
                   </div>
-                  
+
                   <div>
                     <label className="text-xs text-theme-muted mb-1 block uppercase tracking-wider font-bold">Kayıtlı Telefon: {maskedData.phone}</label>
                     <div className="relative">
@@ -367,6 +368,7 @@ export function PasswordRecovery({ onClose }: PasswordRecoveryProps) {
           )}
         </div>
       </motion.div>
-    </div>
+    </div>,
+    document.body
   );
 }

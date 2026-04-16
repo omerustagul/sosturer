@@ -62,7 +62,7 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       isAuthenticated: false,
       login: (token, user, company) => {
-        sessionStorage.setItem('token', token);
+        localStorage.setItem('token', token);
         set({ user, token, isAuthenticated: true, company: company || null });
       },
       updateUser: (newData) => {
@@ -95,7 +95,7 @@ export const useAuthStore = create<AuthState>()(
           const { company, token, ...user } = data;
           
           if (token) {
-            sessionStorage.setItem('token', token);
+            localStorage.setItem('token', token);
           }
           
           set({ user, company, ...(token ? { token } : {}) });
@@ -104,13 +104,13 @@ export const useAuthStore = create<AuthState>()(
         }
       },
       logout: () => {
-        sessionStorage.removeItem('token');
+        localStorage.removeItem('token');
         set({ user: null, token: null, isAuthenticated: false, company: null });
       },
     }),
     {
       name: 'auth-storage',
-      storage: createJSONStorage(() => sessionStorage),
+      storage: createJSONStorage(() => localStorage),
     }
   )
 );

@@ -27,7 +27,6 @@ export async function adjustStockFromProduction(params: {
       data: {
         companyId,
         name: 'Ana Depo',
-        code: 'MAIN',
         type: 'PRODUCTION'
       }
     });
@@ -70,7 +69,6 @@ export async function adjustStockFromProduction(params: {
         type: type === 'ADD' ? 'PRODUCTION' : 'INTERNAL', // simplified
         toWarehouseId: type === 'ADD' ? warehouseId : undefined,
         fromWarehouseId: type === 'REMOVE' ? warehouseId : undefined,
-        referenceType: 'PRODUCTION_RECORD',
         referenceId
       }
     });

@@ -362,7 +362,7 @@ export function AppSettings() {
                     Bildirim Yapılandırması
                   </h3>
                 </div>
-                <div className="space-y-10 max-w-2xl">
+                <div className="space-y-10">
                   <SettingItem label="SİSTEM BİLDİRİMLERİ" description="Önemli olaylarda ve rapor hazırlıklarında anlık bildirim al">
                     <Toggle
                       active={localSettings.notificationsEnabled}
@@ -370,11 +370,62 @@ export function AppSettings() {
                       label={localSettings.notificationsEnabled ? "AKTİF SESTE" : "SESSİZ MOD"}
                     />
                   </SettingItem>
-                  <div className="flex items-start gap-4 p-6 bg-theme-primary/5 border border-theme-primary/10 rounded-2xl">
-                    <AlertCircle className="w-6 h-6 text-theme-primary shrink-0 mt-0.5" />
-                    <p className="text-xs font-bold text-theme-muted leading-relaxed uppercase tracking-wide">
-                      SMTP ve Push API entegrasyonu şu anda sadece sistem yöneticileri tarafından sunucu taraflı yapılandırılabilmektedir. Daha fazla bilgi için bilişim departmanınızla görüşün.
-                    </p>
+
+                  <div className="space-y-6 pt-6 border-t border-theme">
+                    <div>
+                      <h4 className="text-sm font-black text-theme-main uppercase tracking-widest flex items-center gap-2">
+                        <Share2 className="w-4 h-4 text-theme-primary" />
+                        SMTP MAİL SUNUCU AYARLARI
+                      </h4>
+                      <p className="text-[10px] font-bold text-theme-muted mt-1 opacity-60">Sistemden gönderilecek e-postalar için kendi sunucunuzu kullanın.</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <SettingItem label="SMTP HOST" description="Örn: smtp.gmail.com">
+                        <input
+                          type="text"
+                          value={localSettings.smtpHost || ''}
+                          onChange={(e) => setLocalSettings({ ...localSettings, smtpHost: e.target.value })}
+                          className="w-full h-10 bg-theme-base border border-theme rounded-xl px-4 text-xs font-bold text-theme-main outline-none focus:ring-2 focus:ring-theme-primary transition-all"
+                        />
+                      </SettingItem>
+
+                      <SettingItem label="SMTP PORT" description="Standart: 587 veya 465">
+                        <input
+                          type="number"
+                          value={localSettings.smtpPort || ''}
+                          onChange={(e) => setLocalSettings({ ...localSettings, smtpPort: parseInt(e.target.value) })}
+                          className="w-full h-10 bg-theme-base border border-theme rounded-xl px-4 text-xs font-bold text-theme-main outline-none focus:ring-2 focus:ring-theme-primary transition-all"
+                        />
+                      </SettingItem>
+
+                      <SettingItem label="SMTP KULLANICI" description="E-posta adresi veya kullanıcı adı">
+                        <input
+                          type="text"
+                          value={localSettings.smtpUser || ''}
+                          onChange={(e) => setLocalSettings({ ...localSettings, smtpUser: e.target.value })}
+                          className="w-full h-10 bg-theme-base border border-theme rounded-xl px-4 text-xs font-bold text-theme-main outline-none focus:ring-2 focus:ring-theme-primary transition-all"
+                        />
+                      </SettingItem>
+
+                      <SettingItem label="SMTP ŞİFRE" description="Sunucu erişim şifresi">
+                        <input
+                          type="password"
+                          value={localSettings.smtpPass || ''}
+                          onChange={(e) => setLocalSettings({ ...localSettings, smtpPass: e.target.value })}
+                          className="w-full h-10 bg-theme-base border border-theme rounded-xl px-4 text-xs font-bold text-theme-main outline-none focus:ring-2 focus:ring-theme-primary transition-all"
+                        />
+                      </SettingItem>
+
+                      <SettingItem label="GÖNDEREN E-POSTA" description="Alıcının göreceği 'From' adresi">
+                        <input
+                          type="text"
+                          value={localSettings.smtpFrom || ''}
+                          onChange={(e) => setLocalSettings({ ...localSettings, smtpFrom: e.target.value })}
+                          className="w-full h-10 bg-theme-base border border-theme rounded-xl px-4 text-xs font-bold text-theme-main outline-none focus:ring-2 focus:ring-theme-primary transition-all"
+                        />
+                      </SettingItem>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -415,13 +466,13 @@ export function AppSettings() {
                     />
                   </SettingItem>
                 </div>
-                <div className="p-8 bg-theme-primary/10 border border-theme-primary/20 rounded-2xl flex items-center gap-6">
-                  <div className="w-16 h-16 bg-theme-primary/20 rounded-2xl flex items-center justify-center shrink-0">
-                    <Shield className="w-10 h-10 text-theme-primary" />
+                <div className="p-2 bg-theme-primary/10 border border-theme-primary/20 rounded-2xl flex items-center gap-6">
+                  <div className="w-12 h-12 bg-theme-primary/20 rounded-2xl flex items-center justify-center shrink-0">
+                    <Shield className="w-6 h-6 text-theme-primary" />
                   </div>
-                  <div className="space-y-1">
-                    <h5 className="font-black text-theme-main uppercase tracking-widest text-sm">GÜVENLİK NOTU</h5>
-                    <p className="text-xs font-bold text-theme-muted uppercase tracking-tight leading-relaxed opacity-70">
+                  <div className="space-y-0">
+                    <h5 className="font-black text-theme-main uppercase text-sm">GÜVENLİK NOTU</h5>
+                    <p className="text-xs font-bold text-theme-muted leading-relaxed opacity-70">
                       Sistemimiz 256-bit AES şifreleme ve düzenli sızma testleri ile korunmaktadır. Tüm erişim logları 12 ay boyunca saklanmaktadır.
                     </p>
                   </div>

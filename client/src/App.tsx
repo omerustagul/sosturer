@@ -32,6 +32,11 @@ const Login = lazy(() => import('./pages/Login').then((m) => ({ default: m.Login
 const Register = lazy(() => import('./pages/Register').then((m) => ({ default: m.Register })));
 
 const ProductionPlanning = lazy(() => import('./pages/planning/ProductionPlanning').then((m) => ({ default: m.ProductionPlanning })));
+const WorkPlanList = lazy(() => import('./pages/planning/WorkPlanList').then((m) => ({ default: m.WorkPlanList })));
+const WorkPlanForm = lazy(() => import('./pages/planning/WorkPlanForm').then((m) => ({ default: m.WorkPlanForm })));
+const ProductionOrders = lazy(() => import('./pages/planning/ProductionOrders').then((m) => ({ default: m.ProductionOrders })));
+const ProductionDefinitions = lazy(() => import('./pages/planning/ProductionDefinitions').then(m => ({ default: m.ProductionDefinitions })));
+const ProductionOrderForm = lazy(() => import('./pages/planning/ProductionOrderForm').then(m => ({ default: m.ProductionOrderForm })));
 
 const InventoryDashboard = lazy(() => import('./pages/inventory/InventoryDashboard').then((m) => ({ default: m.InventoryDashboard })));
 const StockMovements = lazy(() => import('./pages/inventory/StockMovements').then((m) => ({ default: m.StockMovements })));
@@ -45,10 +50,14 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 import { ErrorBoundary } from './components/common/ErrorBoundary';
+import { useInactivityTimeout } from './hooks/useInactivityTimeout';
 
 function App() {
   const { fetchSettings } = useSettingsStore();
   const { isAuthenticated, refreshUser } = useAuthStore();
+  
+  // Security: Auto-logout after 30 mins of inactivity
+  useInactivityTimeout();
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -96,6 +105,13 @@ function App() {
               <Route path="sales/customers" element={<CustomersList />} />
 
               <Route path="planning/production" element={<ProductionPlanning />} />
+              <Route path="planning/work-plans" element={<WorkPlanList />} />
+              <Route path="planning/work-plans/new" element={<WorkPlanForm />} />
+              <Route path="planning/work-plans/edit/:id" element={<WorkPlanForm />} />
+              <Route path="planning/production-orders" element={<ProductionOrders />} />
+              <Route path="planning/production-orders/new" element={<ProductionOrderForm />} />
+              <Route path="planning/production-orders/:id" element={<ProductionOrderForm />} />
+              <Route path="planning/definitions" element={<ProductionDefinitions />} />
             </Route>
           </Routes>
         </Suspense>

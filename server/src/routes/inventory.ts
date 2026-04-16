@@ -17,7 +17,7 @@ router.get('/warehouses', authenticateToken, async (req: AuthRequest, res) => {
       include: {
         _count: { select: { stockLevels: true } }
       },
-      orderBy: { name: 'asc' }
+      orderBy: { displayOrder: 'asc' }
     });
     res.json(warehouses);
   } catch (error) {
@@ -30,9 +30,17 @@ router.post('/warehouses', authenticateToken, async (req: AuthRequest, res) => {
     const companyId = getCompanyId(req);
     if (!companyId) return res.status(400).json({ error: 'Company ID is missing' });
 
-    const { name, type, status, unitId } = req.body;
-    const warehouse = await prisma.warehouse.create({
-      data: { companyId, name, type: type || 'general', status: status || 'active', unitId: unitId || null }
+    const { name, code, type, status, unitId, locationId } = req.body;
+    const warehouse = await (prisma as any).warehouse.create({
+      data: { 
+        companyId, 
+        name, 
+        code: code || null,
+        type: type || 'general', 
+        status: status || 'active', 
+        unitId: unitId || null,
+        locationId: locationId || null
+      }
     });
     res.status(201).json(warehouse);
   } catch (error) {
@@ -46,14 +54,16 @@ router.put('/warehouses/:id', authenticateToken, async (req: AuthRequest, res) =
     if (!companyId) return res.status(400).json({ error: 'Company ID is missing' });
 
     const { id } = req.params;
-    const { name, type, status, unitId } = req.body;
-    const warehouse = await prisma.warehouse.update({
-      where: { id },
+    const { name, code, type, status, unitId, locationId } = req.body;
+    const warehouse = await (prisma as any).warehouse.update({
+      where: { id: id as string },
       data: {
         name,
+        code: code !== undefined ? (code || null) : undefined,
         type,
         status,
-        unitId: unitId !== undefined ? (unitId || null) : undefined
+        unitId: unitId !== undefined ? (unitId || null) : undefined,
+        locationId: locationId !== undefined ? (locationId || null) : undefined
       }
     });
     res.json(warehouse);
@@ -65,7 +75,7 @@ router.put('/warehouses/:id', authenticateToken, async (req: AuthRequest, res) =
 router.delete('/warehouses/:id', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
-    await prisma.warehouse.delete({ where: { id } });
+    await prisma.warehouse.delete({ where: { id: id as string } });
     res.json({ success: true, message: 'Depo silindi' });
   } catch (error) {
     res.status(500).json({ error: 'Depo silinemedi - bağlı stok hareketleri olabilir' });
@@ -161,6 +171,95 @@ router.post('/movements', authenticateToken, async (req: AuthRequest, res) => {
   } catch (error: any) {
     console.error('Movement error:', error);
     res.status(500).json({ error: 'Stok hareketi işlenemedi' });
+  }
+});
+
+router.post('/warehouses/bulk-update', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const companyId = getCompanyId(req);
+    const { updates } = req.body;
+    
+    await prisma.$transaction(
+      updates.map((u: any) => {
+        const { id, data: originalData } = u;
+        const { company, createdAt, updatedAt, _count, ...rest } = originalData;
+        return prisma.warehouse.update({
+          where: { id, companyId },
+          data: rest
+        });
+      })
+    );
+    
+    res.json({ success: true });
+  } catch (error) {
+    res.status(400).json({ error: 'Toplu güncelleme başarısız oldu' });
+  }
+});
+
+router.post('/warehouses/bulk-delete', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const companyId = getCompanyId(req);
+    const { ids } = req.body;
+    await prisma.warehouse.deleteMany({
+      where: { id: { in: ids }, companyId }
+    });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(400).json({ error: 'Toplu silme başarısız oldu' });
+  }
+});
+
+router.post('/warehouses/reorder', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const { ids } = req.body;
+    if (!ids || !Array.isArray(ids)) return res.status(400).json({ error: 'Geçersiz veri' });
+
+    await Promise.all(
+      ids.map((id: string, index: number) =>
+        prisma.warehouse.update({
+          where: { id },
+          data: { displayOrder: index }
+        })
+      )
+    );
+    res.json({ message: 'Sıralama güncellendi' });
+  } catch (error) {
+    res.status(500).json({ error: 'Sıralama güncellenemedi' });
+  }
+});
+
+router.post('/warehouses/bulk-update-status', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const companyId = getCompanyId(req);
+    const { ids, status } = req.body;
+    await prisma.warehouse.updateMany({
+      where: { id: { in: ids }, companyId },
+      data: { status }
+    });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(400).json({ error: 'Toplu durum güncelleme başarısız oldu' });
+  }
+});
+
+// GET LOTS for product and warehouse
+router.get('/lots', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const companyId = getCompanyId(req);
+    const { productId, warehouseId } = req.query;
+
+    const levels = await prisma.stockLevel.findMany({
+      where: { 
+        companyId: companyId as string,
+        productId: productId as string,
+        warehouseId: warehouseId as string,
+        quantity: { gt: 0 }
+      },
+      select: { lotNumber: true, quantity: true }
+    });
+    res.json(levels);
+  } catch (error) {
+    res.status(500).json({ error: 'Lotlar getirilemedi' });
   }
 });
 

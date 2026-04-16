@@ -711,7 +711,7 @@ export function RecordsList() {
         let displayOee = Number(r.oee || 0);
 
         return (
-          <span className={`px-2.5 py-1 rounded-full text-xs font-black tracking-tighter ${displayOee >= 80 ? 'bg-theme-success/10 text-theme-success border border-theme-success/20' :
+          <span className={`px-2.5 py-1 rounded-lg text-xs font-black tracking-tighter ${displayOee >= 80 ? 'bg-theme-success/10 text-theme-success border border-theme-success/20' :
             displayOee >= 60 ? 'bg-theme-warning/10 text-theme-warning border border-theme-warning/20' :
               'bg-theme-danger/10 text-theme-danger border border-theme-danger/20'
             }`}>

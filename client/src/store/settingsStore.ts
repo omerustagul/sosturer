@@ -20,6 +20,11 @@ export interface AppSettings {
   dashboardLayout: string;
   referenceLocationId?: string;
   standardShiftIds?: string;
+  smtpHost?: string;
+  smtpPort?: number;
+  smtpUser?: string;
+  smtpPass?: string;
+  smtpFrom?: string;
 }
 
 interface SettingsState {
@@ -72,6 +77,11 @@ const defaultSettings: AppSettings = {
   dashboardLayout: '[]',
   referenceLocationId: '',
   standardShiftIds: '[]',
+  smtpHost: '',
+  smtpPort: 587,
+  smtpUser: '',
+  smtpPass: '',
+  smtpFrom: '',
 };
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({

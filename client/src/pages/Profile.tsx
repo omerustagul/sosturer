@@ -7,59 +7,51 @@ import {
   ShieldCheck,
   Mail,
   Phone,
-  MapPin,
-  Lock,
-  Download,
   Edit3,
   X,
   Check,
   Camera,
   LogOut,
-  BellRing,
   Smartphone,
-  Layout,
-  Type,
-  Eye,
-  Settings,
-  ChevronRight,
-  ShieldAlert,
-  FileText,
-  Briefcase,
-  Clock
+  FileText
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
 import { CustomSelect } from '../components/common/CustomSelect';
 
 export function Profile() {
-  const { user, logout } = useAuthStore();
+  const { user, logout, saveProfile } = useAuthStore();
   const [activeTab, setActiveTab] = useState('personal');
   const [isEditing, setIsEditing] = useState(false);
+  
   const [formData, setFormData] = useState({
-    firstName: user?.fullName?.split(' ')[0] || '',
-    lastName: user?.fullName?.split(' ').slice(1).join(' ') || '',
+    fullName: user?.fullName || '',
     email: user?.email || '',
-    phone: '5307061311',
-    tc: '12345678901',
-    gender: 'Erkek',
-    nationality: 'T.C. Vatandaşı',
-    birthDate: '1990-01-01',
-    address: 'İstanbul, Türkiye',
-    position: 'Kıdemli Yazılım Geliştirici',
-    startDate: '2023-01-15'
+    phone: user?.personalPhone || '',
+    tc: user?.tc || '',
+    gender: user?.gender || 'Erkek',
+    nationality: user?.nationality || 'T.C. Vatandaşı',
+    birthDate: user?.birthDate || '',
+    address: user?.personalAddress || '',
+    memberSince: user?.memberSince || new Date().getFullYear().toString()
   });
+  
   const [draftData, setDraftData] = useState(formData);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Sync with store if user changes
     if (user) {
-      setFormData(prev => ({
-        ...prev,
-        firstName: user.fullName?.split(' ')[0] || '',
-        lastName: user.fullName?.split(' ').slice(1).join(' ') || '',
-        email: user.email || ''
-      }));
+      setFormData({
+        fullName: user.fullName || '',
+        email: user.email || '',
+        phone: user.personalPhone || '',
+        tc: user.tc || '',
+        gender: user.gender || 'Erkek',
+        nationality: user.nationality || 'T.C. Vatandaşı',
+        birthDate: user.birthDate || '',
+        address: user.personalAddress || '',
+        memberSince: user.memberSince || ''
+      });
     }
   }, [user]);
 
@@ -70,26 +62,31 @@ export function Profile() {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Handle image upload logic
       alert("Profil resmi güncelleme özelliği yakında eklenecektir.");
     }
   };
 
   const handleSave = async () => {
-    if (draftData.tc.length !== 11) {
+    if (draftData.tc && draftData.tc.length !== 11) {
       alert("TC Kimlik Numarası 11 haneli olmalıdır.");
       return;
     }
-    if (draftData.phone.length !== 10) {
+    if (draftData.phone && draftData.phone.length !== 10) {
       alert("Telefon numarası 10 haneli olmalıdır (Örn: 5xx ...)");
       return;
     }
 
     setLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setFormData(draftData);
+      await saveProfile({
+        fullName: draftData.fullName,
+        personalPhone: draftData.phone,
+        tc: draftData.tc,
+        gender: draftData.gender,
+        nationality: draftData.nationality,
+        birthDate: draftData.birthDate,
+        personalAddress: draftData.address
+      });
       setIsEditing(false);
     } catch (error) {
       alert("Bilgiler kaydedilemedi.");
@@ -111,10 +108,10 @@ export function Profile() {
           <div className="relative group/avatar">
             <div className="w-32 h-32 rounded-full border-4 border-theme-primary/20 p-2 bg-theme-base shadow-2xl relative transition-transform duration-500 group-hover/avatar:scale-105">
               <div className="w-full h-full rounded-full bg-gradient-to-br from-theme-primary/10 to-theme-primary/5 flex items-center justify-center text-3xl font-black text-theme-primary">
-                {formData.firstName && formData.lastName ? (
-                  formData.firstName[0] + formData.lastName[0]
+                {formData.fullName ? (
+                  formData.fullName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
                 ) : (
-                  formData.firstName[0] + (formData.lastName[0] || "")
+                  "U"
                 )}
               </div>
               <label className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center rounded-full opacity-0 group-hover/avatar:opacity-100 transition-all cursor-pointer backdrop-blur-sm">
@@ -131,7 +128,7 @@ export function Profile() {
           <div className="flex-1 text-center md:text-left space-y-4">
             <div>
               <div className="flex flex-wrap justify-center md:justify-start items-center gap-2 mb-2">
-                <h1 className="text-lg lg:text-xl font-black text-theme-main">{formData.firstName} {formData.lastName}</h1>
+                <h1 className="text-lg lg:text-xl font-black text-theme-main">{formData.fullName}</h1>
                 <div className="px-2 py-1 rounded-full bg-theme-primary/15 border border-theme-primary/20 text-theme-primary text-[10px] font-bold">
                   {user?.role === 'admin' ? 'YÖNETİCİ' : user?.role === 'superadmin' ? 'SİSTEM YÖNETİCİSİ' : 'PERSONEL'}
                 </div>
@@ -144,7 +141,7 @@ export function Profile() {
                   <Smartphone className="w-4 h-4 text-theme-primary/60" /> +90 {formData.phone}
                 </span>
                 <span className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-theme-primary/60" /> Üyelik: 2026
+                  <Calendar className="w-4 h-4 text-theme-primary/60" /> Üyelik: {formData.memberSince || '2026'}
                 </span>
               </div>
             </div>
@@ -167,8 +164,7 @@ export function Profile() {
           {[
             { id: 'personal', label: 'Genel Bilgiler', icon: UserIcon },
             { id: 'documents', label: 'Sözleşme & Hukuki', icon: FileText },
-            { id: 'security', label: 'Hesap & Güvenlik', icon: ShieldCheck },
-            { id: 'preferences', label: 'Kişiselleştirme', icon: Settings }
+            { id: 'security', label: 'Hesap & Güvenlik', icon: ShieldCheck }
           ].map((tab) => (
             <button
               key={tab.id}
@@ -223,16 +219,14 @@ export function Profile() {
 
               <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-x-8 gap-y-6">
                 {[
-                  { key: 'firstName', label: 'ADINIZ', icon: UserIcon },
-                  { key: 'lastName', label: 'SOYADINIZ', icon: UserIcon },
+                  { key: 'fullName', label: 'AD SOYAD', icon: UserIcon },
                   { key: 'phone', label: 'TELEFON NUMARASI', icon: Phone, prefix: '+90' },
                   { key: 'email', label: 'E-POSTA ADRESİ', icon: Mail, type: 'email', readOnly: true },
                   { key: 'tc', label: 'TC KİMLİK NUMARASI', icon: ShieldCheck },
                   { key: 'gender', label: 'CİNSİYET', icon: UserIcon, type: 'select', options: ['Erkek', 'Kadın', 'Diğer'] },
                   { key: 'birthDate', label: 'DOĞUM TARİHİ', icon: Calendar, type: 'date' },
                   { key: 'nationality', label: 'UYRUK', icon: MapPin, type: 'select', options: ['T.C. Vatandaşı', 'Diğer'] },
-                  { key: 'position', label: 'POZİSYON / DEPARTMAN', icon: Briefcase, readOnly: true },
-                  { key: 'startDate', label: 'İŞE BAŞLAMA TARİHİ', icon: Clock, readOnly: true },
+                  { key: 'startDate', label: 'ÜYELİK / BAŞLAMA', icon: Clock, readOnly: true },
                   { key: 'address', label: 'EV ADRESİ', icon: MapPin, fullWidth: true },
                 ].map((field) => (
                   <div key={field.key} className={cn("space-y-2", field.fullWidth && "md:col-span-2 lg:col-span-2")}>
@@ -264,7 +258,7 @@ export function Profile() {
                               setDraftData(prev => ({ ...prev, [field.key]: val }));
                             }}
                             className={cn(
-                              "next-gen-input w-full uppercase",
+                              "next-gen-input w-full",
                               field.prefix && "pl-12"
                             )}
                             placeholder={field.key === 'phone' ? "5xx ..." : ""}
@@ -389,7 +383,7 @@ export function Profile() {
                       <div className="flex items-center gap-5">
                         <div className="w-12 h-12 rounded-xl bg-theme-base flex items-center justify-center border border-theme group-hover:border-theme-primary/40"><Lock className="w-5 h-5 text-theme-dim group-hover:text-theme-primary" /></div>
                         <div className="text-left">
-                          <p className="font-black text-theme-main uppercase text-[11px] tracking-wider mb-0.5">PAROLA GÜNCELLE</p>
+                          <p className="font-black text-theme-main uppercase text-[11px] mb-0.5">PAROLA GÜNCELLE</p>
                           <p className="text-[9px] text-theme-muted font-bold uppercase">Hesap güvenliğini artırın</p>
                         </div>
                       </div>
@@ -400,7 +394,7 @@ export function Profile() {
                       <div className="flex items-center gap-5">
                         <div className="w-12 h-12 rounded-xl bg-theme-base flex items-center justify-center border border-theme group-hover:border-theme-primary/40"><Smartphone className="w-5 h-5 text-theme-dim group-hover:text-theme-primary" /></div>
                         <div className="text-left">
-                          <p className="font-black text-theme-main uppercase text-[11px] tracking-wider mb-0.5">İKİ FAKTÖRLÜ DOĞRULAMA</p>
+                          <p className="font-black text-theme-main uppercase text-[11px] mb-0.5">İKİ FAKTÖRLÜ DOĞRULAMA</p>
                           <p className="text-[9px] text-theme-success font-bold uppercase tracking-tight">ŞU AN AKTİF</p>
                         </div>
                       </div>
@@ -444,81 +438,6 @@ export function Profile() {
             </div>
           )}
 
-          {activeTab === 'preferences' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="modern-glass-card">
-                <div className="flex items-center gap-5 mb-10">
-                  <div className="w-10 h-10 rounded-xl bg-theme-primary/10 border border-theme-primary/20 flex items-center justify-center">
-                    <Layout className="w-4 h-4 text-theme-primary" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-black text-theme-main">Görünüm</h3>
-                    <p className="text-theme-muted text-[11px] font-semibold">Arayüz ve tasarım tercihleri</p>
-                  </div>
-                </div>
-
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between p-4 bg-theme-base/30 rounded-xl border border-theme">
-                    <div className="flex items-center gap-4">
-                      <Type className="w-4 h-4 text-theme-dim" />
-                      <span className="text-[11px] font-black text-theme-main uppercase tracking-wider">Yazı Tipi</span>
-                    </div>
-                    <CustomSelect
-                      value="Inter"
-                      options={[
-                        { id: 'Inter', label: 'Inter' },
-                        { id: 'Roboto', label: 'Roboto' },
-                        { id: 'Montserrat', label: 'Montserrat' }
-                      ]}
-                      onChange={(val) => console.log('Font changed:', val)}
-                      searchable={false}
-                      className="!w-44"
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between p-4 bg-theme-base/30 rounded-xl border border-theme">
-                    <div className="flex items-center gap-4">
-                      <Eye className="w-4 h-4 text-theme-dim" />
-                      <span className="text-[11px] font-black text-theme-main uppercase tracking-wider">Tablo Yoğunluğu</span>
-                    </div>
-                    <div className="flex gap-2">
-                      {['AZ', 'ORTA', 'YÜKSEK'].map(d => (
-                        <button key={d} className={cn("px-3 py-1.5 rounded-lg border text-[9px] font-black transition-all", d === 'YÜKSEK' ? "bg-theme-primary text-white border-theme-primary" : "bg-theme-base/50 border-theme text-theme-muted")}>{d}</button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="modern-glass-card">
-                <div className="flex items-center gap-3 mb-10">
-                  <div className="w-10 h-10 rounded-xl bg-theme-primary/10 border border-theme-primary/20 flex items-center justify-center">
-                    <BellRing className="w-4 h-4 text-theme-primary" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-black text-theme-main">Bildirimler</h3>
-                    <p className="text-theme-muted text-[11px] font-semibold">Sistem ve iletişim uyarıları</p>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  {[
-                    { label: 'E-PostA BİLDİRİMLERİ', active: true },
-                    { label: 'ANLIK BİLDİRİMLER (PUSH)', active: true },
-                    { label: 'MESAJ SESLERİ', active: false },
-                    { label: 'GÜVENLİK UYARILARI', active: true }
-                  ].map((pref, i) => (
-                    <div key={i} className="flex items-center justify-between p-4 bg-theme-base/20 rounded-xl border border-theme/10">
-                      <span className="text-[10px] font-black text-theme-main uppercase tracking-widest">{pref.label}</span>
-                      <div className={cn("w-10 h-5 rounded-full flex items-center px-1 transition-colors", pref.active ? "bg-theme-primary/30" : "bg-theme-muted/10")}>
-                        <div className={cn("w-3.5 h-3.5 rounded-full transition-all", pref.active ? "bg-theme-primary ml-auto" : "bg-theme-dim ml-0")} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
         </motion.div>
       </AnimatePresence>
     </div>

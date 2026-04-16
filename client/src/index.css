@@ -315,7 +315,7 @@ body {
 
 @layer components {
   .form-input {
-    @apply h-10 w-full bg-theme-base border border-theme rounded-xl px-4 py-2.5 text-theme-main focus:outline-none focus:ring-2 focus:ring-theme-primary/50;
+    @apply h-10 w-full bg-theme-base border border-theme rounded-xl px-1.5 py-1 text-theme-main focus:outline-none focus:ring-2 focus:ring-theme-primary/50;
   }
 
   .label-sm {
@@ -404,7 +404,7 @@ body {
 
 /* High-Density Inline Table Inputs */
 .settings-inline-input {
-  @apply h-8 px-3 py-1 bg-theme-base/40 border border-theme rounded-xl text-[11px] font-bold text-theme-main transition-all outline-none uppercase placeholder:text-theme-muted/50;
+  @apply h-8 px-3 py-1 bg-theme-base/40 border border-theme rounded-xl text-[11px] font-bold text-theme-main transition-all outline-none placeholder:text-theme-muted/50;
 }
 
 .settings-inline-input:focus {

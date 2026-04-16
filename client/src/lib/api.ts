@@ -3,7 +3,7 @@ const API_URL =
   (import.meta.env.PROD ? '/api' : `http://${window.location.hostname}:3005/api`);
 
 const getHeaders = () => {
-  const token = sessionStorage.getItem('token');
+  const token = localStorage.getItem('token');
   return {
     'Content-Type': 'application/json',
     ...(token ? { 'Authorization': `Bearer ${token}` } : {})
@@ -13,8 +13,8 @@ const getHeaders = () => {
 const handleResponse = async (res: Response) => {
   if (res.status === 401 || res.status === 403) {
     if (window.location.pathname !== '/login') {
-      sessionStorage.removeItem('token');
-      sessionStorage.removeItem('auth-storage');
+      localStorage.removeItem('token');
+      localStorage.removeItem('auth-storage');
       window.location.href = '/login';
     }
   }
@@ -75,7 +75,7 @@ export const api = {
   },
   download: async (endpoint: string, filename: string) => {
     // Cannot use standard getHeaders because Content-Type isn't json for the response (it handles request though, but omiting is safest for blobs)
-    const token = sessionStorage.getItem('token');
+    const token = localStorage.getItem('token');
     const headers: Record<string, string> = token ? { 'Authorization': `Bearer ${token}` } : {};
 
     const res = await fetch(`${API_URL}${endpoint}`, {
@@ -84,8 +84,8 @@ export const api = {
     });
 
     if (res.status === 401 || res.status === 403) {
-      sessionStorage.removeItem('token');
-      sessionStorage.removeItem('auth-storage');
+      localStorage.removeItem('token');
+      localStorage.removeItem('auth-storage');
       window.location.href = '/login';
       return;
     }
@@ -103,5 +103,16 @@ export const api = {
     a.click();
     window.URL.revokeObjectURL(url);
     document.body.removeChild(a);
+  },
+  upload: async (endpoint: string, formData: FormData) => {
+    const token = localStorage.getItem('token');
+    const res = await fetch(`${API_URL}${endpoint}`, {
+      method: 'POST',
+      headers: {
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: formData
+    });
+    return handleResponse(res);
   }
 };

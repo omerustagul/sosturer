@@ -5,8 +5,9 @@ import prisma from '../lib/prisma';
 import type { ImportType } from '../excel/excelTypes';
 import { DynamicImportService } from '../services/dynamicImportService';
 import { calculateOEE, rebalanceShift } from '../services/oeeCalculator';
-import type { AuthRequest } from '../middleware/auth';
+import { authenticateToken, type AuthRequest } from '../middleware/auth';
 import { createImportErrorReportWorkbook } from '../excel/productionRecordsExcel';
+import { NotificationService } from '../services/notificationService';
 
 const router = Router();
 
@@ -19,8 +20,9 @@ function normalizeImportType(input: unknown): ImportType | null {
   const t = String(input || '').trim().toLowerCase();
   if (!t) return null;
   const allowed: ImportType[] = [
-    'production_records', 'products', 'operators', 'machines', 
-    'shifts', 'departments', 'department_roles', 'production_standards'
+    'production_records', 'products', 'operators', 'machines',
+    'shifts', 'departments', 'department_roles', 'production_standards',
+    'warehouses', 'operations', 'stations', 'routes'
   ];
   return (allowed as string[]).includes(t) ? (t as ImportType) : null;
 }
@@ -32,7 +34,7 @@ async function loadWorkbook(buffer: Buffer) {
   return workbook;
 }
 
-router.post('/validate', upload.single('file'), async (req: AuthRequest, res) => {
+router.post('/validate', authenticateToken, upload.single('file'), async (req: AuthRequest, res) => {
   if (!req.file) return res.status(400).json({ error: 'Lütfen bir Excel dosyası yükleyin.' });
   if (!req.file.originalname.toLowerCase().endsWith('.xlsx')) {
     return res.status(400).json({ error: 'Sadece .xlsx dosyaları kabul edilir.' });
@@ -40,12 +42,13 @@ router.post('/validate', upload.single('file'), async (req: AuthRequest, res) =>
 
   const importType = normalizeImportType((req.body as any)?.importType) || 'production_records';
   const modelName = DynamicImportService.getModelName(importType);
-  
+
   if (!modelName) return res.status(400).json({ error: `Geçersiz import tipi: ${importType}` });
 
   try {
+    const companyId = req.user?.companyId;
     const workbook = await loadWorkbook(req.file.buffer);
-    const result = await DynamicImportService.validate(modelName, workbook);
+    const result = await DynamicImportService.validate(modelName, workbook, companyId);
 
     return res.json({
       valid: result.errors.length === 0,
@@ -61,7 +64,7 @@ router.post('/validate', upload.single('file'), async (req: AuthRequest, res) =>
   }
 });
 
-router.post('/preview', upload.single('file'), async (req: AuthRequest, res) => {
+router.post('/preview', authenticateToken, upload.single('file'), async (req: AuthRequest, res) => {
   if (!req.file) return res.status(400).json({ error: 'Lütfen bir Excel dosyası yükleyin.' });
   if (!req.file.originalname.toLowerCase().endsWith('.xlsx')) {
     return res.status(400).json({ error: 'Sadece .xlsx dosyaları kabul edilir.' });
@@ -73,15 +76,16 @@ router.post('/preview', upload.single('file'), async (req: AuthRequest, res) => 
   if (!modelName) return res.status(400).json({ error: `Geçersiz import tipi: ${importType}` });
 
   try {
+    const companyId = req.user?.companyId;
     const workbook = await loadWorkbook(req.file.buffer);
-    const result = await DynamicImportService.validate(modelName, workbook);
+    const result = await DynamicImportService.validate(modelName, workbook, companyId);
 
     // OEE Calculation for preview rows
     let previewSamples = result.parsedRows.slice(0, 3);
     if (importType === 'production_records') {
       const enrichedSamples = [];
       for (const row of previewSamples) {
-        let shiftDuration = 480; 
+        let shiftDuration = 480;
         if (row.shiftId) {
           const s = await prisma.shift.findUnique({ where: { id: row.shiftId } });
           if (s) shiftDuration = s.durationMinutes;
@@ -95,8 +99,8 @@ router.post('/preview', upload.single('file'), async (req: AuthRequest, res) => 
           shiftDurationMinutes: shiftDuration
         }) as any;
 
-        enrichedSamples.push({ 
-          ...row, 
+        enrichedSamples.push({
+          ...row,
           ...calculated,
           actualDurationMinutes: Math.round(calculated.actualDurationMinutes || 0),
           plannedDowntimeMinutes: Math.round(calculated.plannedDowntimeMinutes || 0),
@@ -122,7 +126,7 @@ router.post('/preview', upload.single('file'), async (req: AuthRequest, res) => 
   }
 });
 
-router.post('/execute', upload.single('file'), async (req: AuthRequest, res) => {
+router.post('/execute', authenticateToken, upload.single('file'), async (req: AuthRequest, res) => {
   if (!req.file) return res.status(400).json({ error: 'Lütfen bir Excel dosyası yükleyin.' });
   if (!req.file.originalname.toLowerCase().endsWith('.xlsx')) {
     return res.status(400).json({ error: 'Sadece .xlsx dosyaları kabul edilir.' });
@@ -134,16 +138,15 @@ router.post('/execute', upload.single('file'), async (req: AuthRequest, res) => 
   if (!modelName) return res.status(400).json({ error: `Geçersiz import tipi: ${importType}` });
 
   try {
+    const companyId = req.user?.companyId;
     const workbook = await loadWorkbook(req.file.buffer);
-    const result = await DynamicImportService.validate(modelName, workbook);
+    const result = await DynamicImportService.validate(modelName, workbook, companyId);
 
     let userId = req.user?.id || null;
-    const companyId = req.user?.companyId;
-
     if (userId) {
       const userExists = await prisma.user.findUnique({ where: { id: userId } });
       if (!userExists) {
-        userId = null; 
+        userId = null;
       }
     }
 
@@ -202,8 +205,8 @@ router.post('/execute', upload.single('file'), async (req: AuthRequest, res) => 
         }) as any;
 
         // Use Float values for DB consistency
-        enrichedRows.push({ 
-          ...row, 
+        enrichedRows.push({
+          ...row,
           ...calculated,
           actualDurationMinutes: calculated.actualDurationMinutes || 0,
           plannedDowntimeMinutes: calculated.plannedDowntimeMinutes || 0,
@@ -226,7 +229,7 @@ router.post('/execute', upload.single('file'), async (req: AuthRequest, res) => 
           uniqueContexts.add(`${dateStr}|${row.machineId}|${row.shiftId}`);
         }
       }
-      
+
       // Execute rebalance for each discovered shift context
       const contextPromises = Array.from(uniqueContexts).map(ctx => {
         const [dateStr, mId, sId] = ctx.split('|');
@@ -263,12 +266,35 @@ router.post('/execute', upload.single('file'), async (req: AuthRequest, res) => 
       logs: executionResult.logs,
       importId: history.id,
     });
+
+    // Bildirim gönder
+    const importLabels: Record<string, string> = {
+      production_records: 'Üretim Kayıtları',
+      products: 'Ürünler',
+      operators: 'Operatörler',
+      machines: 'Makineler',
+      shifts: 'Vardiyalar',
+      departments: 'Birimler',
+      department_roles: 'Birim Rolleri',
+      production_standards: 'Üretim Standartları',
+      warehouses: 'Depolar',
+      operations: 'Operasyonlar',
+      stations: 'İstasyonlar',
+      routes: 'Reçeteler'
+    };
+
+    NotificationService.notifyCompany(
+      companyId as string,
+      'İçe Aktarma Tamamlandı',
+      `${executionResult.count} satır ${importLabels[importType] || importType} verisi başarıyla aktarıldı.`,
+      'SUCCESS'
+    );
   } catch (error: any) {
-    console.error('Import execute error:', error);
-    return res.status(500).json({ 
-      error: 'İçe aktarma sırasında sunucu hatası oluştu.', 
+    console.error('!!! IMPORT GENERAL ERROR:', error);
+    return res.status(500).json({
+      error: 'İşlem sırasında sunucu hatası oluştu.',
       details: error.message,
-      logs: [] 
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });

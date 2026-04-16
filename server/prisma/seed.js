@@ -44,8 +44,8 @@ async function main() {
     const shift3 = await prisma.shift.create({
         data: { shiftCode: 'V-03', shiftName: 'Gece Vardiyası', startTime: '00:00', endTime: '08:00', durationMinutes: 480, colorCode: '#1e40af' }
     });
-    // 2. Tezgahlar (Machines)
-    console.log('📦 Tezgahlar yükleniyor...');
+    // 2. Makineler (Machines)
+    console.log('📦 Makineler yükleniyor...');
     const cnc1 = await prisma.machine.create({
         data: { code: 'CNC-001', name: 'Mazak Integrex 1', brand: 'Mazak', model: 'i-200' }
     });
@@ -126,10 +126,10 @@ async function main() {
 }
 main()
     .catch((e) => {
-    console.error(e);
-    process.exit(1);
-})
+        console.error(e);
+        process.exit(1);
+    })
     .finally(async () => {
-    await prisma.$disconnect();
-});
+        await prisma.$disconnect();
+    });
 //# sourceMappingURL=seed.js.map

@@ -112,6 +112,7 @@ export function Layout() {
       children: [
         { icon: DiamondPlus, label: t('nav.newRecord', 'Yeni Üretim Kaydı'), path: '/records/new' },
         { icon: Logs, label: t('nav.records', 'Üretim Kayıtları'), path: '/records' },
+        { icon: DiamondPlus, label: 'Üretim Emirleri', path: '/planning/production-orders' },
       ]
     },
     { icon: ChartArea, label: t('nav.analytics', 'ANALİTİK'), path: '/analytics' },
@@ -154,8 +155,10 @@ export function Layout() {
       path: '/planning',
       isDropdown: true,
       children: [
+        { icon: Logs, label: 'İş Listeleri (Birim Bazlı)', path: '/planning/work-plans' },
         { icon: GanttChart, label: 'Üretim Planlama', path: '/planning/production' },
         { icon: User, label: 'Personel Planlama', path: '/planning/personnel' },
+        { icon: Settings, label: 'Üretim Tanımları', path: '/planning/definitions' },
         { icon: Boxes, label: 'Malzeme Planlama (MRP)', path: '/planning/mrp' },
         { icon: Wrench, label: 'Bakım Planlama', path: '/planning/maintenance' },
       ]
@@ -302,7 +305,7 @@ export function Layout() {
         </div>
 
         <aside
-          className={`relative z-40 border-r border-theme bg-theme-surface/40 backdrop-blur-3xl flex flex-col transition-all duration-300 ease-in-out hidden md:flex shrink-0 overflow-x-hidden ${isCollapsed ? 'w-15' : 'w-53'}`}
+          className={`relative z-40 border-r border-theme bg-theme-surface/40 backdrop-blur-3xl flex flex-col transition-all duration-300 ease-in-out hidden md:flex shrink-0 overflow-x-hidden ${isCollapsed ? 'w-15' : 'w-56'}`}
         >
 
 
@@ -346,7 +349,7 @@ export function Layout() {
                         {item.children.map((child: any) => {
                           const isChildActive = location.pathname === child.path;
                           return (
-                            <Link key={child.path} to={child.path} className={`flex items-center gap-3 p-2 rounded-xl text-[10.5px] font-black transition-all shrink-0 ${isChildActive ? 'text-theme-primary bg-theme-primary/5' : 'text-theme-muted hover:text-theme-main hover:bg-theme-main/5'}`}>
+                            <Link key={child.path} to={child.path} className={`flex items-center gap-3 p-2 rounded-xl text-[10.5px] font-black transition-all shrink-0 ${isChildActive ? 'text-theme-primary bg-theme-primary/5 border border-theme-primary/20' : 'text-theme-muted hover:text-theme-main hover:bg-theme-main/5'}`}>
                               <child.icon className="w-3.5 h-3.5" />
                               {child.label}
                             </Link>
@@ -367,11 +370,11 @@ export function Layout() {
                 >
                   <Link
                     to={item.path}
-                    className={`group relative flex items-center h-10 w-full gap-2 p-1 rounded-xl cursor-pointer transition-all duration-200 overflow-hidden shrink-0 ${isActive ? 'bg-theme-primary text-white shadow-[0_8px_20px_-6px_var(--primary-glow)]' : 'text-theme-muted hover:bg-theme-main/5 hover:text-theme-main'} ${isCollapsed ? 'justify-center' : 'px-3'}`}
+                    className={`group relative flex items-center h-10 w-full gap-2 p-1 rounded-xl cursor-pointer transition-all duration-200 overflow-hidden shrink-0 ${isActive ? 'bg-theme-primary/10 border border-theme-primary/30 text-theme-primary shadow-[0_8px_20px_-6px_var(--primary-glow)]' : 'text-theme-muted hover:bg-theme-main/5 hover:text-theme-main'} ${isCollapsed ? 'justify-center' : 'px-3'}`}
                   >
-                    <item.icon className={`shrink-0 transition-transform duration-200 group-hover:scale-110 w-4 h-4 ${isActive ? 'text-white' : ''}`} />
+                    <item.icon className={`shrink-0 transition-transform duration-200 group-hover:scale-110 w-4 h-4 ${isActive ? 'text-theme-primary' : ''}`} />
                     {!isCollapsed && <span className="font-bold text-[10.5px] uppercase whitespace-nowrap overflow-hidden transition-all duration-300 mt-1">{item.label}</span>}
-                    {isActive && !isCollapsed && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-theme-base animate-pulse" />}
+                    {isActive && !isCollapsed && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-theme-primary animate-bounce" />}
                   </Link>
                 </Tooltip>
               );

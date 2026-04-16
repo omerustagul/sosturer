@@ -27,7 +27,7 @@ router.post('/', authenticateToken, async (req: AuthRequest, res: Response) => {
     const companyId = req.user?.companyId;
     if (!companyId) return res.status(400).json({ error: 'Şirket bilgisi bulunamadı' });
 
-    const { name, code, status, displayOrder } = req.body;
+    const { name, code, status, displayOrder, locationId } = req.body;
     
     const department = await prisma.department.create({
       data: {
@@ -35,7 +35,8 @@ router.post('/', authenticateToken, async (req: AuthRequest, res: Response) => {
         name,
         code,
         status: status || 'active',
-        displayOrder: displayOrder || 0
+        displayOrder: displayOrder || 0,
+        locationId
       }
     });
 
@@ -49,14 +50,15 @@ router.post('/', authenticateToken, async (req: AuthRequest, res: Response) => {
 // PUT /api/departments/:id - Departman güncelle
 router.put('/:id', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
-    const { name, code, status, displayOrder } = req.body;
+    const { name, code, status, displayOrder, locationId } = req.body;
     const department = await prisma.department.update({
       where: { id: req.params.id as string },
       data: {
         name,
         code,
         status,
-        displayOrder: displayOrder !== undefined ? displayOrder : undefined
+        displayOrder: displayOrder !== undefined ? displayOrder : undefined,
+        locationId
       }
     });
     res.json(department);
@@ -98,6 +100,55 @@ router.post('/reorder', authenticateToken, async (req: AuthRequest, res: Respons
   } catch (error: any) {
     console.error('[Departments] Reorder error:', error);
     res.status(500).json({ error: 'Sıralama güncellenemedi.' });
+  }
+});
+
+router.post('/bulk-update', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const companyId = req.user?.companyId;
+    const { updates } = req.body;
+    
+    await prisma.$transaction(
+      updates.map((u: any) => {
+        const { id, data: originalData } = u;
+        const { company, createdAt, updatedAt, ...rest } = originalData;
+        return prisma.department.update({
+          where: { id, companyId },
+          data: rest
+        });
+      })
+    );
+    
+    res.json({ success: true });
+  } catch (error) {
+    res.status(400).json({ error: 'Toplu güncelleme başarısız oldu' });
+  }
+});
+
+router.post('/bulk-delete', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const companyId = req.user?.companyId;
+    const { ids } = req.body;
+    await prisma.department.deleteMany({
+      where: { id: { in: ids }, companyId }
+    });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(400).json({ error: 'Toplu silme başarısız oldu' });
+  }
+});
+
+router.post('/bulk-update-status', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const companyId = req.user?.companyId;
+    const { ids, status } = req.body;
+    await prisma.department.updateMany({
+      where: { id: { in: ids }, companyId },
+      data: { status }
+    });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(400).json({ error: 'Toplu durum güncelleme başarısız oldu' });
   }
 });
 

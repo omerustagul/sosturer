@@ -12,6 +12,11 @@ router.get('/', async (req: AuthRequest, res) => {
 
     const products = await prisma.product.findMany({
       where: { companyId },
+      include: {
+        route: { include: { steps: { include: { operation: true } } } },
+        defaultComponents: { include: { componentProduct: true } },
+        defaultMachines: { include: { machine: true } }
+      },
       orderBy: [{ displayOrder: 'asc' }, { productCode: 'asc' }],
     });
     res.json(products);
@@ -31,17 +36,110 @@ router.get('/:id', async (req: AuthRequest, res) => {
 
 router.post('/', async (req: AuthRequest, res) => {
   try {
-    const product = await prisma.product.create({ data: { ...req.body, companyId: getCompanyId(req) } });
+    const { 
+      id, companyId, createdAt, updatedAt, 
+      route, recipes, routeId, 
+      defaultComponents, defaultMachines, // Relation inputs
+      ...data 
+    } = req.body;
+    
+    const company_id = getCompanyId(req);
+    const createData: any = { 
+      ...data, 
+      companyId: company_id
+    };
+
+    if (routeId) {
+      createData.route = { connect: { id: routeId } };
+    }
+
+    if (defaultComponents && Array.isArray(defaultComponents)) {
+      createData.defaultComponents = {
+        create: defaultComponents.map((c: any) => ({
+          ...c,
+          companyId: company_id,
+          id: undefined // Let prisma generate it
+        }))
+      };
+    }
+
+    if (defaultMachines && Array.isArray(defaultMachines)) {
+      createData.defaultMachines = {
+        create: defaultMachines.map((m: any) => ({
+          ...m,
+          companyId: company_id,
+          id: undefined
+        }))
+      };
+    }
+
+    const product = await prisma.product.create({ 
+      data: createData
+    });
     res.status(201).json(product);
-  } catch (error) { res.status(500).json({ error: 'Failed to create product' }); }
+  } catch (error) { 
+    console.error('[Products] Create error:', error);
+    res.status(500).json({ error: 'Failed to create product' }); 
+  }
 });
 
 router.put('/:id', async (req: AuthRequest, res) => {
   try {
-    const { companyId, ...data } = req.body;
-    const product = await prisma.product.update({ where: { id: req.params.id as string }, data });
+    const { 
+      id, companyId, createdAt, updatedAt, 
+      route, recipes, productionOrders, 
+      routeId, 
+      defaultComponents, defaultMachines, // Extract relations
+      ...updateData 
+    } = req.body;
+
+    const company_id = getCompanyId(req);
+    const data: any = { ...updateData };
+    
+    if (routeId) {
+      data.route = { connect: { id: routeId } };
+    } else if (routeId === null) {
+      data.route = { disconnect: true };
+    }
+
+    // Sync default components
+    if (defaultComponents && Array.isArray(defaultComponents)) {
+      data.defaultComponents = {
+        deleteMany: {},
+        create: defaultComponents.map((c: any) => ({
+          componentProductId: c.componentProductId,
+          warehouseId: c.warehouseId || null,
+          lotNumber: c.lotNumber || null,
+          quantity: Number(c.quantity) || 0,
+          consumptionType: c.consumptionType || 'UNIT',
+          unit: c.unit || 'PCS',
+          notes: c.notes || '',
+          companyId: company_id
+        }))
+      };
+    }
+
+    // Sync default machines
+    if (defaultMachines && Array.isArray(defaultMachines)) {
+      data.defaultMachines = {
+        deleteMany: {},
+        create: defaultMachines.map((m: any) => ({
+          machineId: m.machineId,
+          unitTimeSeconds: Number(m.unitTimeSeconds) || 0,
+          companyId: company_id
+        }))
+      };
+    }
+
+    const product = await prisma.product.update({ 
+      where: { id: req.params.id as string }, 
+      data
+    });
     res.json(product);
-  } catch (error) { res.status(500).json({ error: 'Failed to update product' }); }
+  } catch (error) { 
+    console.error('[Products] Update error:', error);
+    res.status(500).json({ error: 'Failed to update product' }); 
+  }
 });
 
 router.delete('/:id', async (req: AuthRequest, res) => {
@@ -80,11 +178,28 @@ router.post('/bulk-update', async (req: AuthRequest, res) => {
   try {
     await prisma.$transaction(updates.map((u: any) => {
       const { id, data: originalData } = u;
-      const { companyId, ...data } = originalData;
-      return prisma.product.update({ where: { id: id as string }, data });
+      const { 
+        id: _id, companyId, createdAt, updatedAt, 
+        route, recipes, routeId, ...data 
+      } = originalData;
+
+      const updateData: any = { ...data };
+      if (routeId) {
+        updateData.route = { connect: { id: routeId } };
+      } else if (routeId === null) {
+        updateData.route = { disconnect: true };
+      }
+
+      return prisma.product.update({ 
+        where: { id: id as string }, 
+        data: updateData
+      });
     }));
     res.json({ success: true });
-  } catch (error) { res.status(500).json({ error: 'Toplu düzenleme başarısız' }); }
+  } catch (error) { 
+    console.error('[Products] Bulk update error:', error);
+    res.status(500).json({ error: 'Toplu düzenleme başarısız' }); 
+  }
 });
 
 export default router;

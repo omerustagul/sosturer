@@ -31,6 +31,12 @@ import notificationRoutes from './routes/notifications';
 import inventoryRoutes from './routes/inventory';
 import salesRoutes from './routes/sales';
 import planningRoutes from './routes/planning';
+import workPlanRoutes from './routes/workPlans';
+import operationRoutes from './routes/operations';
+import workPlanTypeRoutes from './routes/workPlanTypes';
+import productionOrderRoutes from './routes/productionOrders';
+import productionRouteRoutes from './routes/productionRoutes';
+import stationRoutes from './routes/stations';
 import { authenticateToken } from './middleware/auth';
 import { startScheduler } from './services/scheduler';
 
@@ -98,6 +104,12 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/sales', salesRoutes);
 app.use('/api/planning', planningRoutes);
+app.use('/api/work-plans', workPlanRoutes);
+app.use('/api/operations', operationRoutes);
+app.use('/api/work-plan-types', workPlanTypeRoutes);
+app.use('/api/production-orders', productionOrderRoutes);
+app.use('/api/production-routes', productionRouteRoutes);
+app.use('/api/stations', stationRoutes);
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 const clientDistPath = path.resolve(__dirname, '../../client/dist');

@@ -1,4 +1,5 @@
 import { X, Clock, Factory, Users, Package, Settings, AlertTriangle, Layers, Activity, Wrench } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '../../lib/utils';
@@ -22,8 +23,8 @@ export function RecordDetailModal({ record, onClose }: RecordDetailModalProps) {
     { label: 'Kalite', value: `%${safeNum(record.quality).toFixed(1)}`, color: 'text-rose-400', icon: Activity },
   ];
 
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 lg:p-12 overflow-hidden bg-theme-base/60 backdrop-blur-xl animate-in fade-in duration-500">
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 lg:p-12 overflow-hidden bg-theme-base/60 backdrop-blur-xl animate-in fade-in duration-500">
       <div
         className="modern-glass-card relative w-full max-w-5xl flex flex-col max-h-[92vh] p-0 overflow-hidden scale-in duration-500 ring-1 ring-white/5"
       >
@@ -186,7 +187,8 @@ export function RecordDetailModal({ record, onClose }: RecordDetailModalProps) {
         </div>
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -195,7 +197,7 @@ function DetailCard({ icon: Icon, label, value, subValue, unit = '', color = 'te
     <div className="bg-theme-surface/20 p-5 rounded-2xl border border-theme/80 flex flex-col gap-2 ring-1 ring-transparent hover:ring-white/10 transition-all duration-300 group">
       <div className="flex items-center gap-2 mb-1 opacity-50 group-hover:opacity-100 transition-opacity">
         {Icon && <Icon size={14} className="text-theme-primary" />}
-        <span className="text-[9px] font-black text-theme-dim uppercase tracking-[0.2em]">{toTRUpper(label)}</span>
+        <span className="text-[9px] font-black text-theme-dim uppercase">{toTRUpper(label)}</span>
       </div>
       <div className="flex items-baseline gap-2">
         <span className={cn("text-lg font-black tracking-tight truncate transition-colors", color)}>{value}</span>

@@ -460,7 +460,7 @@ export function SuperAdmin() {
                         <tr 
                           key={c.id} 
                           onClick={(e) => {
-                            if ((e.target as HTMLElement).closest('button, input, select, a')) return;
+                            if ((e.target as HTMLElement).closest('button, input, select, a, .cursor-pointer, [role="button"]')) return;
                             const newSelected = new Set(selectedIds);
                             if (newSelected.has(c.id)) newSelected.delete(c.id);
                             else newSelected.add(c.id);
@@ -543,7 +543,7 @@ export function SuperAdmin() {
                         <tr 
                           key={u.id} 
                           onClick={(e) => {
-                            if ((e.target as HTMLElement).closest('button, input, select, a')) return;
+                            if ((e.target as HTMLElement).closest('button, input, select, a, .cursor-pointer, [role="button"]')) return;
                             const newSelected = new Set(selectedIds);
                             if (newSelected.has(u.id)) newSelected.delete(u.id);
                             else newSelected.add(u.id);

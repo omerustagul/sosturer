@@ -20,6 +20,10 @@ export class TemplateGeneratorService {
       'shifts': 'Shift',
       'departments': 'Department',
       'department_roles': 'DepartmentRole',
+      'warehouses': 'Warehouse',
+      'operations': 'Operation',
+      'stations': 'Station',
+      'routes': 'ProductionRoute',
       'production_standards': 'ProductionStandard'
     };
 
@@ -64,6 +68,22 @@ export class TemplateGeneratorService {
       const roles = await prisma.departmentRole.findMany({ select: { id: true, name: true } });
       lookups['departmentId'] = departments.map(d => `${d.name} | ${d.id}`);
       lookups['roleId'] = roles.map(r => `${r.name} | ${r.id}`);
+    } else if (type === 'products') {
+      const routes = await prisma.productionRoute.findMany({ select: { id: true, name: true } });
+      const warehouses = await prisma.warehouse.findMany({ select: { id: true, name: true } });
+      lookups['routeId'] = routes.map(r => `${r.name} | ${r.id}`);
+      lookups['targetWarehouseId'] = warehouses.map(w => `${w.name} | ${w.id}`);
+    } else if (type === 'warehouses') {
+      const departments = await prisma.department.findMany({ select: { id: true, name: true } });
+      lookups['unitId'] = departments.map(d => `${d.name} | ${d.id}`);
+    } else if (type === 'operations') {
+      const departments = await prisma.department.findMany({ select: { id: true, name: true } });
+      const stations = await prisma.station.findMany({ select: { id: true, name: true } });
+      lookups['unitId'] = departments.map(d => `${d.name} | ${d.id}`);
+      lookups['stationId'] = stations.map(s => `${s.name} | ${s.id}`);
+    } else if (type === 'stations') {
+      const departments = await prisma.department.findMany({ select: { id: true, name: true } });
+      lookups['unitId'] = departments.map(d => `${d.name} | ${d.id}`);
     }
 
     return lookups;

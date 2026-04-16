@@ -59,7 +59,7 @@ export function BulkActionBar({
               className="flex items-center h-9 gap-2 px-3 py-2 bg-theme-success text-white border border-theme-success/20 rounded-xl font-black text-[10px] uppercase tracking-wider transition-all active:scale-95 shadow-lg shadow-theme-success/20 hover:shadow-theme-success/40"
             >
               <Settings className="w-3.5 h-3.5" />
-              Değişiklikleri Kaydet
+              Kaydet
             </button>
           ) : (
             <button

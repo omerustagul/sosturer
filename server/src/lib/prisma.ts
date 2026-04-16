@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { requestContext } from '../utils/asyncLocalStorage';
+import { getIO } from './socket';
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
@@ -41,7 +42,26 @@ export const prisma = prismaBase.$extends({
               action: actionType,
               newValues: result ? JSON.stringify(result).substring(0, 1000) : '',
               oldValues: args ? JSON.stringify(args).substring(0, 1000) : '',
-              changedBy: changedBy
+              changedBy: changedBy,
+              company_id: ctx?.companyId || null
+            }
+          }).then(newLog => {
+            try {
+              const io = getIO();
+              if (io) {
+                // Map to frontend interface: AuditLog (action, entity, entityId, details, user, createdAt)
+                io.emit('activity:new', {
+                  id: newLog.id,
+                  action: newLog.action,
+                  entity: newLog.tableName,
+                  entityId: newLog.recordId,
+                  details: newLog.newValues,
+                  user: { fullName: newLog.changedBy || 'Sistem' },
+                  createdAt: newLog.changedAt
+                });
+              }
+            } catch (err) {
+              // Socket not initialized yet, ignore
             }
           }).catch(e => console.error(`AuditLog Hatası [${model} - ${operation}]:`, e));
         }

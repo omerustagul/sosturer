@@ -5,9 +5,9 @@ import { api } from '../../lib/api';
 import {
   Eye, Trash2, Clock, X, Calendar,
   Users, ShieldCheck,
-  Search,
+  Search, Plus,
   LayoutList, Download, Activity, Image,
-  Monitor, Package, Layers, Edit2, CheckCircle2,
+  Monitor, Package, Layers, Edit2, Check,
   ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { notify } from '../../store/notificationStore';
@@ -48,10 +48,10 @@ interface Plan {
 }
 
 const statusConfig: Record<string, { label: string; color: string; border: string }> = {
-  planned: { label: 'PLANLANMIŞ', color: 'bg-blue-500/10 text-blue-400', border: 'border-blue-500/20' },
-  active: { label: 'AKTİF', color: 'bg-emerald-500/10 text-emerald-400', border: 'border-emerald-500/20' },
-  completed: { label: 'TAMAMLANDI', color: 'bg-theme-dim/10 text-theme-dim', border: 'border-theme/20' },
-  cancelled: { label: 'İPTAL', color: 'bg-rose-500/10 text-rose-400', border: 'border-rose-500/20' }
+  planned: { label: 'Planlanmış', color: 'bg-blue-500/10 text-blue-400', border: 'border-blue-500/20' },
+  active: { label: 'Aktif', color: 'bg-emerald-500/10 text-emerald-400', border: 'border-emerald-500/20' },
+  completed: { label: 'Tamamlandı', color: 'bg-theme-dim/10 text-theme-dim', border: 'border-theme/20' },
+  cancelled: { label: 'İptal', color: 'bg-rose-500/10 text-rose-400', border: 'border-rose-500/20' }
 };
 
 export function OvertimeList() {
@@ -512,15 +512,22 @@ export function OvertimeList() {
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="flex bg-theme-base/50 p-1 rounded-2xl border border-theme/20 backdrop-blur-sm">
+            <button
+              onClick={() => navigate('/overtime/create')}
+              className="h-10 px-6 bg-theme-primary hover:bg-theme-primary/90 text-white rounded-xl flex items-center gap-3 text-[10px] font-black tracking-widest transition-all shadow-xl active:scale-95 group uppercase"
+            >
+              <Plus size={16} className="group-hover:rotate-180 transition-transform duration-500" />
+              YENİ MESAİ PLANI
+            </button>
+            <div className="flex gap-1 bg-theme-base border border-theme-border p-1 rounded-xl backdrop-blur-sm">
               {['all', 'planned', 'active', 'completed'].map(status => (
                 <button
                   key={status}
                   onClick={() => setStatusFilter(status)}
                   className={cn(
-                    "px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                    "px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all",
                     statusFilter === status
-                      ? "bg-theme-main text-theme-base shadow-lg"
+                      ? "bg-theme-primary/10 border border-theme-primary/30 text-theme-primary shadow-md"
                       : "text-theme-dim hover:text-theme-main hover:bg-theme-main/5"
                   )}
                 >
@@ -532,19 +539,19 @@ export function OvertimeList() {
         </div>
 
         {/* Filter Bar */}
-        <div className="premium-card p-4 flex flex-wrap items-center gap-4 bg-theme-surface/30">
+        <div className="premium-card rounded-2xl p-2 flex flex-wrap items-center gap-4 bg-theme-surface/30">
           <div className="flex-1 min-w-[200px] relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-theme-dim opacity-40 w-4 h-4" />
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-theme-dim opacity-40 w-4 h-4" />
             <input
               type="text"
               placeholder="Mesai Planı Ara..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-theme-base border border-theme rounded-2xl pl-12 pr-4 py-3 text-xs font-bold text-theme-main focus:ring-2 focus:ring-theme-primary outline-none transition-all placeholder:text-theme-dim/40"
+              className="w-full h-10 bg-theme-base border border-theme rounded-xl pl-8 pr-4 py-3 text-xs font-bold text-theme-main focus:ring-2 focus:ring-theme-primary outline-none transition-all placeholder:text-theme-dim/40"
             />
           </div>
 
-          <div className="flex items-center gap-2 bg-theme-base/50 p-1 rounded-2xl border border-theme/10">
+          <div className="flex items-center gap-2 bg-theme-base/50 p-1 rounded-xl border border-theme/10">
             <div className="flex items-center px-4 gap-2 text-theme-dim opacity-50 border-r border-theme/20">
               <Calendar size={14} />
               <span className="text-[10px] font-black uppercase tracking-widest">TARİH</span>
@@ -566,7 +573,7 @@ export function OvertimeList() {
 
           <button
             onClick={() => { setSearchTerm(''); setStatusFilter('all'); setDateFilter({ start: '', end: '' }) }}
-            className="px-4 py-3 bg-theme-base border border-theme rounded-2xl text-[10px] font-black uppercase text-theme-dim hover:text-theme-main hover:bg-theme-main/5 transition-all"
+            className="h-10 px-4 py-3 bg-theme-base border border-theme rounded-xl text-[10px] font-black uppercase text-theme-dim hover:text-theme-main hover:bg-theme-main/5 transition-all"
           >
             TEMİZLE
           </button>
@@ -586,30 +593,30 @@ export function OvertimeList() {
           <p className="text-[10px] font-bold text-theme-dim/40 uppercase mt-2">Filtrelerinizi güncelleyerek tekrar deneyin.</p>
         </div>
       ) : (
-        <div className="premium-card overflow-hidden border-theme/10">
-          <table className="w-full border-collapse">
+        <div className="premium-card rounded-2xl overflow-hidden border-theme/10">
+          <table className="w-full border-collapse density-aware-table">
             <thead>
               <tr className="bg-theme-surface/50 border-b border-theme/20">
-                <th className="w-10 px-8 py-6">
+                <th className="w-6 px-3 py-4">
                   <div
                     onClick={() => {
                       if (selectedIds.size === filteredPlans.length) setSelectedIds(new Set());
                       else setSelectedIds(new Set(filteredPlans.map(p => p.id)));
                     }}
                     className={cn(
-                      "w-5 h-5 rounded border-2 flex items-center justify-center cursor-pointer transition-all",
-                      selectedIds.size === filteredPlans.length ? "bg-theme-primary border-theme-primary" : "border-theme-border/40 hover:border-theme-primary"
+                      "w-5 h-5 rounded-lg border-2 flex items-center justify-center cursor-pointer transition-all",
+                      selectedIds.size === filteredPlans.length ? "bg-theme-success border-theme-success" : "border-theme-border/40 hover:border-theme-success"
                     )}
                   >
-                    {selectedIds.size === filteredPlans.length && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+                    {selectedIds.size === filteredPlans.length && <Check className="w-3.5 h-3.5 text-white" />}
                   </div>
                 </th>
-                <th className="text-left py-6 px-8 text-[10px] font-black text-theme-dim uppercase tracking-[0.2em]">MESAI PLANI / VARDİYA</th>
-                <th className="text-left py-6 px-8 text-[10px] font-black text-theme-dim uppercase tracking-[0.2em]">TARİH ARALIĞI</th>
-                <th className="text-center py-6 px-8 text-[10px] font-black text-theme-dim uppercase tracking-[0.2em]">OPERATÖR</th>
-                <th className="text-center py-6 px-8 text-[10px] font-black text-theme-dim uppercase tracking-[0.2em]">ALAN/T.GAH</th>
-                <th className="text-center py-6 px-8 text-[10px] font-black text-theme-dim uppercase tracking-[0.2em]">DURUM</th>
-                <th className="text-right py-6 px-8 text-[10px] font-black text-theme-dim uppercase tracking-[0.2em]">AKSİYON</th>
+                <th className="text-left py-2 px-3 text-[10px] font-black text-theme-dim uppercase tracking-[0.2em]">MESAI PLANI / VARDİYA</th>
+                <th className="text-left py-2 px-3 text-[10px] font-black text-theme-dim uppercase tracking-[0.2em]">TARİH ARALIĞI</th>
+                <th className="text-center py-2 px-3 text-[10px] font-black text-theme-dim uppercase tracking-[0.2em]">OPERATÖR</th>
+                <th className="text-center py-2 px-3 text-[10px] font-black text-theme-dim uppercase tracking-[0.2em]">ALAN/T.GAH</th>
+                <th className="text-center py-2 px-3 text-[10px] font-black text-theme-dim uppercase tracking-[0.2em]">DURUM</th>
+                <th className="text-right py-2 px-3 text-[10px] font-black text-theme-dim uppercase tracking-[0.2em]">AKSİYON</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-theme/10">
@@ -623,7 +630,7 @@ export function OvertimeList() {
                   <tr
                     key={plan.id}
                     onClick={(e) => {
-                      if ((e.target as HTMLElement).closest('button, input, select, a')) return;
+                      if ((e.target as HTMLElement).closest('button, input, select, a, .cursor-pointer, [role="button"]')) return;
                       const newSelected = new Set(selectedIds);
                       if (newSelected.has(plan.id)) newSelected.delete(plan.id);
                       else newSelected.add(plan.id);
@@ -634,28 +641,28 @@ export function OvertimeList() {
                       isSelected && "bg-theme-primary/5"
                     )}
                   >
-                    <td className="py-6 px-8">
+                    <td className="py-2 px-3">
                       <div
                         className={cn(
-                          "w-5 h-5 rounded border-2 flex items-center justify-center transition-all",
-                          isSelected ? "bg-theme-primary border-theme-primary" : "border-theme-border/40 hover:border-theme-primary"
+                          "w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all",
+                          isSelected ? "bg-theme-success border-theme-success" : "border-theme-border/40 hover:border-theme-success"
                         )}
                       >
-                        {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+                        {isSelected && <Check className="w-4 h-4 text-white" />}
                       </div>
                     </td>
-                    <td className="py-6 px-8">
+                    <td className="py-2 px-3">
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-theme-primary/10 flex items-center justify-center text-theme-primary border border-theme-primary/20 shadow-inner group-hover:rotate-6 transition-transform">
-                          <Clock size={20} />
+                        <div className="w-8 h-8 rounded-xl bg-theme-primary/10 flex items-center justify-center text-theme-primary border border-theme-primary/20 shadow-inner group-hover:rotate-6 transition-transform">
+                          <Clock size={16} />
                         </div>
                         <div>
-                          <p className="text-sm font-black text-theme-main group-hover:text-theme-primary transition-colors leading-tight">{plan.planName}</p>
-                          <p className="text-[10px] font-bold text-theme-dim opacity-60 uppercase tracking-widest">{plan.shift?.shiftName || 'Vardiya Belirtilmedi'}</p>
+                          <p className="text-xs font-black text-theme-main group-hover:text-theme-primary transition-colors leading-tight">{plan.planName}</p>
+                          <p className="text-[10px] font-bold text-theme-dim opacity-60">{plan.shift?.shiftName || 'Vardiya Belirtilmedi'}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="py-6 px-8">
+                    <td className="py-2 px-3">
                       <div className="flex flex-col">
                         <p className="text-xs font-black text-theme-main">
                           {format(new Date(plan.startDate), 'd MMMM', { locale: tr })} — {format(new Date(plan.endDate), 'd MMMM', { locale: tr })}
@@ -665,20 +672,20 @@ export function OvertimeList() {
                         </p>
                       </div>
                     </td>
-                    <td className="py-6 px-8 text-center">
+                    <td className="py-2 px-3 text-center">
                       <span className="text-sm font-black text-theme-main">{opCount}</span>
                       <span className="text-[10px] text-theme-dim font-bold ml-1">Kişi</span>
                     </td>
-                    <td className="py-6 px-8 text-center">
+                    <td className="py-2 px-3 text-center">
                       <span className="text-sm font-black text-theme-main">{machineCount}</span>
                       <span className="text-[10px] text-theme-dim font-bold ml-1">Birim</span>
                     </td>
-                    <td className="py-6 px-8 text-center">
-                      <span className={cn("px-4 py-1.5 rounded-full text-[9px] font-black border uppercase tracking-widest inline-block shadow-sm", status.color, status.border)}>
+                    <td className="py-2 px-3 text-center">
+                      <span className={cn("px-4 py-1.5 rounded-lg text-[9px] font-black border uppercase tracking-widest inline-block shadow-sm", status.color, status.border)}>
                         {status.label}
                       </span>
                     </td>
-                    <td className="py-6 px-8">
+                    <td className="py-2 px-3">
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => { setSelectedPlan(plan); setActiveDayDate(null); }}
@@ -688,11 +695,11 @@ export function OvertimeList() {
                         </button>
                         <button
                           onClick={() => navigate(`/overtime/edit/${plan.id}`)}
-                          className="w-9 h-9 flex items-center justify-center bg-theme-base/50 text-theme-main border border-theme/20 rounded-xl hover:bg-theme-main hover:text-theme-base transition-all active:scale-95 shadow-lg"
+                          className="w-9 h-9 flex items-center justify-center bg-theme-base/50 text-theme-main border border-theme-border rounded-xl hover:bg-theme-main hover:text-theme-base transition-all active:scale-95 shadow-lg shadow-theme-main/5"
                         >
                           <Edit2 size={16} />
                         </button>
-                        <div className="w-[140px]">
+                        <div className="w-40 h-9 flex items-center justify-center rounded-xl">
                           <CustomSelect
                             options={Object.entries(statusConfig).map(([val, cfg]) => ({
                               id: val,
@@ -718,7 +725,7 @@ export function OvertimeList() {
           </table>
 
           {/* Pagination Controls */}
-          <div className="p-4 border-t border-theme bg-theme-base/20 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="px-4 py-2 border-t border-theme bg-theme-base/20 flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-6 order-2 md:order-1">
               <div className="flex items-center gap-2">
                 <span className="text-[11px] font-black text-theme-dim whitespace-nowrap uppercase tracking-widest">SAYFADA:</span>
@@ -753,7 +760,7 @@ export function OvertimeList() {
                 <ChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
               </button>
 
-              <div className="flex items-center gap-2 px-4 py-2 bg-theme-base border border-theme rounded-2xl">
+              <div className="flex items-center gap-2 px-4 py-2 bg-theme-base border border-theme rounded-xl">
                 <span className="text-theme-primary font-black text-sm min-w-[20px] text-center">
                   {currentPage + 1}
                 </span>
@@ -780,7 +787,7 @@ export function OvertimeList() {
           <div className="relative w-full h-[85vh] max-w-6xl bg-theme-base border border-theme rounded-2xl shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)] flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-500 ring-1 ring-white/5">
 
             {/* Modal Header */}
-            <div className="p-4 pb-4 flex items-start justify-between">
+            <div className="p-3 pb-4 flex items-start justify-between">
               <div className="flex items-center gap-6">
                 <div className="w-10 h-10 rounded-xl bg-theme-primary/20 flex items-center justify-center text-theme-primary border border-theme-primary/30 shadow-2xl relative group overflow-hidden">
                   <div className="absolute inset-0 bg-gradient-to-br from-theme-primary/20 to-transparent translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
@@ -804,13 +811,13 @@ export function OvertimeList() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => navigate(`/overtime/edit/${selectedPlan.id}`)}
-                  className="h-12 px-6 flex items-center justify-center bg-theme-primary/10 text-theme-primary border border-theme-primary/20 rounded-2xl hover:bg-theme-primary hover:text-white transition-all duration-300 group shadow-xl gap-2 text-[10px] font-black uppercase tracking-widest"
+                  className="h-10 px-4 flex items-center justify-center bg-theme-primary/10 text-theme-primary border border-theme-primary/20 rounded-xl hover:bg-theme-primary hover:text-white transition-all duration-300 group shadow-xl gap-2 text-[10px] font-black uppercase tracking-widest"
                 >
                   <Edit2 size={16} /> DÜZENLE
                 </button>
                 <button
                   onClick={() => setSelectedPlan(null)}
-                  className="w-12 h-12 flex items-center justify-center bg-theme-surface border border-theme rounded-2xl text-theme-dim hover:text-white hover:bg-theme-danger hover:border-theme-danger transition-all duration-300 group shadow-xl"
+                  className="w-10 h-10 flex items-center justify-center bg-theme-surface border border-theme rounded-xl text-theme-dim hover:text-white hover:bg-theme-danger hover:border-theme-danger transition-all duration-300 group shadow-xl"
                 >
                   <X className="group-hover:rotate-90 transition-transform" />
                 </button>
@@ -818,8 +825,8 @@ export function OvertimeList() {
             </div>
 
             {/* Day Selector Track - Modern Compact Navigation */}
-            <div className="px-8 mb-3">
-              <div className="bg-theme-surface/30 p-1.5 rounded-2xl border border-theme/10 flex items-center gap-2 relative overflow-x-auto no-scrollbar backdrop-blur-md">
+            <div className="px-3 mb-3">
+              <div className="bg-theme-surface/30 p-3.5 rounded-2xl border border-theme-border/50 flex items-center gap-2 relative overflow-x-auto no-scrollbar backdrop-blur-md">
                 {uniqueDays.map(day => {
                   const isActive = activeDayDate === day;
                   const dateObj = new Date(day);
@@ -830,9 +837,9 @@ export function OvertimeList() {
                       key={day}
                       onClick={() => setActiveDayDate(day)}
                       className={cn(
-                        "flex flex-col items-center justify-center min-w-[100px] h-12 rounded-2xl transition-all duration-500 relative shrink-0",
+                        "flex flex-col items-center justify-center min-w-[100px] h-12 rounded-xl transition-all duration-500 relative shrink-0",
                         isActive
-                          ? "bg-theme-main text-theme-base shadow-xl scale-[1.05] z-10 translate-y-[-2px]"
+                          ? "bg-theme-primary/10 text-theme-primary border border-theme-primary/20 shadow-lg shadow-theme-primary/10 scale-[1.05] z-10 translate-y-[-2px]"
                           : "text-theme-dim hover:bg-theme-main/10 hover:text-theme-main"
                       )}
                     >
@@ -853,7 +860,7 @@ export function OvertimeList() {
             <div className="flex-1 flex overflow-hidden">
 
               {/* Left Side: Assignment List */}
-              <div className="flex-1 overflow-y-auto px-8 pb-8 space-y-8 custom-scrollbar">
+              <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-3 custom-scrollbar">
                 {activeDayItems.length === 0 ? (
                   <div className="py-12 text-center bg-theme-surface/20 rounded-3xl border border-dashed border-theme/20 mt-4">
                     <p className="text-[10px] font-black text-theme-dim opacity-40 uppercase tracking-widest italic">BU GÜN İÇİN ATAMA BULUNMUYOR</p>
@@ -870,14 +877,14 @@ export function OvertimeList() {
                         </div>
                         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                           {activeDayItems.filter(i => i.machine).map((item) => (
-                            <div key={item.id} className="premium-card p-5 group flex flex-col gap-4 border border-theme/10 hover:border-theme-primary/30 transition-all duration-300">
+                            <div key={item.id} className="premium-card p-3 group flex flex-col gap-4 border border-theme/10 rounded-xl hover:border-theme-primary/30 transition-all duration-300">
                               <div className="flex items-start justify-between">
                                 <div className="flex items-center gap-3">
-                                  <div className="w-10 h-10 rounded-2xl bg-theme-base border border-theme flex items-center justify-center text-theme-dim group-hover:text-theme-primary transition-colors shadow-sm">
-                                    <Monitor size={18} />
+                                  <div className="w-8 h-8 rounded-xl bg-theme-base border border-theme flex items-center justify-center text-theme-dim group-hover:text-theme-primary transition-colors shadow-sm">
+                                    <Monitor size={16} />
                                   </div>
                                   <div>
-                                    <p className="text-sm font-black text-theme-main group-hover:text-theme-primary transition-colors leading-none mb-1">{item.machine?.name}</p>
+                                    <p className="text-sm font-black text-theme-main group-hover:text-theme-primary transition-colors leading-none mt-0.5">{item.machine?.name}</p>
                                     <p className="text-[10px] font-bold text-theme-dim opacity-60 uppercase">{item.machine?.code}</p>
                                   </div>
                                 </div>
@@ -887,7 +894,7 @@ export function OvertimeList() {
                                 </div>
                               </div>
 
-                              <div className="bg-theme-main/5 p-3 rounded-2xl flex items-center justify-between border border-theme/5">
+                              <div className="bg-theme-main/5 p-3 rounded-xl flex items-center justify-between border border-theme/5">
                                 <div className="flex flex-col">
                                   <p className="text-[10px] font-black text-theme-dim uppercase tracking-wider opacity-40 leading-none mb-1.5">ÜRÜN / PARÇA</p>
                                   <div className="flex items-center gap-2">
@@ -926,11 +933,11 @@ export function OvertimeList() {
                           <span className="text-[9px] font-black text-theme-dim uppercase tracking-[0.3em] opacity-60">DESTEK VE İDARİ BİRİM MESAİLERİ</span>
                           <div className="h-px bg-theme-dim/10 flex-1" />
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                           {activeDayItems.filter(i => !i.machine).map((item) => (
-                            <div key={item.id} className="premium-card p-4 group flex items-center gap-4 hover:border-theme-primary/20 transition-all bg-theme-surface/10 border-theme/5">
-                              <div className="w-10 h-10 rounded-2xl bg-theme-base border border-theme flex items-center justify-center text-theme-dim group-hover:bg-theme-primary/10 group-hover:text-theme-primary group-hover:border-theme-primary/20 transition-all shadow-sm">
-                                <Users size={18} />
+                            <div key={item.id} className="premium-card p-3 group flex items-center gap-4 hover:border-theme-primary/20 rounded-xl transition-all bg-theme-surface/10 border-theme/5">
+                              <div className="w-8 h-8 rounded-xl bg-theme-base border border-theme flex items-center justify-center text-theme-dim group-hover:bg-theme-primary/10 group-hover:text-theme-primary group-hover:border-theme-primary/20 transition-all shadow-sm">
+                                <Users size={16} />
                               </div>
                               <div className="min-w-0">
                                 <p className="text-xs font-black text-theme-main tracking-tight group-hover:text-theme-primary transition-colors truncate">{item.operator?.fullName || 'Belirtilmedi'}</p>
@@ -960,7 +967,7 @@ export function OvertimeList() {
                       { label: 'TOPLAM MAKİNE', value: [...new Set(selectedPlan.items.filter(i => i.machine).map(i => i.machine?.code || '—'))].length, icon: Monitor, color: 'text-blue-500', bg: 'bg-blue-500/10' },
                       { label: 'ÜRETİM HEDEFİ', value: selectedPlan.items.reduce((acc, curr) => acc + (curr.targetQuantity || 0), 0) + ' ADET', icon: Package, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
                     ].map((stat, i) => (
-                      <div key={i} className="bg-theme-base border border-theme/10 p-4 rounded-2xl flex items-center gap-4 group hover:border-theme/40 transition-all">
+                      <div key={i} className="bg-theme-base border border-theme-border/50 p-2 rounded-xl flex items-center gap-4 group hover:border-theme/40 transition-all">
                         <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shadow-inner", stat.bg, stat.color)}>
                           <stat.icon size={18} />
                         </div>
@@ -994,7 +1001,7 @@ export function OvertimeList() {
                     return (
                       <>
                         <p className="text-[9px] font-black text-theme-dim uppercase tracking-[0.3em] opacity-40">GÜNLÜK ÖZET</p>
-                        <div className="bg-theme-primary/5 border border-theme-primary/10 rounded-3xl p-5 space-y-5 relative overflow-hidden">
+                        <div className="bg-theme-primary/5 border border-theme-primary/10 rounded-xl p-3 space-y-5 relative overflow-hidden">
                           <div className="absolute top-0 right-0 p-4 opacity-5">
                             <Calendar size={80} />
                           </div>
@@ -1054,28 +1061,28 @@ export function OvertimeList() {
 
             {/* Footer */}
             <div className="p-3 bg-theme-surface/50 border-t border-theme/10 flex items-center justify-between backdrop-blur-2xl">
-              <div className="flex items-center gap-6">
-                <div className="text-[10px] font-black text-theme-dim uppercase tracking-widest flex items-center gap-2">
-                  <Users size={14} className="opacity-40" /> TOPLAM {selectedPlan.items.length} ATAMA
+              <div className="flex items-center gap-3">
+                <div className="text-[10px] font-black text-theme-dim flex items-center gap-2">
+                  <Users size={14} className="opacity-40" /> Toplam {selectedPlan.items.length} Atama
                 </div>
                 <button
                   onClick={exportToPDF}
                   disabled={loading}
-                  className="text-[10px] font-black text-theme-dim uppercase tracking-widest flex items-center gap-2 hover:text-theme-primary transition-colors disabled:opacity-50"
+                  className="text-[10px] font-black text-theme-dim flex items-center gap-2 hover:text-theme-primary transition-colors disabled:opacity-50"
                 >
-                  <Download size={14} className="opacity-40" /> PDF DIŞA AKTAR
+                  <Download size={14} className="opacity-40" /> PDF Dışa Aktar
                 </button>
                 <button
                   onClick={exportToImage}
                   disabled={loading}
-                  className="text-[10px] font-black text-theme-dim uppercase tracking-widest flex items-center gap-2 hover:text-theme-primary transition-colors disabled:opacity-50"
+                  className="text-[10px] font-black text-theme-dim flex items-center gap-2 hover:text-theme-primary transition-colors disabled:opacity-50"
                 >
-                  <Image size={14} className="opacity-40" /> GÖRSEL İNDİR
+                  <Image size={14} className="opacity-40" /> Görsel İndir
                 </button>
               </div>
               <button
                 onClick={() => setSelectedPlan(null)}
-                className="px-8 py-3 bg-theme-main text-theme-base font-black text-xs uppercase tracking-widest rounded-2xl shadow-xl hover:-translate-y-1 transition-all active:scale-95"
+                className="h-10 px-6 py-2 bg-theme-main text-theme-base font-black text-xs uppercase rounded-xl shadow-xl hover:-translate-y-1 transition-all gorup hover:text-sm"
               >
                 Kapat
               </button>

@@ -45,13 +45,13 @@ export function SortableRow({ id, children, className, onClick }: SortableRowPro
   };
 
   return (
-    <tr 
-      ref={setNodeRef} 
-      style={style} 
+    <tr
+      ref={setNodeRef}
+      style={style}
       className={cn(className, isDragging && 'bg-theme-primary/10')}
       onClick={onClick}
     >
-      <td className="w-2 px-2 py-3 border-b border-theme/30">
+      <td className="w-2 px-1 py-3 border-b border-theme/30">
         <button
           {...attributes}
           {...listeners}
@@ -122,9 +122,9 @@ export function SortableTableBody({ items, renderRow, onRowClick, rowClassName }
   return (
     <tbody className="divide-y divide-slate-800/50">
       {items.map((item) => (
-        <SortableRow 
-          key={item.id} 
-          id={item.id} 
+        <SortableRow
+          key={item.id}
+          id={item.id}
           className={cn("hover:bg-theme-primary/5 transition-colors group cursor-pointer", rowClassName?.(item))}
           onClick={(e) => onRowClick?.(item, e)}
         >

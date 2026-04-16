@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import prisma from '../lib/prisma';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
+import { NotificationService } from '../services/notificationService';
 
 const router = Router();
 
@@ -81,6 +82,7 @@ router.get('/reports/summary', async (req: AuthRequest, res: Response) => {
     // Operator frequency
     const operatorCounts: Record<string, { name: string; count: number }> = {};
     allItems.forEach(i => {
+      if (!i.operator) return; // Skip if operator is null
       if (!operatorCounts[i.operatorId]) operatorCounts[i.operatorId] = { name: i.operator.fullName, count: 0 };
       operatorCounts[i.operatorId].count++;
     });
@@ -176,6 +178,13 @@ router.post('/', async (req: AuthRequest, res: Response) => {
       }
     });
     res.status(201).json(plan);
+
+    // Bildirim gönder
+    NotificationService.notifyNewOvertimePlan(
+      companyId,
+      planName,
+      new Date(startDate)
+    );
   } catch (error: any) {
     console.error('[Overtime] Create error:', error);
     res.status(500).json({ error: 'Mesai planı oluşturulamadı: ' + error.message });
@@ -204,11 +213,11 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
 
       // 2. Eğer items gönderilmişse, eskileri sil ve yenileri ekle
       if (items && Array.isArray(items)) {
-        await tx.overtimeItem.deleteMany({
+        await tx.overtimePlanItem.deleteMany({
           where: { planId }
         });
 
-        await tx.overtimeItem.createMany({
+        await tx.overtimePlanItem.createMany({
           data: items.map((item: any) => ({
             planId,
             date: new Date(item.date),
@@ -229,6 +238,47 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
   } catch (error: any) {
     console.error('[Overtime] Update error:', error);
     res.status(500).json({ error: 'Plan güncellenemedi: ' + error.message });
+  }
+});
+
+// PATCH /api/overtime/:id - Kısmi güncelleme (örn: Durum deşitirme)
+router.patch('/:id', async (req: AuthRequest, res: Response) => {
+  try {
+    const { status, planName, notes, shiftId } = req.body;
+    const planId = req.params.id as string;
+
+    const updatedPlan = await prisma.overtimePlan.update({
+      where: { id: planId },
+      data: {
+        status: status !== undefined ? status : undefined,
+        planName: planName !== undefined ? planName : undefined,
+        notes: notes !== undefined ? notes : undefined,
+        shiftId: shiftId !== undefined ? shiftId : undefined
+      }
+    });
+
+    res.json(updatedPlan);
+  } catch (error: any) {
+    console.error('[Overtime] Patch error:', error);
+    res.status(500).json({ error: 'Güncelleme yapılamadı: ' + error.message });
+  }
+});
+
+// POST /api/overtime/bulk-status - Toplu durum güncelleme
+router.post('/bulk-status', async (req: AuthRequest, res: Response) => {
+  try {
+    const { ids, status } = req.body;
+    if (!ids || !Array.isArray(ids)) return res.status(400).json({ error: 'Geçersiz ID listesi' });
+
+    await prisma.overtimePlan.updateMany({
+      where: { id: { in: ids } },
+      data: { status }
+    });
+
+    res.json({ success: true, message: `${ids.length} plan güncellendi.` });
+  } catch (error: any) {
+    console.error('[Overtime] Bulk status error:', error);
+    res.status(500).json({ error: 'Toplu güncelleme yapılamadı: ' + error.message });
   }
 });
 

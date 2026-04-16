@@ -1,4 +1,5 @@
 import { Loader2 } from 'lucide-react';
+import { createPortal } from 'react-dom';
 
 interface LoadingProps {
   size?: 'sm' | 'md' | 'lg';
@@ -34,10 +35,11 @@ export function Loading({ size = 'md', fullScreen = false }: LoadingProps) {
   );
 
   if (fullScreen) {
-    return (
+    return createPortal(
       <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-theme-surface/80 backdrop-blur-md">
         {content}
-      </div>
+      </div>,
+      document.body
     );
   }
 
