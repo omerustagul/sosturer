@@ -3,8 +3,8 @@ import {
   Bolt, DiamondPlus, Logs, ChartArea, FileChartPie, ScanBarcode, CalendarRange,
   Settings, BarChart3, LogOut, TextAlignStart, Airplay,
   ChevronLeft, ChevronRight, Package, FileUser, User, ShieldCheck, Factory,
-  Bell, Globe, Building2, Warehouse, ShoppingCart, History, LayoutGrid, Boxes, GanttChart, Wrench,
-  Clock, Moon, Sun, Activity
+  Bell, Building2, Warehouse, ShoppingCart, History, LayoutGrid, Boxes, GanttChart, Wrench,
+  Moon, Sun, Activity
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useAuthStore } from '../store/authStore';
@@ -298,47 +298,10 @@ export function Layout() {
 
         <div className="flex gap-6 items-center vertical-align-middle">
 
-          {/* Live Work / Shift Status */}
-          <div className={`flex items-center h-10 gap-2.5 border p-1.5 rounded-xl backdrop-blur-xl shadow-2xl transition-all duration-700 group shadow-lg ${workStatus.type === 'closed'
-            ? 'bg-theme-error/5 border-theme-error/20 hover:bg-theme-error/10 hover:border-theme-error/40'
-            : workStatus.type === 'overtime'
-              ? 'bg-theme-warning/5 border-theme-warning/30 hover:bg-theme-warning/10 hover:border-theme-warning/50'
-              : 'bg-theme-success/5 border-theme-success/20 hover:bg-theme-success/10 hover:border-theme-success/40'
-            }`}>
-            <div className={`relative flex items-center justify-center h-7 w-7 rounded-lg border overflow-hidden ${workStatus.type === 'closed'
-              ? 'bg-theme-error/10 border-theme-error/20'
-              : workStatus.type === 'overtime'
-                ? 'bg-theme-warning/10 border-theme-warning/30'
-                : 'bg-theme-success/10 border-theme-success/20'
-              }`}>
-              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-20 scale-150 ${workStatus.type === 'closed' ? 'bg-theme-error' : workStatus.type === 'overtime' ? 'bg-theme-warning' : 'bg-theme-success'
-                }`}></span>
-              {workStatus.type === 'closed' ? (
-                <Moon className="w-4 h-4 text-theme-error relative z-10" />
-              ) : workStatus.type === 'overtime' ? (
-                <Activity className="w-4 h-4 text-theme-warning relative z-10 animate-pulse" />
-              ) : (
-                <Sun className="w-4 h-4 text-theme-success relative z-10 animate-spin-slow" />
-              )}
-            </div>
-
-            <div className="flex flex-col items-start vertical-align-middle pr-2">
-              <span className={`text-[9px] font-black tracking-[0.2em] uppercase leading-none mt-0.5 ${workStatus.type === 'closed' ? 'text-theme-error' : workStatus.type === 'overtime' ? 'text-theme-warning' : 'text-theme-success'
-                }`}>
-                {workStatus.label}
-              </span>
-              <span className="font-mono text-[10px] font-black text-theme-main tracking-tight opacity-50 uppercase mt-0.25">
-                {workStatus.details}
-              </span>
-            </div>
-          </div>
-
-
-
-          <div className="flex items-center gap-4 ml-2">
+          <div className="flex items-center gap-3">
             <Link to="/profile" className="flex items-center gap-2 group transition-all duration-300">
               <div className="text-right hidden sm:block">
-                <p className="text-xs font-bold text-theme-main group-hover:text-theme-primary transition-colors">{userFullName}</p>
+                <p className="text-xs font-bold text-theme-main group-hover:text-theme-primary transition-colors underline-offset-4 leading-none">{userFullName}</p>
                 <p className="text-[10px] font-bold text-theme-muted opacity-60 transition-colors">{userEmail}</p>
               </div>
               <div className="w-10 h-10 bg-theme-base/40 rounded-xl flex items-center justify-center text-xs font-bold border border-theme shadow-sm group-hover:shadow-theme-primary/10 group-hover:border-theme-primary/50 transition-all overflow-hidden group shadow-lg shrink-0">
@@ -349,6 +312,41 @@ export function Layout() {
                 )}
               </div>
             </Link>
+
+            {/* Live Work / Shift Status */}
+            <div className={`flex items-center h-10 gap-2.5 border p-1.5 rounded-xl backdrop-blur-xl shadow-2xl transition-all duration-700 group shadow-lg ${workStatus.type === 'closed'
+              ? 'bg-theme-error/5 border-theme-error/20 hover:bg-theme-error/10 hover:border-theme-error/40'
+              : workStatus.type === 'overtime'
+                ? 'bg-theme-warning/5 border-theme-warning/30 hover:bg-theme-warning/10 hover:border-theme-warning/50'
+                : 'bg-theme-success/5 border-theme-success/20 hover:bg-theme-success/10 hover:border-theme-success/40'
+              }`}>
+              <div className={`relative flex items-center justify-center h-7 w-7 rounded-lg border overflow-hidden ${workStatus.type === 'closed'
+                ? 'bg-theme-error/10 border-theme-error/20'
+                : workStatus.type === 'overtime'
+                  ? 'bg-theme-warning/10 border-theme-warning/30'
+                  : 'bg-theme-success/10 border-theme-success/20'
+                }`}>
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-20 scale-150 ${workStatus.type === 'closed' ? 'bg-theme-error' : workStatus.type === 'overtime' ? 'bg-theme-warning' : 'bg-theme-success'
+                  }`}></span>
+                {workStatus.type === 'closed' ? (
+                  <Moon className="w-4 h-4 text-theme-error relative z-10" />
+                ) : workStatus.type === 'overtime' ? (
+                  <Activity className="w-4 h-4 text-theme-warning relative z-10 animate-pulse" />
+                ) : (
+                  <Sun className="w-4 h-4 text-theme-success relative z-10 animate-spin-slow" />
+                )}
+              </div>
+
+              <div className="flex flex-col items-start vertical-align-middle pr-2">
+                <span className={`text-[9px] font-black tracking-[0.2em] uppercase leading-none mt-0.5 ${workStatus.type === 'closed' ? 'text-theme-error' : workStatus.type === 'overtime' ? 'text-theme-warning' : 'text-theme-success'
+                  }`}>
+                  {workStatus.label}
+                </span>
+                <span className="font-mono text-[10px] font-black text-theme-main tracking-tight opacity-50 uppercase mt-0.25">
+                  {workStatus.details}
+                </span>
+              </div>
+            </div>
 
             <button
               ref={bellButtonRef}

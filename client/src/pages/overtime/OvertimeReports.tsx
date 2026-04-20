@@ -280,8 +280,8 @@ export function OvertimeReports() {
                   </div>
                 </div>
                 <div className="h-4 w-px bg-theme hidden md:block" />
-                <span className="text-[11px] font-black text-theme-dim uppercase tracking-widest">
-                  TOPLAM <span className="text-theme-primary">{report.plans.length}</span> KAYIT
+                <span className="text-[11px] font-black text-theme-dim">
+                  Toplam <span className="text-theme-primary">{report.plans.length}</span> Kayıt
                 </span>
               </div>
 

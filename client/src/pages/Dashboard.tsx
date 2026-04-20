@@ -265,86 +265,108 @@ function Dashboard() {
           </div>
         </div>
 
-        {/* Customization Toolset */}
+        {/* Dashboard Management Panel */}
         {isCustomizing && (
-          <div className="bg-theme-primary/5 border-2 border-dashed border-theme-primary/30 rounded-2xl p-6 animate-in slide-in-from-top-4 duration-500 overflow-hidden relative">
-            <div className="flex flex-col lg:flex-row items-center justify-between gap-3">
-              <div className="w-[30%] space-y-1 text-center lg:text-left">
-                <h4 className="text-lg font-black text-theme-main flex items-center gap-2">MODÜL YÖNETİMİ <Activity className="w-5 h-5 text-theme-primary" /></h4>
-                <p className="text-[10px] font-bold text-theme-dim">Görünmesini istediğiniz bileşenleri seçip sürükleyerek sıralayın</p>
-
-                {/* GLOBAL GRID MODE TOGGLE */}
-                <div className="flex flex-wrap items-center gap-4 mt-4 justify-center lg:justify-start">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[9px] font-black text-theme-muted uppercase tracking-widest mr-1">Sütun:</span>
-                    <div className="flex bg-theme-base/50 p-1 rounded-xl border border-theme">
-                      <button
-                        onClick={() => setGridMode('double')}
-                        className={cn(
-                          "flex items-center gap-2 px-3 py-1.5 rounded-lg text-[9px] font-black transition-all",
-                          gridMode === 'double' ? "bg-theme-primary text-white shadow-lg" : "text-theme-muted hover:text-theme-main"
-                        )}
-                      >
-                        <Columns2 className="w-3.5 h-3.5" /> 2 SÜTUN
-                      </button>
-                      <button
-                        onClick={() => setGridMode('single')}
-                        className={cn(
-                          "flex items-center gap-2 px-3 py-1.5 rounded-lg text-[9px] font-black transition-all",
-                          gridMode === 'single' ? "bg-theme-primary text-white shadow-lg" : "text-theme-muted hover:text-theme-main"
-                        )}
-                      >
-                        <Square className="w-3.5 h-3.5" /> TEK SÜTUN
-                      </button>
+          <div className="mb-12 animate-premium-page">
+            <div className="modern-glass-card border-dashed border-2 border-theme-primary/30 bg-theme-primary/[0.02] p-8 relative overflow-hidden group/m">
+              {/* Background Glow */}
+              <div className="absolute top-0 right-0 w-96 h-96 bg-theme-primary/5 rounded-full blur-[100px] -mr-48 -mt-48 pointer-events-none" />
+              
+              <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8 relative z-10">
+                <div className="flex flex-col gap-6 max-w-md">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-theme-primary/10 rounded-lg text-theme-primary">
+                      <LayoutIcon className="w-5 h-5 animate-pulse" />
+                    </div>
+                    <div>
+                      <h2 className="text-sm font-black text-theme-main tracking-widest uppercase flex items-center gap-2">MODÜL YÖNETİMİ <Activity className="w-4 h-4 text-theme-primary" /></h2>
+                      <p className="text-[10px] font-bold text-theme-muted opacity-60 uppercase tracking-tighter">
+                        Görünmesini istediğiniz bileşenleri seçip sürükleyerek sıralayın
+                      </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <span className="text-[9px] font-black text-theme-muted uppercase tracking-widest mr-1">Ölçeklendirme:</span>
-                    <button
-                      onClick={() => setEqualHeight(!equalHeight)}
-                      className={cn(
-                        "flex items-center gap-2 px-4 py-2 rounded-xl text-[9px] font-black transition-all border shadow-sm",
-                        equalHeight
-                          ? "bg-theme-success/10 text-theme-success border-theme-success shadow-theme-success/10"
-                          : "bg-theme-base text-theme-muted border-theme hover:border-theme-primary/30"
-                      )}
-                    >
-                      <LayoutIcon className="w-3.5 h-3.5" /> {equalHeight ? 'EŞİT YÜKSEKLİK AKTİF' : 'ESNEK YÜKSEKLİK'}
-                    </button>
+                  <div className="flex flex-col gap-4 pl-1">
+                    <div className="flex items-center gap-4">
+                      <span className="text-[9px] font-black text-theme-dim uppercase tracking-widest w-20">Sütun:</span>
+                      <div className="flex bg-theme-base/50 p-1 rounded-xl border border-theme h-9">
+                        <button
+                          onClick={() => setGridMode('double')}
+                          className={cn(
+                            "px-4 rounded-lg text-[9px] font-black transition-all flex items-center gap-2",
+                            gridMode === 'double' ? "bg-theme-primary text-white shadow-lg" : "text-theme-muted hover:text-theme-main"
+                          )}
+                        >
+                          <Columns className="w-3 h-3" /> 2 SÜTUN
+                        </button>
+                        <button
+                          onClick={() => setGridMode('single')}
+                          className={cn(
+                            "px-4 rounded-lg text-[9px] font-black transition-all flex items-center gap-2",
+                            gridMode === 'single' ? "bg-theme-primary text-white shadow-lg" : "text-theme-muted hover:text-theme-main"
+                          )}
+                        >
+                          <Square className="w-3 h-3" /> TEK SÜTUN
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                      <span className="text-[9px] font-black text-theme-dim uppercase tracking-widest w-20">Ölçeklendirme:</span>
+                      <button
+                        onClick={() => setEqualHeight(!equalHeight)}
+                        className={cn(
+                          "flex items-center gap-3 px-6 h-9 rounded-xl text-[9px] font-black transition-all border shadow-sm uppercase tracking-widest",
+                          equalHeight
+                            ? "bg-theme-success/10 text-theme-success border-theme-success/30"
+                            : "bg-theme-base/60 text-theme-muted border-theme hover:border-theme-primary/30"
+                        )}
+                      >
+                        <Maximize2 className="w-3 h-3" /> {equalHeight ? 'Eşit Yükseklik Aktif' : 'Esnek Yükseklik'}
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="flex flex-wrap w-auto items-center justify-center gap-3">
-                {AVAILABLE_WIDGETS.map(widget => {
-                  const isActive = currentLayout.some(i => i.id === widget.id);
-                  return (
-                    <button
-                      key={widget.id}
-                      onClick={() => toggleWidget(widget.id)}
-                      className={cn(
-                        "flex items-center gap-2 p-2 h-10 rounded-xl border transition-all font-black text-[10px] tracking-widest group/w",
-                        isActive
-                          ? 'bg-theme-primary text-white border-theme-primary shadow-lg shadow-theme-primary/30'
-                          : 'bg-theme-surface/50 text-theme-muted border-theme hover:border-theme-primary/40 hover:bg-theme-surface'
-                      )}
-                    >
-                      <widget.icon className={cn("w-4 h-4", isActive ? "text-white" : "group-hover/w:text-theme-primary")} />
-                      {widget.title.toUpperCase()}
-                      <div className={cn("px-1.5 py-0.5 rounded-md text-[8px] font-black", isActive ? "bg-white/20" : "bg-theme-base/50")}>
-                        {isActive ? <Check className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
-                      </div>
-                    </button>
-                  );
-                })}
+                <div className="flex-1 flex flex-wrap items-center justify-center gap-3 py-4 border-l border-theme/20 lg:px-8">
+                  {AVAILABLE_WIDGETS.map(widget => {
+                    const isActive = currentLayout.some(i => i.id === widget.id);
+                    return (
+                      <button
+                        key={widget.id}
+                        onClick={() => toggleWidget(widget.id)}
+                        className={cn(
+                          "flex items-center gap-3 px-4 h-11 rounded-2xl border transition-all font-black text-[10px] tracking-widest group/w relative",
+                          isActive
+                            ? 'bg-theme-primary text-white border-theme-primary shadow-xl shadow-theme-primary/20 scale-[1.02]'
+                            : 'bg-theme-surface/40 text-theme-muted border-theme hover:border-theme-primary/40 hover:bg-theme-surface'
+                        )}
+                      >
+                        <widget.icon className={cn("w-4 h-4", isActive ? "text-white" : "group-hover/w:text-theme-primary")} />
+                        {widget.title.toUpperCase()}
+                        {isActive && (
+                          <div className="bg-white/20 p-0.5 rounded-full">
+                            <Check className="w-3 h-3" />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="flex flex-col gap-3 min-w-[200px]">
+                  <button
+                    onClick={handleSaveLayout}
+                    className="bg-theme-primary hover:bg-theme-primary-hover h-14 w-full text-white px-8 rounded-2xl font-black text-xs shadow-2xl shadow-theme-primary/30 active:scale-95 transition-all flex items-center justify-center gap-3 border border-white/10 group/s"
+                  >
+                    <div className="p-1.5 bg-white/20 rounded-lg group-hover/s:rotate-12 transition-transform">
+                      <Save className="w-4 h-4" />
+                    </div>
+                    <span>DÜZENİ KAYDET</span>
+                  </button>
+                  <p className="text-[8px] font-bold text-center text-theme-dim opacity-40 uppercase tracking-[0.2em]">Son güncelleme: {new Date().toLocaleTimeString('tr-TR')}</p>
+                </div>
               </div>
-              <button
-                onClick={handleSaveLayout}
-                className="bg-theme-approve h-10 w-auto lg:w-60 text-white px-2 py-2 rounded-xl font-black text-[10px] shadow-2xl shadow-theme-approve/30 active:scale-95 transition-all flex items-center justify-center gap-4 border-2 border-theme-approve/50"
-              >
-                <Save className="w-4 h-4" /> DÜZENİ KAYDET
-              </button>
             </div>
           </div>
         )}

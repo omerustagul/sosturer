@@ -457,8 +457,8 @@ export function SuperAdmin() {
                   <tbody className="divide-y divide-theme/30">
                     {activeTab === 'companies' ? (
                       paginatedCompanies.map(c => (
-                        <tr 
-                          key={c.id} 
+                        <tr
+                          key={c.id}
                           onClick={(e) => {
                             if ((e.target as HTMLElement).closest('button, input, select, a, .cursor-pointer, [role="button"]')) return;
                             const newSelected = new Set(selectedIds);
@@ -540,8 +540,8 @@ export function SuperAdmin() {
                       ))
                     ) : (
                       paginatedUsers.map(u => (
-                        <tr 
-                          key={u.id} 
+                        <tr
+                          key={u.id}
                           onClick={(e) => {
                             if ((e.target as HTMLElement).closest('button, input, select, a, .cursor-pointer, [role="button"]')) return;
                             const newSelected = new Set(selectedIds);
@@ -643,10 +643,10 @@ export function SuperAdmin() {
                     </div>
                   </div>
                   <div className="h-4 w-px bg-theme hidden md:block" />
-                  <span className="text-[11px] font-black text-theme-dim uppercase tracking-widest">
-                    TOPLAM <span className="text-theme-primary">
+                  <span className="text-[11px] font-black text-theme-dim">
+                    Toplam <span className="text-theme-primary">
                       {activeTab === 'companies' ? filteredCompanies.length : filteredUsers.length}
-                    </span> KAYIT
+                    </span> Kayıt
                   </span>
                 </div>
 
@@ -1013,8 +1013,8 @@ export function SuperAdmin() {
       <BulkActionBar
         selectedCount={selectedIds.size}
         isEditing={false}
-        onSave={() => {}}
-        onEditToggle={() => {}}
+        onSave={() => { }}
+        onEditToggle={() => { }}
         onStatusUpdate={handleBulkStatusUpdate}
         onDelete={handleBulkDelete}
         onCancel={() => setSelectedIds(new Set())}

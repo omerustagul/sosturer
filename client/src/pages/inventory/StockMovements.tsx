@@ -101,10 +101,10 @@ export function StockMovements() {
                   </td>
                   <td className="px-8 py-5">
                     <span className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border inline-flex items-center gap-2 ${move.type === 'PRODUCTION'
-                        ? 'bg-theme-success/10 text-theme-success border-theme-success/20'
-                        : move.type === 'SALE'
-                          ? 'bg-theme-danger/10 text-theme-danger border-theme-danger/20'
-                          : 'bg-theme-primary/10 text-theme-primary border-theme-primary/20'
+                      ? 'bg-theme-success/10 text-theme-success border-theme-success/20'
+                      : move.type === 'SALE'
+                        ? 'bg-theme-danger/10 text-theme-danger border-theme-danger/20'
+                        : 'bg-theme-primary/10 text-theme-primary border-theme-primary/20'
                       }`}>
                       {move.type === 'PRODUCTION' && <TrendingUp size={12} />}
                       {move.type === 'SALE' && <TrendingDown size={12} />}
@@ -165,8 +165,8 @@ export function StockMovements() {
               </div>
             </div>
             <div className="h-4 w-px bg-theme hidden md:block" />
-            <span className="text-[11px] font-black text-theme-dim uppercase tracking-widest">
-              TOPLAM <span className="text-theme-primary">{movements.length}</span> KAYIT
+            <span className="text-[11px] font-black text-theme-dim">
+              Toplam <span className="text-theme-primary">{movements.length}</span> Kayıt
             </span>
           </div>
 

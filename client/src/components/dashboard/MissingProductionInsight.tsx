@@ -212,7 +212,7 @@ export function MissingProductionInsight({ data, machines, compact, title = 'Eks
         <div className="p-1.5 bg-rose-500/10 rounded-lg text-rose-500">
           <AlertTriangle size={14} />
         </div>
-        <p className="text-[9px] font-bold text-theme-dim uppercase tracking-widest leading-relaxed">
+        <p className="text-[10px] font-bold text-theme-dim leading-relaxed">
           * Referans lokasyonun çalışma saatlerine göre filtrelenmiştir. Sadece tanımlı aktif makineler ve vardiyalar için beklenen kayıtlar gösterilmektedir.
         </p>
       </div>
