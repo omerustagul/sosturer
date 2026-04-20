@@ -3,7 +3,8 @@ import {
   Bolt, DiamondPlus, Logs, ChartArea, FileChartPie, ScanBarcode, CalendarRange,
   Settings, BarChart3, LogOut, TextAlignStart, Airplay,
   ChevronLeft, ChevronRight, Package, FileUser, User, ShieldCheck, Factory,
-  Bell, Globe, Building2, Warehouse, ShoppingCart, History, LayoutGrid, Boxes, GanttChart, Wrench
+  Bell, Globe, Building2, Warehouse, ShoppingCart, History, LayoutGrid, Boxes, GanttChart, Wrench,
+  Clock, Moon, Sun, Activity
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useAuthStore } from '../store/authStore';
@@ -37,6 +38,11 @@ export function Layout() {
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
   const [systemInfo, setSystemInfo] = useState<{ ip: string, port: string } | null>(null);
+  const [workStatus, setWorkStatus] = useState<{
+    type: 'shift' | 'overtime' | 'closed';
+    label: string;
+    details: string;
+  }>({ type: 'closed', label: 'Tesis Kapalı', details: 'Mesai dışı' });
   const bellButtonRef = useRef<HTMLButtonElement>(null);
 
   const checkUnreadNotifications = async () => {
@@ -51,12 +57,81 @@ export function Layout() {
     } catch (err) { }
   };
 
+  const fetchWorkStatus = async () => {
+    try {
+      const today = new Date();
+      const nowTotal = today.getHours() * 60 + today.getMinutes();
+
+      const [shifts, overtimePlans] = await Promise.all([
+        api.get('/shifts'),
+        api.get('/overtime')
+      ]);
+
+      // 1. Check Shifts
+      const activeShift = shifts.find((shift: any) => {
+        if (shift.status !== 'active') return false;
+        const [startH, startM] = shift.startTime.split(':').map(Number);
+        const [endH, endM] = shift.endTime.split(':').map(Number);
+
+        const startTotal = startH * 60 + startM;
+        const endTotal = endH * 60 + endM;
+
+        if (startTotal < endTotal) {
+          return nowTotal >= startTotal && nowTotal <= endTotal;
+        } else {
+          // Overnight shift (e.g. 23:00 - 07:00)
+          return nowTotal >= startTotal || nowTotal <= endTotal;
+        }
+      });
+
+      if (activeShift) {
+        setWorkStatus({
+          type: 'shift',
+          label: activeShift.shiftName.toUpperCase(),
+          details: `${activeShift.startTime} - ${activeShift.endTime}`
+        });
+        return;
+      }
+
+      // 2. Check Overtime Plans for today
+      // An overtime plan is active if current date is between startDate and endDate
+      const activeOvertime = overtimePlans.find((plan: any) => {
+        const start = new Date(plan.startDate);
+        const end = new Date(plan.endDate);
+        return today >= start && today <= end && plan.status !== 'cancelled';
+      });
+
+      if (activeOvertime) {
+        setWorkStatus({
+          type: 'overtime',
+          label: 'MESAİ ÇALIŞMASI',
+          details: activeOvertime.planName.toUpperCase()
+        });
+        return;
+      }
+
+      // 3. Otherwise Closed
+      setWorkStatus({
+        type: 'closed',
+        label: 'ÜRETİM KAPALI',
+        details: 'TESİS ÇALIŞMIYOR'
+      });
+
+    } catch (error) {
+      console.error('Work status fetch error:', error);
+    }
+  };
+
   useEffect(() => {
     api.get('/system/info').then(setSystemInfo).catch(() => { });
     checkUnreadNotifications();
+    fetchWorkStatus();
 
-    // Poll for new notifications every 30 seconds
-    const interval = setInterval(checkUnreadNotifications, 30000);
+    // Poll for new notifications and work status every 60 seconds
+    const interval = setInterval(() => {
+      checkUnreadNotifications();
+      fetchWorkStatus();
+    }, 60000);
     return () => clearInterval(interval);
   }, []);
 
@@ -112,7 +187,7 @@ export function Layout() {
       children: [
         { icon: DiamondPlus, label: t('nav.newRecord', 'Yeni Üretim Kaydı'), path: '/records/new' },
         { icon: Logs, label: t('nav.records', 'Üretim Kayıtları'), path: '/records' },
-        { icon: DiamondPlus, label: 'Üretim Emirleri', path: '/planning/production-orders' },
+        { icon: DiamondPlus, label: 'Üretim Emirleri', path: '/production-orders' },
       ]
     },
     { icon: ChartArea, label: t('nav.analytics', 'ANALİTİK'), path: '/analytics' },
@@ -223,21 +298,38 @@ export function Layout() {
 
         <div className="flex gap-6 items-center vertical-align-middle">
 
-          <div className="flex items-center h-12 gap-4 bg-theme-surface/50 border border-theme p-2 rounded-xl backdrop-blur-3xl shadow-2xl shadow-theme-success/5 group/network transition-all duration-700 hover:bg-theme-success/5 hover:border-theme-success/30 group shadow-lg">
-            <div className="relative flex items-center justify-center h-8 w-8 bg-theme-base rounded-xl border border-theme-success/20 group/lan overflow-hidden">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-theme-success/20 opacity-20 scale-150"></span>
-              <Globe className="w-4 h-4 text-theme-success relative z-10 animate-pulse group-hover:scale-110 transition-transform" />
+          {/* Live Work / Shift Status */}
+          <div className={`flex items-center h-10 gap-2.5 border p-1.5 rounded-xl backdrop-blur-xl shadow-2xl transition-all duration-700 group shadow-lg ${workStatus.type === 'closed'
+            ? 'bg-theme-error/5 border-theme-error/20 hover:bg-theme-error/10 hover:border-theme-error/40'
+            : workStatus.type === 'overtime'
+              ? 'bg-theme-warning/5 border-theme-warning/30 hover:bg-theme-warning/10 hover:border-theme-warning/50'
+              : 'bg-theme-success/5 border-theme-success/20 hover:bg-theme-success/10 hover:border-theme-success/40'
+            }`}>
+            <div className={`relative flex items-center justify-center h-7 w-7 rounded-lg border overflow-hidden ${workStatus.type === 'closed'
+              ? 'bg-theme-error/10 border-theme-error/20'
+              : workStatus.type === 'overtime'
+                ? 'bg-theme-warning/10 border-theme-warning/30'
+                : 'bg-theme-success/10 border-theme-success/20'
+              }`}>
+              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-20 scale-150 ${workStatus.type === 'closed' ? 'bg-theme-error' : workStatus.type === 'overtime' ? 'bg-theme-warning' : 'bg-theme-success'
+                }`}></span>
+              {workStatus.type === 'closed' ? (
+                <Moon className="w-4 h-4 text-theme-error relative z-10" />
+              ) : workStatus.type === 'overtime' ? (
+                <Activity className="w-4 h-4 text-theme-warning relative z-10 animate-pulse" />
+              ) : (
+                <Sun className="w-4 h-4 text-theme-success relative z-10 animate-spin-slow" />
+              )}
             </div>
 
             <div className="flex flex-col items-start vertical-align-middle pr-2">
-              <span className="text-[10px] font-black text-theme-success tracking-[0.2em] uppercase leading-none">AĞ ERİŞİMİ</span>
-              {systemInfo ? (
-                <span className="font-mono text-[11px] font-black text-theme-main tracking-tight opacity-50 uppercase">
-                  {systemInfo.ip === '127.0.0.1' ? window.location.hostname : systemInfo.ip}:{systemInfo.port}
-                </span>
-              ) : (
-                <span className="text-[10px] font-bold text-theme-dim mt-1 uppercase opacity-30">Yükleniyor...</span>
-              )}
+              <span className={`text-[9px] font-black tracking-[0.2em] uppercase leading-none mt-0.5 ${workStatus.type === 'closed' ? 'text-theme-error' : workStatus.type === 'overtime' ? 'text-theme-warning' : 'text-theme-success'
+                }`}>
+                {workStatus.label}
+              </span>
+              <span className="font-mono text-[10px] font-black text-theme-main tracking-tight opacity-50 uppercase mt-0.25">
+                {workStatus.details}
+              </span>
             </div>
           </div>
 

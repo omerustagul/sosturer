@@ -1,5 +1,5 @@
 import { AlertTriangle, Check, X } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 interface ConfirmModalProps {
@@ -11,6 +11,9 @@ interface ConfirmModalProps {
   confirmLabel?: string;
   cancelLabel?: string;
   type?: 'danger' | 'warning' | 'info';
+  requireMatch?: string;
+  matchPlaceholder?: string;
+  alertOnly?: boolean;
 }
 
 export function ConfirmModal({
@@ -21,8 +24,12 @@ export function ConfirmModal({
   message,
   confirmLabel = 'EVET, DEVAM ET',
   cancelLabel = 'VAZGEÇ',
-  type = 'warning'
+  type = 'warning',
+  requireMatch,
+  matchPlaceholder = 'Onaylamak için buraya yazın...',
+  alertOnly = false
 }: ConfirmModalProps) {
+  const [inputValue, setInputValue] = useState('');
 
   // Close on Escape key
   useEffect(() => {
@@ -32,6 +39,11 @@ export function ConfirmModal({
     if (isOpen) window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
   }, [isOpen, onClose]);
+
+  // Reset input when reopened
+  useEffect(() => {
+    if (isOpen) setInputValue('');
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -61,15 +73,17 @@ export function ConfirmModal({
 
   const style = colorStyles[type];
 
+  const isMatchValid = !requireMatch || inputValue === requireMatch;
+
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 animate-in fade-in duration-500 overflow-hidden">
+    <div className="fixed inset-0 z-[10005] flex items-center justify-center p-6 animate-in fade-in duration-500 overflow-hidden">
       {/* Background with deep blur and dark overlay */}
       <div
         className="absolute inset-0 bg-theme-surface/70 backdrop-blur-xs"
         onClick={onClose}
       />
 
-      <div className={`relative w-auto max-w-sm bg-theme-card border border-white/10 rounded-2xl p-4 shadow-[0_32px_128px_rgba(0,0,0,0.2)] animate-in zoom-in-95 slide-in-from-bottom-10 duration-700 overflow-hidden ring-1 ring-white/10`}>
+      <div className={`relative w-full max-w-sm bg-theme-card border border-white/10 rounded-2xl p-6 shadow-[0_32px_128px_rgba(0,0,0,0.2)] animate-in zoom-in-95 slide-in-from-bottom-10 duration-700 overflow-hidden ring-1 ring-white/10`}>
 
         {/* Animated background glow */}
         <div className={`absolute -top-32 -right-32 w-64 h-64 ${style.bg} transition-all duration-1000 blur-[120px] rounded-full animate-pulse`} />
@@ -88,7 +102,7 @@ export function ConfirmModal({
           </div>
 
           <div className="space-y-3 px-2">
-            <h3 className="text-xl font-black text-theme-main tracking-tight uppercase leading-tight">
+            <h3 className="text-xl font-bold text-theme-main leading-tight">
               {title}
             </h3>
             <p className="text-theme-muted text-xs font-bold leading-relaxed">
@@ -96,22 +110,43 @@ export function ConfirmModal({
             </p>
           </div>
 
+          {requireMatch && (
+            <div className="w-full mt-4 space-y-2">
+              <label className="text-[10px] font-black text-theme-danger uppercase tracking-widest block text-left">
+                Onaylamak için <span className="text-theme-main user-select-all">"{requireMatch}"</span> yazın
+              </label>
+              <input
+                type="text"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                placeholder={matchPlaceholder}
+                className="w-full h-10 bg-theme-base/50 placeholder:text-theme-muted border-2 border-theme rounded-xl px-4 text-sm font-bold focus:outline-none focus:border-theme-danger transition-colors text-theme-main"
+                autoFocus
+              />
+            </div>
+          )}
+
           <div className="flex flex-col sm:flex-row gap-4 w-full pt-4">
+            {!alertOnly && (
+              <button
+                onClick={onClose}
+                className="flex-1 px-4 py-2 h-10 bg-theme-main/5 hover:bg-theme-danger/10 text-theme-dim hover:text-theme-danger font-black rounded-xl border border-white/10 transition-all text-[10px] active:scale-95 uppercase"
+              >
+                {cancelLabel}
+              </button>
+            )}
             <button
-              onClick={onClose}
-              className="flex-1 px-4 py-2 h-10 bg-theme-main/5 hover:bg-theme-danger/10 text-theme-dim hover:text-theme-danger font-black rounded-xl border border-white/10 transition-all text-[10px] active:scale-95 uppercase"
-            >
-              {cancelLabel}
-            </button>
-            <button
+              disabled={!isMatchValid}
               onClick={() => {
-                onConfirm();
-                onClose();
+                if (isMatchValid) {
+                  onConfirm();
+                  onClose();
+                }
               }}
-              className={`flex-1 px-4 py-2 h-10 ${style.button} text-white font-black rounded-xl shadow-2xl transition-all text-[10px] active:scale-95 flex items-center justify-center gap-3 uppercase`}
+              className={`${alertOnly ? 'w-full' : 'flex-1'} px-4 py-2 h-10 ${style.button} text-white font-black rounded-xl shadow-2xl transition-all text-[10px] active:scale-95 flex items-center justify-center gap-3 uppercase ${!isMatchValid ? 'opacity-50 cursor-not-allowed scale-100 hover:scale-100' : ''}`}
             >
               <Check className="w-4 h-4" />
-              {confirmLabel}
+              {alertOnly ? 'TAMAM' : confirmLabel}
             </button>
           </div>
         </div>

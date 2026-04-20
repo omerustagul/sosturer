@@ -261,6 +261,7 @@ export function NotificationPanel({ isOpen, onClose, anchorRef }: { isOpen: bool
     <AnimatePresence>
       {isOpen && (
         <motion.div
+          key="notification-panel"
           ref={panelRef}
           initial={{ opacity: 0, y: -10, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}

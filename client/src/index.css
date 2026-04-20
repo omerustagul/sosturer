@@ -16,6 +16,8 @@
   --color-theme-warning-hover: var(--warning-hover);
   --color-theme-danger: var(--danger);
   --color-theme-danger-hover: var(--danger-hover);
+  --color-theme-yellow: var(--yellow);
+  --color-theme-yellow-hover: var(--yellow-hover);
 
   --color-theme-border: var(--border-main);
   --color-theme-text-main: var(--text-main);
@@ -35,11 +37,18 @@
   --shadow-primary-glow: 0 0 15px -3px var(--primary-glow);
   --shadow-pill: 0 10px 20px -5px rgba(0, 0, 0, 0.1);
   --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+
+  --animate-spin-slow: spin 8s linear infinite;
 }
 
-:root {
-  /* Common Values */
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+@utility col-span-full {
+  column-span: all;
+}
+
+@layer base {
+  :root {
+    /* Common Values */
+    --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --transition-speed: 0.3s;
 
   /* Theme Variables Base (Dark Default) */
@@ -62,6 +71,8 @@
   --warning-hover: #d97706;
   --danger: #ef4444;
   --danger-hover: #dc2626;
+  --yellow: #f5d20b;
+  --yellow-hover: #f5c50b;
 
   --text-main: #f1f5f9;
   --text-muted: #94a3b8;

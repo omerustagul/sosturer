@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { api } from '../../lib/api';
 import { 
   X, Map, Workflow, Clock, Building2, 
-  Hash, Info, FileText, ChevronRight 
+  Hash, FileText 
 } from 'lucide-react';
 import { Loading } from '../common/Loading';
 

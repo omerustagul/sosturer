@@ -220,9 +220,9 @@ export function BulkRecordEntry() {
         <div className="space-y-3">
           <button
             onClick={() => navigate('/records')}
-            className="group flex items-center gap-2 text-theme-dim hover:text-theme-primary font-black text-[10px] uppercase tracking-[0.2em] transition-colors"
+            className="group flex items-center gap-2 text-theme-dim hover:text-theme-primary font-black text-[10px] uppercase tracking-[0.05em] hover:tracking-[0.075em] transition-colors"
           >
-            <ChevronLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
+            <ChevronLeft size={14} className="group-hover:-translate-x-1 mb-0.25 transition-transform" />
             GERİ DÖN
           </button>
           <div className="flex items-center gap-4">
@@ -486,7 +486,7 @@ export function BulkRecordEntry() {
       </div>
 
       {/* Helper Alert */}
-      <div className="flex items-center gap-3 p-2 rounded-2xl bg-theme-primary/5 border border-theme-primary/10 text-theme-primary text-xs font-black leading-relaxed shadow-lg">
+      <div className="flex items-center gap-3 p-2 rounded-2xl bg-theme-primary/5 border border-theme-primary/10 text-theme-primary text-xs font-black leading-relaxed shadow-lg shadow-theme-primary/10">
         <div className="w-12 h-12 bg-theme-primary/10 rounded-xl flex items-center justify-center border border-theme-primary/20 shrink-0">
           <AlertCircle className="w-6 h-6" />
         </div>

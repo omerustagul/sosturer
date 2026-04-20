@@ -155,7 +155,7 @@ export const CustomSelect = memo(({
   const dropdownMenu = (
     <div
       ref={dropdownRef}
-      className="fixed z-[9999] bg-theme-form backdrop-blur-3xl border border-theme rounded-2xl shadow-2xl overflow-hidden animate-select-popup flex flex-col"
+      className="fixed z-[10001] bg-theme-form backdrop-blur-3xl border border-theme rounded-2xl shadow-2xl overflow-hidden animate-select-popup flex flex-col"
       style={{
         top: coords.openUp ? 'auto' : `${coords.top + 8}px`,
         bottom: coords.openUp ? `${window.innerHeight - coords.top + 8}px` : 'auto',

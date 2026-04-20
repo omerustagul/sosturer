@@ -49,8 +49,8 @@ export function DashboardWidget({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "modern-glass-card flex flex-col relative overflow-hidden group transition-all duration-300",
-        fullWidth ? "lg:col-span-2" : "col-span-1",
+        "modern-glass-card flex flex-col relative overflow-hidden group transition-all duration-300 break-inside-avoid mb-8",
+        fullWidth ? "lg:col-span-full" : "w-full",
         isDragging ? "opacity-50 scale-95 shadow-2xl ring-2 ring-theme-primary/50" : "opacity-100",
         className
       )}

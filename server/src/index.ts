@@ -37,6 +37,8 @@ import workPlanTypeRoutes from './routes/workPlanTypes';
 import productionOrderRoutes from './routes/productionOrders';
 import productionRouteRoutes from './routes/productionRoutes';
 import stationRoutes from './routes/stations';
+import productionEventReasonRoutes from './routes/productionEventReasons';
+import productionEventGroupRoutes from './routes/productionEventGroups';
 import { authenticateToken } from './middleware/auth';
 import { startScheduler } from './services/scheduler';
 
@@ -110,6 +112,8 @@ app.use('/api/work-plan-types', workPlanTypeRoutes);
 app.use('/api/production-orders', productionOrderRoutes);
 app.use('/api/production-routes', productionRouteRoutes);
 app.use('/api/stations', stationRoutes);
+app.use('/api/production-event-reasons', productionEventReasonRoutes);
+app.use('/api/production-event-groups', productionEventGroupRoutes);
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 const clientDistPath = path.resolve(__dirname, '../../client/dist');

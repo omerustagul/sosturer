@@ -25,6 +25,7 @@ export interface AppSettings {
   smtpUser?: string;
   smtpPass?: string;
   smtpFrom?: string;
+  productionEventWarehouseRequired?: boolean;
 }
 
 interface SettingsState {
@@ -82,6 +83,7 @@ const defaultSettings: AppSettings = {
   smtpUser: '',
   smtpPass: '',
   smtpFrom: '',
+  productionEventWarehouseRequired: false,
 };
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({

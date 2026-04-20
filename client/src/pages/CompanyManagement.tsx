@@ -808,7 +808,7 @@ function NextGenUnits({ units, locations, onAdd, onDelete, onUpdate, onRefreshLo
       onDelete();
     }
   };
-  const stopRowToggle = (e: any) => e.stopPropagation();
+
   const toggleRowSelection = (unitId: string) => {
     const next = new Set(selectedIds);
     if (next.has(unitId)) next.delete(unitId);

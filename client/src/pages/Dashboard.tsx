@@ -351,10 +351,10 @@ function Dashboard() {
 
 
 
-        {/* Dynamic Grid Layout */}
+        {/* Dynamic Masonry Layout */}
         <div className={cn(
-          "grid gap-8 items-start",
-          gridMode === 'double' ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1"
+          "gap-8 items-start",
+          gridMode === 'double' ? "columns-1 lg:columns-2" : "columns-1"
         )}>
           <SortableContext items={currentLayout.map(item => item.id)} strategy={verticalListSortingStrategy}>
             {currentLayout.map((item) => {
@@ -388,7 +388,7 @@ function Dashboard() {
                         { label: t('dashboard.avgOee', 'ORTALAMA OEE'), value: `%${avgOee}`, icon: BarChart3, color: Number(avgOee) >= 75 ? 'text-theme-success' : 'text-theme-warning', bg: Number(avgOee) >= 75 ? 'bg-theme-success/10' : 'bg-theme-warning/10' },
                         { label: t('dashboard.totalDowntime', 'TOPLAM DURUŞ'), value: `${totalDowntimeMinutes.toLocaleString('tr-TR')} dk`, icon: Clock, color: 'text-theme-danger', bg: 'bg-theme-danger/10' }
                       ].map((kpi, i) => (
-                        <div key={i} className="p-4 bg-theme-surface/30 border border-theme rounded-3xl hover:border-theme-primary/30 transition-all group/k flex flex-col justify-between h-36">
+                        <div key={i} className="p-4 bg-theme-surface/30 border border-theme rounded-2xl hover:border-theme-primary/30 transition-all group/k flex flex-col justify-between h-36">
                           <div className="flex items-center justify-between">
                             <div className={`p-2.5 rounded-xl ${kpi.bg} ${kpi.color}`}>
                               <kpi.icon className="w-5 h-5" />

@@ -13,7 +13,15 @@ import {
   Camera,
   LogOut,
   Smartphone,
-  FileText
+  FileText,
+  MapPin,
+  Clock,
+  Lock,
+  Download,
+  ChevronRight,
+  ShieldAlert,
+  Eye,
+  Layout
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';

@@ -594,6 +594,17 @@ export function AppSettings() {
                       searchable={true}
                     />
                   </SettingItem>
+
+                  <SettingItem
+                    label="ÜRETİM EMİRLERİNDE DEPO SEÇİMİ ZORUNLU OLSUN MAİ?"
+                    description="Olaylar (Red, Numune vb.) girilirken bir depo seçilmesini zorunlu tutar."
+                  >
+                    <Toggle
+                      active={localSettings.productionEventWarehouseRequired || false}
+                      onClick={() => setLocalSettings({ ...localSettings, productionEventWarehouseRequired: !localSettings.productionEventWarehouseRequired })}
+                      label={localSettings.productionEventWarehouseRequired ? "ZORUNLU" : "İSTEĞE BAĞLI"}
+                    />
+                  </SettingItem>
                 </div>
 
                 <div className="mt-6 flex items-start gap-4 p-6 bg-theme-primary/5 border border-theme-primary/10 rounded-2xl">

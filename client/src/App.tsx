@@ -89,6 +89,7 @@ function App() {
               <Route path="reports/general" element={<ReportsGeneral />} />
               <Route path="analytics" element={<Analytics />} />
               <Route path="definitions" element={<Definitions />} />
+              <Route path="definitions/:tab" element={<Definitions />} />
               <Route path="settings" element={<AppSettings />} />
               <Route path="profile" element={<Profile />} />
               <Route path="users" element={<CompanyUsers />} />
@@ -108,9 +109,9 @@ function App() {
               <Route path="planning/work-plans" element={<WorkPlanList />} />
               <Route path="planning/work-plans/new" element={<WorkPlanForm />} />
               <Route path="planning/work-plans/edit/:id" element={<WorkPlanForm />} />
-              <Route path="planning/production-orders" element={<ProductionOrders />} />
-              <Route path="planning/production-orders/new" element={<ProductionOrderForm />} />
-              <Route path="planning/production-orders/:id" element={<ProductionOrderForm />} />
+              <Route path="production-orders" element={<ProductionOrders />} />
+              <Route path="production-orders/new" element={<ProductionOrderForm />} />
+              <Route path="production-orders/:lotNumber" element={<ProductionOrderForm />} />
               <Route path="planning/definitions" element={<ProductionDefinitions />} />
             </Route>
           </Routes>

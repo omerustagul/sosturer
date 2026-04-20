@@ -14,14 +14,26 @@ router.get('/', authenticateToken, async (req: AuthRequest, res) => {
     const orders = await prisma.productionOrder.findMany({
       where: { companyId },
       include: {
-        product: { select: { productCode: true, productName: true, trackingType: true, stockType: true } },
+        product: { select: { productCode: true, productName: true, trackingType: true, stockType: true, category: true, productGroup: true } },
         steps: {
-          include: { operation: { select: { name: true, code: true } } },
+          include: { 
+            operation: { select: { name: true, code: true } },
+            operator: { select: { fullName: true, employeeId: true } },
+            shift: { select: { shiftName: true } }
+          },
           orderBy: { sequence: 'asc' }
         },
         components: { include: { componentProduct: true } },
         machines: { include: { machine: true } },
-        events: { include: { operator: true } },
+        events: { 
+          include: { 
+            operator: true,
+            reason: { include: { group: true } },
+            warehouse: true,
+            step: { include: { operation: true } }
+          },
+          orderBy: { createdAt: 'desc' }
+        },
         parent: { select: { lotNumber: true } }
       },
       orderBy: { createdAt: 'desc' }
@@ -36,17 +48,39 @@ router.get('/', authenticateToken, async (req: AuthRequest, res) => {
 router.get('/:id', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const companyId = getCompanyId(req);
+    const param = req.params.id as string;
+    const isNumeric = /^\d+$/.test(param);
+    
     const order = await prisma.productionOrder.findFirst({
-      where: { id: req.params.id as string, companyId },
+      where: {
+        companyId,
+        OR: [
+          { id: param },
+          { lotNumber: param },
+          ...(isNumeric ? [{ recordNumber: parseInt(param, 10) }] : [])
+        ]
+      },
       include: {
         product: true,
         steps: {
-          include: { operation: true },
+          include: { 
+            operation: true, 
+            operator: true, 
+            shift: true 
+          },
           orderBy: { sequence: 'asc' }
         },
         components: { include: { componentProduct: true } },
         machines: { include: { machine: true } },
-        events: { include: { operator: true } }
+        events: { 
+          include: { 
+            operator: true,
+            reason: { include: { group: true } },
+            warehouse: true,
+            step: { include: { operation: true } }
+          },
+          orderBy: { createdAt: 'desc' }
+        }
       }
     });
     if (!order) return res.status(404).json({ error: 'Üretim emri bulunamadı' });
@@ -177,7 +211,7 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
 router.put('/:id', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const companyId = getCompanyId(req);
-    const { id } = req.params;
+    const id = req.params.id as string;
     const {
       productId, lotNumber, quantity, startDate, endDate,
       type, targetWarehouseId, notes, expiryDate, sterilizationDate,
@@ -208,7 +242,7 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res) => {
         await tx.productionOrderComponent.deleteMany({ where: { productionOrderId: id } });
         await tx.productionOrderComponent.createMany({
           data: components.map(c => ({
-            productionOrderId: id,
+            productionOrderId: id as string,
             componentProductId: c.componentProductId,
             quantity: Number(c.quantity),
             unit: c.unit,
@@ -222,14 +256,29 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res) => {
 
       // 3. Update Machines
       if (machines && Array.isArray(machines)) {
-        await tx.productionOrderMachine.deleteMany({ where: { productionOrderId: id } });
+        await tx.productionOrderMachine.deleteMany({ where: { productionOrderId: id as string } });
         await tx.productionOrderMachine.createMany({
           data: machines.map(m => ({
-            productionOrderId: id,
+            productionOrderId: id as string,
             machineId: m.machineId,
             unitTimeSeconds: Number(m.unitTimeSeconds)
           }))
         });
+      }
+
+      // 4. Update Steps (mainly approvedQty)
+      if (req.body.steps && Array.isArray(req.body.steps)) {
+        for (const step of req.body.steps) {
+          if (step.id) {
+            await tx.productionOrderStep.update({
+              where: { id: step.id },
+              data: {
+                approvedQty: Number(step.approvedQty) || 0,
+                // optionally update status if passed
+              }
+            });
+          }
+        }
       }
     });
 
@@ -240,21 +289,140 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res) => {
   }
 });
 
+// Bulk duplicate production orders
+router.post('/duplicate', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const companyId = getCompanyId(req);
+    const { ids, count = 1 } = req.body; // Array of production order IDs and number of copies
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: 'Geçersiz sipariş ID listesi' });
+    }
+
+    const duplicationCount = Math.max(1, Math.min(Number(count), 50)); // Limit to 50 copies for safety
+
+    await prisma.$transaction(async (tx) => {
+      // Get the highest record number currently to increment sequentially
+      let lastOrder = await tx.productionOrder.findFirst({
+        where: { companyId },
+        orderBy: { recordNumber: 'desc' },
+        select: { recordNumber: true }
+      });
+      let currentRecordNumber = lastOrder?.recordNumber || 0;
+
+      for (const id of ids) {
+        // Fetch the original order details
+        const order = await tx.productionOrder.findFirst({
+          where: { id, companyId },
+          include: {
+            steps: { orderBy: { sequence: 'asc' } },
+            components: true,
+            machines: true
+          }
+        });
+
+        if (!order) continue; // Skip if not found
+        if (order.status !== 'planned') {
+           throw new Error(`Sadece 'Hazır' durumundaki üretim emirleri çoğaltılabilir. Hatalı Lot: ${order.lotNumber}`);
+        }
+
+        for (let i = 0; i < duplicationCount; i++) {
+          currentRecordNumber++;
+          const yearSuffix = new Date().getFullYear().toString().slice(-2);
+          const lotNumberSequence = currentRecordNumber.toString().padStart(5, '0');
+          const finalLotNumber = `${yearSuffix}${lotNumberSequence}`;
+
+          const newOrder = await tx.productionOrder.create({
+            data: {
+              companyId: companyId!,
+              recordNumber: currentRecordNumber,
+              productId: order.productId,
+              lotNumber: finalLotNumber,
+              quantity: order.quantity,
+              startDate: order.startDate ? new Date() : null,
+              endDate: order.endDate ? new Date() : null,
+              status: 'planned',
+              type: order.type,
+              targetWarehouseId: order.targetWarehouseId,
+              notes: order.notes,
+              expiryDate: order.expiryDate,
+              sterilizationDate: order.sterilizationDate,
+              parentId: order.parentId
+            }
+          });
+
+          // 1. Create steps
+          if (order.steps.length > 0) {
+            await tx.productionOrderStep.createMany({
+              data: order.steps.map(r => ({
+                productionOrderId: newOrder.id,
+                operationId: r.operationId,
+                sequence: r.sequence,
+                status: 'pending'
+              }))
+            });
+          }
+
+          // 2. Create components Link
+          if (order.components.length > 0) {
+            await tx.productionOrderComponent.createMany({
+              data: order.components.map(c => ({
+                productionOrderId: newOrder.id,
+                componentProductId: c.componentProductId,
+                quantity: c.quantity,
+                notes: c.notes,
+                unit: c.unit,
+                consumptionType: c.consumptionType,
+                warehouseId: c.warehouseId,
+                lotNumber: c.lotNumber
+              }))
+            });
+          }
+
+          // 3. Create Machines assignment
+          if (order.machines.length > 0) {
+            await tx.productionOrderMachine.createMany({
+              data: order.machines.map(m => ({
+                productionOrderId: newOrder.id,
+                machineId: m.machineId,
+                unitTimeSeconds: m.unitTimeSeconds
+              }))
+            });
+          }
+        }
+      }
+    });
+
+    res.json({ success: true, message: 'Seçili siparişler başarıyla çoğaltıldı' });
+  } catch (error: any) {
+    console.error('Duplicate production order error:', error);
+    res.status(400).json({ error: error.message || 'Çoğaltma işlemi sırasında hata oluştu' });
+  }
+});
+
 // Update step progress
 router.patch('/steps/:stepId', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const stepId = req.params.stepId as string;
-    const { approvedQty, rejectedQty, sampleQty, status, operatorId, machineId, startTime, endTime } = req.body;
+    const { 
+      approvedQty, rejectedQty, reworkQty, sampleQty, conditionalQty, 
+      status, operatorId, machineId, shiftId, workType,
+      startTime, endTime 
+    } = req.body;
 
     const step = await prisma.productionOrderStep.update({
       where: { id: stepId },
       data: {
         approvedQty: approvedQty !== undefined ? Number(approvedQty) : undefined,
         rejectedQty: rejectedQty !== undefined ? Number(rejectedQty) : undefined,
+        reworkQty: reworkQty !== undefined ? Number(reworkQty) : undefined,
         sampleQty: sampleQty !== undefined ? Number(sampleQty) : undefined,
+        conditionalQty: conditionalQty !== undefined ? Number(conditionalQty) : undefined,
         status,
         operatorId,
         machineId,
+        shiftId,
+        workType,
         startTime: startTime ? new Date(startTime) : undefined,
         endTime: endTime ? new Date(endTime) : undefined
       }
@@ -263,6 +431,242 @@ router.patch('/steps/:stepId', authenticateToken, async (req: AuthRequest, res) 
     res.json(step);
   } catch (error) {
     res.status(400).json({ error: 'Operasyon adımı güncellenemedi' });
+  }
+});
+
+// Update status
+router.patch('/:id/status', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const id = req.params.id as string;
+    const { status } = req.body;
+    const companyId = getCompanyId(req);
+    
+    // Get full order info
+    const order = await prisma.productionOrder.findFirst({
+      where: { id, companyId },
+      include: { steps: true }
+    });
+
+    if (!order) return res.status(404).json({ error: 'Üretim emri bulunamadı' });
+
+    if (status === 'completed') {
+      // 1. Check all steps completed
+      const allCompleted = order.steps.every(s => s.status === 'completed');
+      if (!allCompleted) {
+        return res.status(400).json({ error: 'Tüm operasyonlar tamamlanmadan üretim emri bitirilemez.' });
+      }
+
+      // 2. Transaction for status and stock entry
+      await prisma.$transaction(async (tx) => {
+        // Update main order status
+        await tx.productionOrder.update({
+          where: { id },
+          data: { status, endDate: new Date() }
+        });
+
+        // Determine final quantity (use last step's approved quantity or planned quantity)
+        const sortedSteps = [...order.steps].sort((a, b) => b.sequence - a.sequence);
+        const finalQty = sortedSteps[0]?.approvedQty || order.quantity;
+
+        if (order.targetWarehouseId) {
+          // UPSERT stock level
+          const existingLevel = await tx.stockLevel.findUnique({
+            where: {
+              productId_warehouseId_lotNumber: {
+                productId: order.productId,
+                warehouseId: order.targetWarehouseId,
+                lotNumber: order.lotNumber
+              }
+            }
+          });
+
+          if (existingLevel) {
+            await tx.stockLevel.update({
+              where: { id: existingLevel.id },
+              data: { quantity: { increment: finalQty } }
+            });
+          } else {
+            await tx.stockLevel.create({
+              data: {
+                companyId: companyId!,
+                productId: order.productId,
+                warehouseId: order.targetWarehouseId,
+                lotNumber: order.lotNumber,
+                quantity: finalQty
+              }
+            });
+          }
+
+          // Log stock movement
+          await tx.stockMovement.create({
+            data: {
+              companyId: companyId!,
+              productId: order.productId,
+              toWarehouseId: order.targetWarehouseId,
+              lotNumber: order.lotNumber,
+              type: 'PRODUCTION',
+              quantity: finalQty,
+              description: `Üretim Emri Tamamlandı - Lot: ${order.lotNumber}`,
+              referenceId: order.id
+            }
+          });
+        }
+      });
+
+      return res.json({ success: true, message: 'Üretim emri tamamlandı ve stok girişi yapıldı.' });
+    }
+
+    // Normal status update
+    const updated = await prisma.productionOrder.update({
+      where: { id: id as string, companyId },
+      data: { status }
+    });
+
+    res.json(updated);
+  } catch (error: any) {
+    console.error('Update status error:', error);
+    res.status(400).json({ error: error.message || 'Durum güncellenemedi' });
+  }
+});
+
+// Toggle star status
+router.patch('/:id/star', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const id = req.params.id as string;
+    const companyId = getCompanyId(req);
+    
+    const existing = await prisma.productionOrder.findFirst({
+      where: { id: id, companyId },
+      select: { isStarred: true }
+    });
+    
+    if (!existing) return res.status(404).json({ error: 'Emir bulunamadı' });
+
+    const updated = await prisma.productionOrder.update({
+      where: { id: id as string },
+      data: { isStarred: !existing.isStarred }
+    });
+
+    res.json({ success: true, isStarred: updated.isStarred });
+  } catch (error) {
+    res.status(400).json({ error: 'Yıldızlanamadı' });
+  }
+});
+
+// Delete production order
+router.delete('/:id', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const id = req.params.id as string;
+    const companyId = getCompanyId(req);
+
+    // Delete elements linked to production order via cascades (prisma schema handles cascade deletion for components and steps, wait we need to explicitly delete if cascades are not fully set)
+    // ProductionOrder has components, steps, machines. Let's delete them first to be safe.
+    await prisma.$transaction([
+      prisma.productionOrderComponent.deleteMany({ where: { productionOrderId: id as string } }),
+      prisma.productionOrderStep.deleteMany({ where: { productionOrderId: id as string } }),
+      prisma.productionOrderMachine.deleteMany({ where: { productionOrderId: id as string } }),
+      prisma.productionOrderEvent.deleteMany({ where: { productionOrderId: id as string } }),
+      prisma.productionOrder.delete({ where: { id: id as string, companyId } })
+    ]);
+
+    res.json({ success: true, message: 'Üretim emri silindi' });
+  } catch (error) {
+    res.status(400).json({ error: 'Silinirken bir hata oluştu' });
+  }
+});
+
+// Create production order event
+router.post('/:id/events', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const productionOrderId = req.params.id as string;
+    const { stepId, type, quantity, operatorId, reasonId, warehouseId, description, createdAt } = req.body;
+
+    const event = await prisma.productionOrderEvent.create({
+      data: {
+        productionOrderId,
+        stepId: stepId || null,
+        type,
+        quantity: quantity ? Number(quantity) : null,
+        operatorId: operatorId || null,
+        reasonId: reasonId || null,
+        warehouseId: warehouseId || null,
+        description,
+        createdAt: createdAt ? new Date(createdAt) : undefined
+      },
+      include: {
+        productionOrder: { include: { product: true } },
+        step: { include: { operation: true } },
+        operator: true,
+        reason: true,
+        warehouse: true
+      }
+    });
+
+    res.json(event);
+  } catch (error) {
+    console.error('Create event error:', error);
+    res.status(400).json({ error: 'Olay kaydı oluşturulamadı.' });
+  }
+});
+
+// Update production order event
+router.put('/events/:eventId', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const { eventId } = req.params;
+    const { stepId, type, quantity, operatorId, reasonId, warehouseId, description, createdAt } = req.body;
+    const companyId = getCompanyId(req);
+
+    const existing = await prisma.productionOrderEvent.findFirst({
+        where: { id: eventId, productionOrder: { companyId } }
+    });
+    if (!existing) return res.status(404).json({ error: 'Olay kaydı bulunamadı.' });
+
+    const event = await prisma.productionOrderEvent.update({
+      where: { id: eventId },
+      data: {
+        stepId: stepId || null,
+        type,
+        quantity: quantity ? Number(quantity) : null,
+        operatorId: operatorId || null,
+        reasonId: reasonId || null,
+        warehouseId: warehouseId || null,
+        description,
+        createdAt: createdAt ? new Date(createdAt) : undefined
+      },
+      include: {
+        productionOrder: { include: { product: true } },
+        step: { include: { operation: true } },
+        operator: true,
+        reason: true,
+        warehouse: true
+      }
+    });
+
+    res.json(event);
+  } catch (error) {
+    console.error('Update event error:', error);
+    res.status(400).json({ error: 'Olay kaydı güncellenemedi.' });
+  }
+});
+
+// Delete production order event
+router.delete('/events/:eventId', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const { eventId } = req.params;
+    const companyId = getCompanyId(req);
+
+    const existing = await prisma.productionOrderEvent.findFirst({
+        where: { id: eventId, productionOrder: { companyId } }
+    });
+    if (!existing) return res.status(404).json({ error: 'Olay kaydı bulunamadı.' });
+
+    await prisma.productionOrderEvent.delete({
+      where: { id: eventId }
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(400).json({ error: 'Olay kaydı silinemedi.' });
   }
 });
 

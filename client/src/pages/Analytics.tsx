@@ -278,8 +278,8 @@ export function Analytics() {
                 <tr key={idx} className="group hover:bg-theme-primary/5 transition-all">
                   <td className="px-2 py-2">
                     <div className="flex items-center gap-4">
-                      <div className="w-8 h-8 bg-theme-base border border-theme rounded-xl flex items-center justify-center font-black text-theme-primary text-xs shadow-sm group-hover:bg-theme-primary group-hover:text-white transition-all">
-                        {m.machine.substring(0, 2)}
+                      <div className="w-16 h-8 bg-theme-base border border-theme rounded-xl flex items-center justify-center font-black text-theme-primary text-xs shadow-sm group-hover:bg-theme-primary group-hover:text-white transition-all">
+                        {m.machine.substring(0, 3)}
                       </div>
                       <span className="text-theme-main text-xs font-black tracking-tight">{m.machine}</span>
                     </div>

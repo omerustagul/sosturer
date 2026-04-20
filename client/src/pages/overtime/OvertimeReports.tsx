@@ -163,7 +163,7 @@ export function OvertimeReports() {
           <button onClick={() => { fetchReport(); setCurrentPage(0); }} className="btn-primary text-xs flex items-center gap-2 px-6">
             <Filter className="w-4 h-4" /> FİLTRELE
           </button>
-          <button onClick={clearFilters} className="btn-secondary h-10 px-5 flex items-center gap-2 text-[9px] font-black text-theme-primary border-theme-primary/20">TEMİZLE</button>
+          <button onClick={clearFilters} className="btn-secondary text-xs px-6">TEMİZLE</button>
         </div>
       </div>
 

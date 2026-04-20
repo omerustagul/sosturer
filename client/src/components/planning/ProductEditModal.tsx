@@ -1,11 +1,11 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../../lib/api';
 import {
   X, Save, Package, Layers,
   Workflow, Map, Info,
-  Plus, Trash2, Box, Gauge,
-  Settings2, ShoppingBag, Cpu
+  Plus, Trash2, Gauge,
+  ShoppingBag, Cpu
 } from 'lucide-react';
 import { Loading } from '../common/Loading';
 import { CustomSelect } from '../common/CustomSelect';

@@ -56,6 +56,8 @@ model Company {
   productionOrders        ProductionOrder[]
   workPlanTypes           WorkPlanType[]
   productionRoutes        ProductionRoute[]
+  productionEventReasons  ProductionEventReason[]
+  productionEventGroups   ProductionEventGroup[]
   customers               Customer[]
   orders                  Order[]
   offDays                 CompanyOffDay[]
@@ -164,6 +166,7 @@ model Shift {
   overtimePlans     OvertimePlan[]
   productionRecords ProductionRecord[]
   productionPlans   ProductionPlan[]
+  steps             ProductionOrderStep[]
   company           Company            @relation(fields: [companyId], references: [id])
 
   @@unique([companyId, shiftCode])
@@ -344,6 +347,7 @@ model AppSettings {
   standardShiftIds      String   @default("[]") @map("standard_shift_ids")
   updatedAt             DateTime @updatedAt @map("updated_at")
   font_family           String   @default("Inter")
+  productionEventWarehouseRequired Boolean @default(false) @map("production_event_warehouse_required")
   
   // SMTP Configuration
   smtpHost              String?  @map("smtp_host")
@@ -518,6 +522,7 @@ model Warehouse {
   stockLevels   StockLevel[]
   movementsTo   StockMovement[] @relation("to")
   movementsFrom StockMovement[] @relation("from")
+  productionOrderEvents ProductionOrderEvent[]
 
   @@unique([companyId, name])
   @@map("warehouses")
@@ -727,6 +732,7 @@ model ProductionOrder {
   lotNumber       String         @map("lot_number")
   quantity        Int
   status          String         @default("draft")
+  isStarred       Boolean        @default(false) @map("is_starred")
   startDate       DateTime?      @map("start_date")
   endDate         DateTime?      @map("end_date")
   createdAt       DateTime       @default(now()) @map("created_at")
@@ -763,10 +769,14 @@ model ProductionOrderStep {
   
   approvedQty       Int             @default(0) @map("approved_qty")
   rejectedQty       Int             @default(0) @map("rejected_qty")
+  reworkQty         Int             @default(0) @map("rework_qty")
   sampleQty         Int             @default(0) @map("sample_qty")
+  conditionalQty    Int             @default(0) @map("conditional_qty")
   
   operatorId        String?         @map("operator_id")
   machineId         String?         @map("machine_id")
+  shiftId           String?         @map("shift_id")
+  workType          String?         @map("work_type")
   
   startTime         DateTime?       @map("start_time")
   endTime           DateTime?       @map("end_time")
@@ -774,8 +784,10 @@ model ProductionOrderStep {
   productionOrder   ProductionOrder @relation(fields: [productionOrderId], references: [id], onDelete: Cascade)
   operation         Operation       @relation(fields: [operationId], references: [id])
   operator          Operator?       @relation(fields: [operatorId], references: [id])
+  shift             Shift?          @relation(fields: [shiftId], references: [id])
   machine           Machine?        @relation(fields: [machineId], references: [id])
   workPlanItems     WorkPlanItem[]
+  events            ProductionOrderEvent[]
 
   @@map("production_order_steps")
 }
@@ -880,16 +892,56 @@ model RouteStep {
 model ProductionOrderEvent {
   id                String          @id @default(uuid())
   productionOrderId String          @map("production_order_id")
-  type              String          // RED, NUMUNE, ARIZA, DURUS
-  description       String
-  quantity          Int?
+  stepId            String?         @map("step_id")
+  type              String          // RED, NUMUNE, TEKRAR_ISLEM, SARTLI_KABUL, ARIZA, DURUS
+  description       String?
+  quantity          Float?
   operatorId        String?         @map("operator_id")
+  reasonId          String?         @map("reason_id")
+  warehouseId       String?         @map("warehouse_id")
   createdAt         DateTime        @default(now()) @map("created_at")
   
   productionOrder   ProductionOrder @relation(fields: [productionOrderId], references: [id], onDelete: Cascade)
+  step              ProductionOrderStep? @relation(fields: [stepId], references: [id])
   operator          Operator?       @relation(fields: [operatorId], references: [id])
+  reason            ProductionEventReason? @relation(fields: [reasonId], references: [id])
+  warehouse         Warehouse?      @relation(fields: [warehouseId], references: [id])
   
   @@map("production_order_events")
+}
+
+model ProductionEventGroup {
+  id                String          @id @default(uuid())
+  companyId         String          @map("company_id")
+  code              String?
+  name              String
+  status            String          @default("active")
+  displayOrder      Int             @default(0) @map("display_order")
+  createdAt         DateTime        @default(now()) @map("created_at")
+
+  reasons           ProductionEventReason[]
+  company           Company         @relation(fields: [companyId], references: [id])
+
+  @@map("production_event_groups")
+}
+
+model ProductionEventReason {
+  id                String          @id @default(uuid())
+  companyId         String          @map("company_id")
+  code              String?
+  name              String
+  type              String          // RED, NUMUNE, TEKRAR_ISLEM, SARTLI_KABUL
+  status            String          @default("active")
+  displayOrder      Int             @default(0) @map("display_order")
+  createdAt         DateTime        @default(now()) @map("created_at")
+
+  groupId           String?         @map("group_id")
+  group             ProductionEventGroup? @relation(fields: [groupId], references: [id])
+
+  events            ProductionOrderEvent[]
+  company           Company         @relation(fields: [companyId], references: [id])
+
+  @@map("production_event_reasons")
 }
 
 model ProductionOrderMachine {
