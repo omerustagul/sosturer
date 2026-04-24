@@ -709,7 +709,6 @@ export function Definitions() {
             if (parentGroupId && !openGroups.has(parentGroupId)) return null;
 
             const isActive = activeTab === tab.id;
-            const indent = (tab as any).indent;
             return (
               <button
                 key={tab.id}

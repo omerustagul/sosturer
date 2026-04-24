@@ -49,7 +49,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
 router.put('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const companyId = getCompanyId(req);
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { code, name, status } = req.body;
 
     const group = await prisma.productionEventGroup.update({
@@ -66,7 +66,7 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
 router.delete('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const companyId = getCompanyId(req);
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     await prisma.productionEventGroup.delete({
       where: { id, companyId }

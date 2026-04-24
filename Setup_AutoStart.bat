@@ -16,7 +16,7 @@ set "vbsPath=%base%Sosturer_Startup.vbs"
 echo.
 echo [1/2] Güvenlik Duvarı İzinleri Kontrol Ediliyor...
 netsh advfirewall firewall delete rule name="Sosturer LAN" >nul 2>&1
-netsh advfirewall firewall add rule name="Sosturer LAN" dir=in action=allow protocol=TCP localport=3001 profile=any description="Sosturer Ag Erisimi"
+netsh advfirewall firewall add rule name="Sosturer LAN" dir=in action=allow protocol=TCP localport=3005 profile=any description="Sosturer Ag Erisimi"
 
 echo [2/2] Sunucu Görevi Ayarlanıyor (Bilgisayar Açılışında)...
 :: Eski görevleri temizle
@@ -34,7 +34,7 @@ echo --------------------------------------------------------
 echo Yerel IP Adresiniz:
 ipconfig | findstr /i "IPv4"
 echo --------------------------------------------------------
-echo Bilgisayar her açıldığında Sosturer sunucusu (3001) 
+echo Bilgisayar her açıldığında Sosturer sunucusu (3005) 
 echo otomatik olarak arka planda başlayacaktır.
 echo ========================================================
 echo.

@@ -37,7 +37,6 @@ export function Layout() {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
-  const [systemInfo, setSystemInfo] = useState<{ ip: string, port: string } | null>(null);
   const [workStatus, setWorkStatus] = useState<{
     type: 'shift' | 'overtime' | 'closed';
     label: string;
@@ -123,7 +122,6 @@ export function Layout() {
   };
 
   useEffect(() => {
-    api.get('/system/info').then(setSystemInfo).catch(() => { });
     checkUnreadNotifications();
     fetchWorkStatus();
 

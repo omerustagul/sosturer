@@ -38,7 +38,7 @@ export async function adjustStockFromProduction(params: {
     // 1. Find or create stock level for this product/warehouse
     const currentLevel = await tx.stockLevel.findUnique({
       where: {
-        productId_warehouseId: { productId, warehouseId }
+        productId_warehouseId_lotNumber: { productId, warehouseId, lotNumber: "" }
       }
     });
 

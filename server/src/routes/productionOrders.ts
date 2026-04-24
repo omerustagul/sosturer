@@ -612,7 +612,7 @@ router.post('/:id/events', authenticateToken, async (req: AuthRequest, res) => {
 // Update production order event
 router.put('/events/:eventId', authenticateToken, async (req: AuthRequest, res) => {
   try {
-    const { eventId } = req.params;
+    const eventId = req.params.eventId as string;
     const { stepId, type, quantity, operatorId, reasonId, warehouseId, description, createdAt } = req.body;
     const companyId = getCompanyId(req);
 
@@ -652,7 +652,7 @@ router.put('/events/:eventId', authenticateToken, async (req: AuthRequest, res) 
 // Delete production order event
 router.delete('/events/:eventId', authenticateToken, async (req: AuthRequest, res) => {
   try {
-    const { eventId } = req.params;
+    const eventId = req.params.eventId as string;
     const companyId = getCompanyId(req);
 
     const existing = await prisma.productionOrderEvent.findFirst({

@@ -9,7 +9,7 @@ import { io, Socket } from 'socket.io-client';
 import {
   Activity, Settings, Clock, Factory, BarChart3,
   Plus, ChevronRight, Layout as LayoutIcon,
-  Check, Save, TrendingUp, Package, Columns2, Square
+  Check, Save, TrendingUp, Package, Columns, Square, Maximize2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Loading } from '../components/common/Loading';

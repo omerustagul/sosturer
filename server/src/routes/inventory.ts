@@ -149,7 +149,7 @@ router.post('/movements', authenticateToken, async (req: AuthRequest, res) => {
       // 2. Decrease source warehouse stock
       if (fromWarehouseId) {
         await tx.stockLevel.upsert({
-          where: { productId_warehouseId: { productId, warehouseId: fromWarehouseId } },
+          where: { productId_warehouseId_lotNumber: { productId, warehouseId: fromWarehouseId, lotNumber: "" } },
           update: { quantity: { decrement: quantity } },
           create: { companyId, productId, warehouseId: fromWarehouseId, quantity: -quantity }
         });
@@ -158,7 +158,7 @@ router.post('/movements', authenticateToken, async (req: AuthRequest, res) => {
       // 3. Increase destination warehouse stock
       if (toWarehouseId) {
         await tx.stockLevel.upsert({
-          where: { productId_warehouseId: { productId, warehouseId: toWarehouseId } },
+          where: { productId_warehouseId_lotNumber: { productId, warehouseId: toWarehouseId, lotNumber: "" } },
           update: { quantity: { increment: quantity } },
           create: { companyId, productId, warehouseId: toWarehouseId, quantity: quantity }
         });
