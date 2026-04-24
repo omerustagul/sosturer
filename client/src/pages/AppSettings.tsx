@@ -596,7 +596,7 @@ export function AppSettings() {
                   </SettingItem>
 
                   <SettingItem
-                    label="ÜRETİM EMİRLERİNDE DEPO SEÇİMİ ZORUNLU OLSUN MAİ?"
+                    label="ÜRETİM EMİRLERİNDE DEPO SEÇİMİ ZORUNLU OLSUN MU?"
                     description="Olaylar (Red, Numune vb.) girilirken bir depo seçilmesini zorunlu tutar."
                   >
                     <Toggle

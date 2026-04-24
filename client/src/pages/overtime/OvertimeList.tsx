@@ -826,7 +826,7 @@ export function OvertimeList() {
 
             {/* Day Selector Track - Modern Compact Navigation */}
             <div className="px-3 mb-3">
-              <div className="bg-theme-surface/30 p-3.5 rounded-2xl border border-theme-border/50 flex items-center gap-2 relative overflow-x-auto no-scrollbar backdrop-blur-md">
+              <div className="bg-theme-surface/30 p-2.5 rounded-2xl border border-theme-border/50 flex items-center gap-2 relative overflow-x-auto no-scrollbar backdrop-blur-md">
                 {uniqueDays.map(day => {
                   const isActive = activeDayDate === day;
                   const dateObj = new Date(day);

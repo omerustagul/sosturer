@@ -269,11 +269,11 @@ export function Layout() {
       {/* Header */}
       <header className="h-16 border-b border-theme bg-theme-surface/90 backdrop-blur-2xl px-6 flex items-center justify-between shrink-0 z-50 shadow-[0_4px_30px_rgba(0,0,0,0.1)]">
         <div className="flex items-center gap-6">
-          <Link to="/" className="flex items-center gap-3 group">
+          <Link to="/" className="flex items-center gap-2 group">
             <div className="relative flex items-center justify-center">
-              <div className="absolute inset-0 bg-theme-primary/10 rounded-xl blur-lg group-hover:bg-theme-primary/20 transition-all duration-500" />
-              <div className="relative w-10 h-10 bg-theme-base/40 border border-theme-primary/20 rounded-xl flex items-center justify-center overflow-hidden transition-all duration-300 group-hover:border-theme-primary/50 group-hover:scale-[1.05]">
-                <img src="/logo.png" className="w-10 h-10 object-contain opacity-90 group-hover:opacity-100 transition-opacity" alt="Logo" />
+              <div className="absolute inset-0 bg-theme-primary/10 blur-lg group-hover:bg-theme-primary/20 transition-all duration-500" />
+              <div className="relative w-10 h-10 bg-transparent flex items-center justify-center overflow-hidden transition-all duration-300 group-hover:border-theme-primary/50 group-hover:scale-[1.05]">
+                <img src="/logo.png" className="w-9 h-9 object-contain opacity-90 group-hover:opacity-100 transition-opacity" alt="Logo" />
               </div>
             </div>
             <div className="flex flex-col items-start justify-center vertical-align-middle mb-1">
@@ -289,8 +289,8 @@ export function Layout() {
             </div>
           </Link>
 
-          <div className="hidden lg:flex items-center gap-3 pl-5 border-l border-theme h-8">
-            <span className="text-xs font-black uppercase text-theme-main max-w-[400px]">
+          <div className="hidden lg:flex items-center gap-2 pl-5 border-l border-theme h-8">
+            <span className="text-xs font-black text-theme-main max-w-[400px]">
               {companyName}
             </span>
           </div>
@@ -298,7 +298,7 @@ export function Layout() {
 
         <div className="flex gap-6 items-center vertical-align-middle">
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <Link to="/profile" className="flex items-center gap-2 group transition-all duration-300">
               <div className="text-right hidden sm:block">
                 <p className="text-xs font-bold text-theme-main group-hover:text-theme-primary transition-colors underline-offset-4 leading-none">{userFullName}</p>
@@ -314,7 +314,7 @@ export function Layout() {
             </Link>
 
             {/* Live Work / Shift Status */}
-            <div className={`flex items-center h-10 gap-2.5 border p-1.5 rounded-xl backdrop-blur-xl shadow-2xl transition-all duration-700 group shadow-lg ${workStatus.type === 'closed'
+            <div className={`flex items-center h-10 gap-2.5 border p-1.5 rounded-xl backdrop-blur-xl shadow-lg transition-all duration-700 group shadow-lg ${workStatus.type === 'closed'
               ? 'bg-theme-error/5 border-theme-error/20 hover:bg-theme-error/10 hover:border-theme-error/40'
               : workStatus.type === 'overtime'
                 ? 'bg-theme-warning/5 border-theme-warning/30 hover:bg-theme-warning/10 hover:border-theme-warning/50'
@@ -351,7 +351,7 @@ export function Layout() {
             <button
               ref={bellButtonRef}
               onClick={() => setIsNotificationOpen(!isNotificationOpen)}
-              className="relative p-2.5 rounded-xl bg-theme-main/5 text-theme-muted hover:text-theme-primary hover:bg-theme-primary/10 border border-theme transition-all active:scale-95 group shadow-lg"
+              className="relative h-10 w-10 p-2 rounded-xl bg-theme-main/5 text-theme-muted hover:text-theme-primary hover:bg-theme-primary/10 border border-theme transition-all active:scale-95 group shadow-lg"
             >
               <Bell className="w-5 h-5 group-hover:scale-110 transition-transform" />
               {hasUnreadNotifications && (
@@ -361,7 +361,7 @@ export function Layout() {
 
             <button
               onClick={handleLogout}
-              className="p-2.5 rounded-xl bg-theme-main/5 text-theme-muted hover:text-rose-400 hover:bg-rose-500/10 border border-theme hover:border-rose-500/20 transition-all active:scale-95 group shadow-lg"
+              className="h-10 w-10 p-2 rounded-xl bg-theme-main/5 text-theme-muted hover:text-rose-400 hover:bg-rose-500/10 border border-theme hover:border-rose-500/20 transition-all active:scale-95 group shadow-lg"
             >
               <LogOut className="w-5 h-5 group-hover:scale-110 transition-transform" />
             </button>
@@ -439,7 +439,7 @@ export function Layout() {
                         {item.children.map((child: any) => {
                           const isChildActive = location.pathname === child.path;
                           return (
-                            <Link key={child.path} to={child.path} className={`flex items-center gap-3 p-2 rounded-xl text-[10.5px] font-black transition-all shrink-0 ${isChildActive ? 'text-theme-primary bg-theme-primary/5 border border-theme-primary/20' : 'text-theme-muted hover:text-theme-main hover:bg-theme-main/5'}`}>
+                            <Link key={child.path} to={child.path} className={`flex items-center gap-2 p-2 rounded-xl text-[10.5px] font-black transition-all shrink-0 ${isChildActive ? 'text-theme-primary bg-theme-primary/5 border border-theme-primary/20' : 'text-theme-muted hover:text-theme-main hover:bg-theme-main/5'}`}>
                               <child.icon className="w-3.5 h-3.5" />
                               {child.label}
                             </Link>
