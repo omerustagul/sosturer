@@ -117,7 +117,7 @@ export function ProductRecipeModal({ product, onClose }: ProductRecipeModalProps
           ) : (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <p className="text-[10px] font-black text-theme-muted uppercase tracking-[0.2em]">OPERASYON SIRALAMASI</p>
+                <p className="text-[10px] font-black text-theme-muted uppercase">OPERASYON SIRALAMASI</p>
                 <button
                   type="button"
                   onClick={addStep}

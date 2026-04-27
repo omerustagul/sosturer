@@ -152,7 +152,7 @@ export function RecordDetailModal({ record, onClose }: RecordDetailModalProps) {
                   <span className="text-[11px] font-black text-theme-danger uppercase tracking-[0.2em]">{toTRUpper('Toplam Duruş Süresi')}</span>
                 </div>
                 <div className="text-right">
-                  <span className="text-3xl font-black text-theme-main tracking-tighter">{record.downtimeMinutes}</span>
+                  <span className="text-2xl font-black text-theme-main tracking-tighter">{record.downtimeMinutes}</span>
                   <span className="text-xs font-black text-theme-dim uppercase ml-2 opacity-50">Dakika</span>
                 </div>
               </div>

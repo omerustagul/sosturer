@@ -103,11 +103,11 @@ export function OrdersList() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-theme-surface/50">
-                <th className="px-8 py-6 text-[10px] font-black text-theme-dim uppercase tracking-[.25em]">Sipariş Bilgisi</th>
-                <th className="px-8 py-6 text-[10px] font-black text-theme-dim uppercase tracking-[.25em]">Müşteri/Bayi</th>
-                <th className="px-8 py-6 text-[10px] font-black text-theme-dim uppercase tracking-[.25em]">Tarih / Termin</th>
-                <th className="px-8 py-6 text-[10px] font-black text-theme-dim uppercase tracking-[.25em]">Durum</th>
-                <th className="px-8 py-6 text-[10px] font-black text-theme-dim uppercase tracking-[.25em] text-right">İşlem</th>
+                <th className="px-8 py-6 text-[10px] font-black text-theme-dim">Sipariş Bilgisi</th>
+                <th className="px-8 py-6 text-[10px] font-black text-theme-dim">Müşteri/Bayi</th>
+                <th className="px-8 py-6 text-[10px] font-black text-theme-dim">Tarih / Termin</th>
+                <th className="px-8 py-6 text-[10px] font-black text-theme-dim">Durum</th>
+                <th className="px-8 py-6 text-[10px] font-black text-theme-dim text-right">İşlem</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-theme/20">

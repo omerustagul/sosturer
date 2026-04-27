@@ -450,9 +450,6 @@ export function RecordsList() {
         }
         return (
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg bg-theme-primary/10 flex items-center justify-center text-[10px] font-black text-theme-primary border border-theme-primary/10">
-              {operatorName.charAt(0)}
-            </div>
             <span className="text-theme-main font-bold truncate max-w-[100px]">{operatorName}</span>
           </div>
         );
@@ -1255,7 +1252,7 @@ export function RecordsList() {
                     {headerGroup.headers.map(header => (
                       <th
                         key={header.id}
-                        className={`py-2 text-[10px] font-bold text-theme-main border-b border-theme relative ${header.column.id === 'select' ? 'px-0 w-[18px] max-w-[18px]' : 'px-2'}`}
+                        className={`py-2 text-[10px] font-bold text-theme-main border-b border-theme relative ${header.column.id === 'select' ? 'px-0 w-[14px] max-w-[14px]' : 'px-2'}`}
                         style={{
                           width: header.getSize(),
                           position: 'relative'
@@ -1454,8 +1451,8 @@ const StatCard = memo(({ icon: Icon, label, value, color }: any) => {
         </div>
       </div>
       <div>
-        <p className="text-[10px] font-black text-theme-dim uppercase tracking-[0.2em] mb-2 opacity-60">{label}</p>
-        <p className="text-3xl font-black text-theme-main tracking-tight leading-none">{displayValue}</p>
+        <p className="text-[12px] font-black text-theme-dim mb-2 opacity-60">{label}</p>
+        <p className="text-2xl font-black text-theme-main tracking-tight leading-none">{displayValue}</p>
       </div>
     </div>
   );

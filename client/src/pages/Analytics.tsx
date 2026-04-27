@@ -116,7 +116,7 @@ export function Analytics() {
         </div>
 
         {/* Filter Container */}
-        <div className="modern-glass-card p-1 border border-theme-main-20">
+        <div className="modern-glass-card p-1 border border-theme">
           <div className="flex flex-col sm:flex-row items-stretch gap-3">
             <div className="flex bg-theme-base rounded-2xl p-1 gap-1">
               {[7, 14, 30].map(days => (

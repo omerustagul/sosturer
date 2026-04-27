@@ -322,7 +322,7 @@ export function SuperAdmin() {
               <span className="text-[11px] font-bold text-theme-muted/50 mt-1 tracking-widest">Erişim Kontrol Paneli</span>
             </div>
           </div>
-          <h1 className="text-3xl font-black text-theme-main tracking-tighter leading-tight">
+          <h1 className="text-2xl font-black text-theme-main tracking-tighter leading-tight">
             Sistem Yönetim <span className="text-gradient-indigo">Merkezi</span>
           </h1>
         </div>

@@ -105,7 +105,7 @@ export function DashboardWidget({
       </div>
 
       {/* Content */}
-      <div className="flex flex-col col-span-1 md:col-span-2 relative z-10 h-full min-h-[300px]">
+      <div className="flex flex-col col-span-1 md:col-span-2 relative z-10 h-full">
         {children}
       </div>
     </div>

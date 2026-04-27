@@ -775,7 +775,7 @@ function KpiCard({ title, value, unit, icon: Icon, color }: any) {
         <div className="space-y-3">
           <p className="text-[11px] font-black uppercase tracking-[0.2em] opacity-60 text-theme-dim">{title}</p>
           <div className="flex items-baseline gap-2">
-            <h4 className="text-3xl font-black text-theme-main tracking-tighter">{value}</h4>
+            <h4 className="text-2xl font-black text-theme-main tracking-tighter">{value}</h4>
             <span className="text-[10px] font-black opacity-50 uppercase tracking-widest">{unit}</span>
           </div>
         </div>

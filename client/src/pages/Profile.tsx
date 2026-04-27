@@ -31,7 +31,7 @@ export function Profile() {
   const { user, logout, saveProfile } = useAuthStore();
   const [activeTab, setActiveTab] = useState('personal');
   const [isEditing, setIsEditing] = useState(false);
-  
+
   const [formData, setFormData] = useState({
     fullName: user?.fullName || '',
     email: user?.email || '',
@@ -43,7 +43,7 @@ export function Profile() {
     address: user?.personalAddress || '',
     memberSince: user?.memberSince || new Date().getFullYear().toString()
   });
-  
+
   const [draftData, setDraftData] = useState(formData);
   const [loading, setLoading] = useState(false);
 
@@ -114,8 +114,8 @@ export function Profile() {
         <div className="absolute top-0 right-0 w-96 h-96 bg-theme-primary/10 blur-[100px] -mr-48 -mt-48 transition-all duration-1000 group-hover:bg-theme-primary/20" />
         <div className="flex flex-col md:flex-row items-center gap-8 relative z-10">
           <div className="relative group/avatar">
-            <div className="w-32 h-32 rounded-full border-4 border-theme-primary/20 p-2 bg-theme-base shadow-2xl relative transition-transform duration-500 group-hover/avatar:scale-105">
-              <div className="w-full h-full rounded-full bg-gradient-to-br from-theme-primary/10 to-theme-primary/5 flex items-center justify-center text-3xl font-black text-theme-primary">
+            <div className="w-16 h-16 rounded-full border-3 border-theme-primary/20 p-0.75 bg-theme-base shadow-2xl relative transition-transform duration-500 group-hover/avatar:scale-105">
+              <div className="w-full h-full rounded-full bg-gradient-to-br from-theme-primary/10 to-theme-primary/5 flex items-center justify-center text-xl font-bold text-theme-primary">
                 {formData.fullName ? (
                   formData.fullName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
                 ) : (
@@ -123,13 +123,13 @@ export function Profile() {
                 )}
               </div>
               <label className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center rounded-full opacity-0 group-hover/avatar:opacity-100 transition-all cursor-pointer backdrop-blur-sm">
-                <Camera className="w-6 h-6 text-white mb-1" />
+                <Camera className="w-4 h-4 text-white mb-1" />
                 <span className="text-[8px] text-white font-black tracking-widest uppercase">DEĞİŞTİR</span>
                 <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
               </label>
             </div>
-            <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-emerald-500 rounded-full border-4 border-theme-surface flex items-center justify-center shadow-lg">
-              <Check className="w-4 h-4 text-white" />
+            <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-emerald-500 rounded-full border-2 border-theme-surface flex items-center justify-center shadow-lg">
+              <Check className="w-3 h-3 text-white mt-0.5" />
             </div>
           </div>
 
@@ -402,7 +402,7 @@ export function Profile() {
                       <div className="flex items-center gap-5">
                         <div className="w-12 h-12 rounded-xl bg-theme-base flex items-center justify-center border border-theme group-hover:border-theme-primary/40"><Smartphone className="w-5 h-5 text-theme-dim group-hover:text-theme-primary" /></div>
                         <div className="text-left">
-                          <p className="font-black text-theme-main uppercase text-[11px] mb-0.5">İKİ FAKTÖRLÜ DOĞRULAMA</p>
+                          <p className="font-black text-theme-main uppercase text-[11px] mb-0.5">İki Faktörlü Doğrulama</p>
                           <p className="text-[9px] text-theme-success font-bold uppercase tracking-tight">ŞU AN AKTİF</p>
                         </div>
                       </div>

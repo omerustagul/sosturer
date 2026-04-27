@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import {
-  Bolt, DiamondPlus, Logs, ChartArea, FileChartPie, ScanBarcode, CalendarRange,
+  Bolt, DiamondPlus, ListOrdered, Logs, ChartArea, FileChartPie, ScanBarcode, CalendarRange,
   Settings, BarChart3, LogOut, TextAlignStart, Airplay,
   ChevronLeft, ChevronRight, Package, FileUser, User, ShieldCheck, Factory,
   Bell, Building2, Warehouse, ShoppingCart, History, LayoutGrid, Boxes, GanttChart, Wrench,
@@ -185,7 +185,7 @@ export function Layout() {
       children: [
         { icon: DiamondPlus, label: t('nav.newRecord', 'Yeni Üretim Kaydı'), path: '/records/new' },
         { icon: Logs, label: t('nav.records', 'Üretim Kayıtları'), path: '/records' },
-        { icon: DiamondPlus, label: 'Üretim Emirleri', path: '/production-orders' },
+        { icon: ListOrdered, label: 'Üretim Emirleri', path: '/production-orders' },
       ]
     },
     { icon: ChartArea, label: t('nav.analytics', 'ANALİTİK'), path: '/analytics' },

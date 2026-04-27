@@ -187,7 +187,7 @@ export function AppSettings() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
-                  <SettingItem label="UYGULAMA DİLİ" description="Tüm modüllerin ve arayüzün varsayılan dili">
+                  <SettingItem label="Uygulama Dili" description="Tüm modüllerin ve arayüzün varsayılan dili">
                     <CustomSelect
                       options={[
                         { id: 'tr', label: 'Türkçe (TR)' },
@@ -203,13 +203,15 @@ export function AppSettings() {
                     />
                   </SettingItem>
 
-                  <SettingItem label="SAAT DİLİMİ" description="Kayıtlar ve vardiya zamanlamaları için">
+                  <SettingItem label="Saat Dilimi" description="Kayıtlar ve vardiya zamanlamaları için">
                     <CustomSelect
                       options={[
-                        { id: 'Europe/Istanbul', label: '(GMT+03:00) ISTANBUL' },
+                        { id: 'Europe/Istanbul', label: '(GMT+03:00) İstanbul' },
+                        { id: 'Europe/Sofia', label: '(GMT+03:00) Sofia' },
                         { id: 'UTC', label: '(GMT+00:00) UTC' },
-                        { id: 'Europe/Berlin', label: '(GMT+01:00) BERLIN' },
-                        { id: 'Europe/London', label: '(GMT+00:00) LONDON' }
+                        { id: 'Europe/Berlin', label: '(GMT+01:00) Berlin' },
+                        { id: 'Europe/London', label: '(GMT+00:00) London' }
+
                       ]}
                       value={localSettings.timezone}
                       onChange={(tz) => setLocalSettings({ ...localSettings, timezone: tz })}
@@ -217,12 +219,12 @@ export function AppSettings() {
                     />
                   </SettingItem>
 
-                  <SettingItem label="VERİ SAKLAMA SÜRESİ" description="Veritabanı kayıtlarının arşivlenme periyodu">
+                  <SettingItem label="Veri Saklama Süresi" description="Veritabanı kayıtlarının arşivlenme periyodu">
                     <CustomSelect
                       options={[
-                        { id: 24, label: '2 YIL (STANDART PLAN)' },
-                        { id: 60, label: '5 YIL (PROFESYONEL)' },
-                        { id: 120, label: '10 YIL (TAM ARŞİV)' }
+                        { id: 24, label: '2 Yıl' },
+                        { id: 60, label: '5 Yıl' },
+                        { id: 120, label: '10 Yıl' }
                       ]}
                       value={localSettings.dataRetentionMonths}
                       onChange={(val) => setLocalSettings({ ...localSettings, dataRetentionMonths: parseInt(val) })}
@@ -230,13 +232,13 @@ export function AppSettings() {
                     />
                   </SettingItem>
 
-                  <SettingItem label="OTOMATİK YEDEKLEME" description="Sistem veritabanının bulut yedekleme sıklığı">
+                  <SettingItem label="Otomatik Yedekleme" description="Sistem veritabanının bulut yedekleme sıklığı">
                     <CustomSelect
                       options={[
-                        { id: 'daily', label: 'HER GÜN (GECE 03:00)' },
-                        { id: 'weekly', label: 'HAFTALIK (PAZARTESİ)' },
-                        { id: 'monthly', label: 'AYLIK (AYIN 1. GÜNÜ)' },
-                        { id: 'manual', label: 'SADECE MANUEL' }
+                        { id: 'daily', label: 'Günlük' },
+                        { id: 'weekly', label: 'Haftalık' },
+                        { id: 'monthly', label: 'Aylık' },
+                        { id: 'manual', label: 'Sadece Manuel' }
                       ]}
                       value={localSettings.autoBackup}
                       onChange={(val) => setLocalSettings({ ...localSettings, autoBackup: val })}
@@ -244,7 +246,7 @@ export function AppSettings() {
                     />
                   </SettingItem>
 
-                  <SettingItem label="VERİ TAŞINABİLİRLİĞİ" description="Tüm şirket verilerini paket olarak dışa aktar">
+                  <SettingItem label="Veri Taşınabilirliği" description="Tüm şirket verilerini paket olarak dışa aktar">
                     <button
                       onClick={handleExportData}
                       disabled={isExporting}
@@ -270,7 +272,7 @@ export function AppSettings() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
-                  <SettingItem label="ARAYÜZ TEMASI" description="Uygulamanın genel renk paleti ve atmosferi">
+                  <SettingItem label="Arayüz Teması" description="Uygulamanın genel renk paleti ve atmosferi">
                     <div className="grid grid-cols-4 gap-3">
                       {[
                         { id: 'dark', color: '#1068ffff', label: 'OKYANUS' },
@@ -292,7 +294,7 @@ export function AppSettings() {
                     </div>
                   </SettingItem>
 
-                  <SettingItem label="TABLO YOĞUNLUĞU" description="Veri listelerinin ekrandaki yerleşim sıklığı">
+                  <SettingItem label="Tablo Yoğunluğu" description="Veri listelerinin ekrandaki yerleşim sıklığı">
                     <div className="flex h-10 bg-theme-base/50 p-1 rounded-xl border border-theme shadow-inner">
                       {[
                         { id: 'large', label: 'GENİŞ' },
@@ -313,7 +315,7 @@ export function AppSettings() {
                     </div>
                   </SettingItem>
 
-                  <SettingItem label="ANİMASYONLAR" description="Görsel geçiş efektlerini tamamen kapatın veya açın">
+                  <SettingItem label="Animasyonlar" description="Görsel geçiş efektlerini tamamen kapatın veya açın">
                     <Toggle
                       active={localSettings.animationsEnabled}
                       onClick={() => {
@@ -325,7 +327,7 @@ export function AppSettings() {
                     />
                   </SettingItem>
 
-                  <SettingItem label="RENK MODU" description="Karanlık veya Aydınlık tema tercihi">
+                  <SettingItem label="Renk Modu" description="Karanlık veya Aydınlık tema tercihi">
                     <Toggle
                       active={localSettings.colorMode === 'dark'}
                       onClick={() => {
@@ -337,7 +339,7 @@ export function AppSettings() {
                     />
                   </SettingItem>
 
-                  <SettingItem label="DASHBOARD WİDGET'LAR" description="Ana panel göstergelerini özelleştirin">
+                  <SettingItem label="Dashboard Widget'lar" description="Ana panel göstergelerini özelleştirin">
                     <div className="flex items-center gap-4">
                       <button
                         onClick={() => notify.info('Yapılandırma Modu', 'Dashboard düzenleyici bir sonraki güncellemede aktif olacaktır.')}
@@ -363,19 +365,19 @@ export function AppSettings() {
                   </h3>
                 </div>
                 <div className="space-y-10">
-                  <SettingItem label="SİSTEM BİLDİRİMLERİ" description="Önemli olaylarda ve rapor hazırlıklarında anlık bildirim al">
+                  <SettingItem label="Sistem Bildirimleri" description="Önemli olaylarda ve rapor hazırlıklarında anlık bildirim al">
                     <Toggle
                       active={localSettings.notificationsEnabled}
                       onClick={() => setLocalSettings({ ...localSettings, notificationsEnabled: !localSettings.notificationsEnabled })}
-                      label={localSettings.notificationsEnabled ? "AKTİF SESTE" : "SESSİZ MOD"}
+                      label={localSettings.notificationsEnabled ? "Aktif" : "Sessiz Mod"}
                     />
                   </SettingItem>
 
                   <div className="space-y-6 pt-6 border-t border-theme">
                     <div>
-                      <h4 className="text-sm font-black text-theme-main uppercase tracking-widest flex items-center gap-2">
-                        <Share2 className="w-4 h-4 text-theme-primary" />
-                        SMTP MAİL SUNUCU AYARLARI
+                      <h4 className="text-sm font-black text-theme-main flex items-center gap-2">
+                        <Share2 className="w-3 h-3 text-theme-primary mb-0.5" />
+                        Smtp Mail Sunucu Ayarları
                       </h4>
                       <p className="text-[10px] font-bold text-theme-muted mt-1 opacity-60">Sistemden gönderilecek e-postalar için kendi sunucunuzu kullanın.</p>
                     </div>
@@ -442,7 +444,7 @@ export function AppSettings() {
                   </h3>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-10">
-                  <SettingItem label="İKİ FAKTÖRLÜ DOĞRULAMA" description="Hesabınızı ek bir güvenlik katmanı ile koruyun">
+                  <SettingItem label="İki Faktörlü Doğrulama" description="Hesabınızı ek bir güvenlik katmanı ile koruyun">
                     <Toggle
                       active={localSettings.twoFactorEnabled}
                       onClick={() => setLocalSettings({ ...localSettings, twoFactorEnabled: !localSettings.twoFactorEnabled })}
@@ -450,7 +452,7 @@ export function AppSettings() {
                     />
                   </SettingItem>
 
-                  <SettingItem label="STATİK IP KISITLAMASI" description="Sisteme sadece belirli ağ adreslerinden erişilsin">
+                  <SettingItem label="Statik IP Kısıtlaması" description="Sisteme sadece belirli ağ adreslerinden erişilsin">
                     <Toggle
                       active={localSettings.ipRestrictionEnabled}
                       onClick={() => setLocalSettings({ ...localSettings, ipRestrictionEnabled: !localSettings.ipRestrictionEnabled })}
@@ -458,7 +460,7 @@ export function AppSettings() {
                     />
                   </SettingItem>
 
-                  <SettingItem label="DESTEK ERİŞİM İZNİ" description="Teknik sorunlarda Sosturer ekibine geçici erişim yetkisi ver">
+                  <SettingItem label="Destek Erişim İzni" description="Teknik sorunlarda Sosturer ekibine geçici erişim yetkisi ver">
                     <Toggle
                       active={localSettings.allowSupportAccess}
                       onClick={() => setLocalSettings({ ...localSettings, allowSupportAccess: !localSettings.allowSupportAccess })}
@@ -491,7 +493,7 @@ export function AppSettings() {
                   </h3>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3">
                   <div className="h-20 p-3 bg-theme-base/40 border border-theme rounded-2xl flex items-center justify-between group hover:border-theme-primary/30 transition-all hover:bg-theme-base/60">
                     <div className="flex items-center gap-3">
                       <div className="w-13 h-13 bg-theme-dim/10 backdrop-blur-xl rounded-xl p-2 flex items-center justify-center shadow-2xl ring-1 ring-black/5">
@@ -562,7 +564,7 @@ export function AppSettings() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
                   <SettingItem
-                    label="ÜRETİM TAKVİMİ REFERANS LOKASYONU"
+                    label="Üretim Takvimi Referans Lokasyonu"
                     description="Eksik üretim kayıtları ve OEE hesaplamaları için hangi lokasyonun (Örn. Merkez Üretim Tesisi) çalışma saatleri referans alınsın?"
                   >
                     <CustomSelect
@@ -577,7 +579,7 @@ export function AppSettings() {
                   </SettingItem>
 
                   <SettingItem
-                    label="STANDART ÇALIŞMA VARDİYALARI"
+                    label="Standart Çalışma Vardiyaları"
                     description="Üretim takvimi içerisinde kayıt girilmesi zorunlu olan vardiyaları seçin. Seçtiğiniz vardiyalardan herhangi birine kayıt girilmesi o gün için yeterli sayılacaktır."
                   >
                     <CustomSelect
@@ -596,7 +598,7 @@ export function AppSettings() {
                   </SettingItem>
 
                   <SettingItem
-                    label="ÜRETİM EMİRLERİNDE DEPO SEÇİMİ ZORUNLU OLSUN MU?"
+                    label="Üretim Emirlerinde Depo Seçimi Zorunlu Olsun Mu?"
                     description="Olaylar (Red, Numune vb.) girilirken bir depo seçilmesini zorunlu tutar."
                   >
                     <Toggle
@@ -668,7 +670,7 @@ function Toggle({ active, label, onClick }: { active: boolean, label: string, on
           <div className={`w-2 h-2 rounded-full ${active ? 'bg-theme-primary' : 'bg-theme-muted opacity-40'}`} />
         </div>
       </button>
-      <span className="text-[10px] font-black text-theme-muted uppercase tracking-[0.2em]">{label}</span>
+      <span className="text-[12px] font-black text-theme-muted">{label}</span>
     </div>
   );
 }
