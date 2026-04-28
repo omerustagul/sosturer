@@ -267,7 +267,7 @@ export function NotificationPanel({ isOpen, onClose, anchorRef }: { isOpen: bool
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -10, scale: 0.98 }}
           transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
-          className="fixed z-[1001] mt-2 w-80 bg-theme-surface rounded-2xl p-0 border border-theme shadow-lg shadow-theme-main/20 overflow-hidden ring-1 ring-white/10 flex flex-col pointer-events-auto"
+          className="fixed z-[1001] mt-2 w-80 bg-theme-surface backdrop-blur-[6px] rounded-2xl p-0 border border-theme shadow-lg shadow-theme-main/20 overflow-hidden ring-1 ring-white/10 flex flex-col pointer-events-auto"
           style={{
             top: `${coords.top}px`,
             right: `${coords.right}px`,
@@ -392,13 +392,13 @@ export function NotificationPanel({ isOpen, onClose, anchorRef }: { isOpen: bool
                   <div key={n.id}
                     onClick={() => !n.isRead && markNotificationRead(n.id)}
                     className={cn(
-                      "p-2.5 transition-all duration-200 border rounded-xl flex items-center gap-3 relative group",
-                      n.isRead ? "bg-black/5 border-theme/5 opacity-60" : "bg-theme-primary/5 border-theme-primary/10 hover:bg-theme-primary/10"
+                      "p-2.5 transition-all duration-200 border backdrop-blur-[6px] rounded-xl flex items-center gap-3 relative group",
+                      n.isRead ? "bg-theme-base border-theme-border/80 opacity-60" : "bg-theme-primary/5 border-theme-primary/10 hover:bg-theme-primary/10"
                     )}
                   >
                     <div className={cn(
                       "p-1.5 rounded-lg border shrink-0",
-                      n.isRead ? "bg-theme-base/70 border-theme/20" : "bg-theme-primary/10 border-theme-primary/20"
+                      n.isRead ? "bg-theme/50 border-theme/10" : "bg-theme-primary/10 border-theme-primary/20"
                     )}>
                       <Bell className={cn("w-3 h-3", n.isRead ? "text-theme-dim" : "text-theme-primary")} />
                     </div>
@@ -435,9 +435,9 @@ export function NotificationPanel({ isOpen, onClose, anchorRef }: { isOpen: bool
                 {/* Divider if we have both types */}
                 {(filteredNotifications.length > 0 && filteredLogs.length > 0) && (
                   <div className="flex items-center gap-3 py-2 px-2">
-                    <div className="h-[1px] bg-theme flex-1 opacity-20"></div>
-                    <span className="text-[8px] font-black text-theme-dim uppercase tracking-[0.3em] opacity-30">AKTİVİTE</span>
-                    <div className="h-[1px] bg-theme flex-1 opacity-20"></div>
+                    <div className="h-[1px] bg-theme-muted/30 flex-1"></div>
+                    <span className="text-[8px] font-black text-theme-muted uppercase tracking-[0.3em] opacity-50">AKTİVİTE</span>
+                    <div className="h-[1px] bg-theme-muted/30 flex-1"></div>
                   </div>
                 )}
 

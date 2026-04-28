@@ -567,7 +567,7 @@ export function ProductionOrderForm() {
   return (
     <div className="min-h-screen pb-20 space-y-8 animate-in fade-in duration-500">
       {/* Header Bar */}
-      <div className="h-20 bg-theme-surface/80 backdrop-blur-[6px] border-b border-theme px-6 sticky top-0 z-40 flex items-center justify-between">
+      <div className="h-20 bg-theme-surface/80 backdrop-blur-[5px] border-b border-theme px-6 sticky top-0 z-40 flex items-center justify-between">
         <div className="flex items-start justify-center gap-2">
           <button onClick={() => navigate('/production-orders')} className="p-1 border border-theme rounded-xl hover:bg-theme-main/5 text-theme-muted transition-all">
             <ChevronLeft className="w-6 h-6" />
