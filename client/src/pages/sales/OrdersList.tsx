@@ -103,11 +103,11 @@ export function OrdersList() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-theme-surface/50">
-                <th className="px-8 py-6 text-[11px] font-black text-theme-dim uppercase">Sipariş Bilgisi</th>
-                <th className="px-8 py-6 text-[11px] font-black text-theme-dim uppercase">Müşteri/Bayi</th>
-                <th className="px-8 py-6 text-[11px] font-black text-theme-dim uppercase">Tarih / Termin</th>
-                <th className="px-8 py-6 text-[11px] font-black text-theme-dim uppercase">Durum</th>
-                <th className="px-8 py-6 text-[11px] font-black text-theme-dim uppercase text-right">İşlem</th>
+                <th className="px-8 py-6 text-[11px] font-black text-theme-dim ">Sipariş Bilgisi</th>
+                <th className="px-8 py-6 text-[11px] font-black text-theme-dim">Müşteri/Bayi</th>
+                <th className="px-8 py-6 text-[11px] font-black text-theme-dim ">Tarih / Termin</th>
+                <th className="px-8 py-6 text-[11px] font-black text-theme-dim ">Durum</th>
+                <th className="px-8 py-6 text-[11px] font-black text-theme-dim text-right">İşlem</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-theme/20">
@@ -172,7 +172,7 @@ export function OrdersList() {
               <div className="w-24">
                 <CustomSelect
                   options={[
-                    { id: 10, label: '10' },
+                    { id: 20, label: '20' },
                     { id: 50, label: '50' },
                     { id: 250, label: '250' },
                     { id: 500, label: '500' },

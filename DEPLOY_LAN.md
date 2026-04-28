@@ -1,49 +1,50 @@
-# LAN (Ortak Ağ) Kurulumu
+# LAN kurulumu
 
-Bu kurulumda uygulama **tek bir sunucu bilgisayarda** çalışır; ağa bağlı diğer bilgisayarlar tarayıcıyla erişir.
+Bu kurulumda uygulama tek bir Windows bilgisayarda calisir. Aga bagli diger bilgisayarlar tarayicidan ayni uygulamayi acar.
 
-## 1) Sunucu bilgisayar
-- Aynı ağda herkesin erişebildiği bir PC/mini-server seçin.
-- Mümkünse **sabit IP** verin (ör. `192.168.1.10`).
-- Sunucuya Node.js kurun.
+## Hizli kurulum
 
-## 2) Kurulum (sunucuda)
-Repo kök dizininde:
+Repo kok dizininde `Setup_AutoStart.bat` dosyasina sag tiklayip **Yonetici olarak calistir**.
 
-1) Bağımlılıklar
-- `npm --prefix server ci`
-- `npm --prefix client ci`
+Bu kurulum:
 
-2) Veritabanı (ilk kurulum / şema)
-- `npm --prefix server run db:push`
-- (opsiyonel) `npm --prefix server run db:seed`
+- Client ve server production build alir.
+- Windows Firewall uzerinde TCP `3005` portunu acar.
+- `Sosturer_Server_AutoStart` adli gorevi olusturur.
+- Yonetici olarak calistirilirsa bilgisayar acilisinda, oturum acilmadan SYSTEM ile baslatir.
+- Yonetici degilse mevcut kullanici oturum actiginda baslatir.
 
-3) Build + çalıştır (LAN)
-- `npm --prefix server run start:lan`
+## Manuel komut
 
-Bu komut:
-- `client` production build alır (UI)
-- `server` build alır
-- server’ı başlatır ve **UI’yi de aynı porttan servis eder**
+```powershell
+cd C:\dev\Sosturer
+.\Install-SosturerAutoStart.ps1
+```
 
-## 3) Port / Firewall
-Varsayılan port: `3001`
+## Erisim
 
-Windows Defender Firewall’da inbound kuralı açın:
-- TCP `3001`
+Sunucu bilgisayarda:
 
-## 4) Erişim (istemci bilgisayarlar)
-Tarayıcıdan:
-- `http://SUNUCU_IP:3001`
-  - ör. `http://192.168.1.10:3001`
+```text
+http://localhost:3005
+```
 
-## 5) SQLite notu
-- SQLite dosyası sunucuda **lokal** kalmalı (network share üzerinde kullanılmamalı).
-- Yedek için `server/dev.db` (veya `.env` içindeki dosya) düzenli kopyalanmalıdır.
+Ayni agdaki diger bilgisayarlarda:
 
-## 6) Ortam değişkenleri (öneri)
-`server/.env` içinde en az:
-- `DATABASE_URL="file:./dev.db"` (prod için ayrı dosya adı önerilir)
-- `JWT_SECRET=...` (prod’da mutlaka değiştirin)
-- `CORS_ORIGIN=*` (UI aynı origin’den servis edildiği için genelde sorun olmaz)
+```text
+http://SUNUCU_IP:3005
+```
 
+Bu bilgisayarda gorunen IP adreslerinden biri su olabilir:
+
+```text
+http://10.3.5.55:3005
+http://192.168.1.111:3005
+```
+
+## Notlar
+
+- Aktif port `server/.env` icindeki `PORT` degerinden okunur. Su an beklenen port `3005`.
+- Backend `0.0.0.0` uzerinden dinler, bu nedenle LAN erisimine uygundur.
+- Production UI `client/dist` klasorunden ayni backend portu uzerinden servis edilir.
+- Log dosyasi: `logs\sosturer-server.log`

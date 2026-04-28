@@ -8,26 +8,26 @@ datasource db {
 }
 
 model Company {
-  id                      String             @id
+  id                      String                    @id
   name                    String
-  companyAddress          String?            @map("company_address")
-  taxOffice               String?            @map("tax_office")
-  taxNumber               String?            @map("tax_number")
-  sicilNo                 String?            @map("sicil_no")
-  mersisNo                String?            @map("mersis_no")
-  kepAddress              String?            @map("kep_address")
-  companyPhone            String?            @map("company_phone")
-  companyEmail            String?            @map("company_email")
+  companyAddress          String?                   @map("company_address")
+  taxOffice               String?                   @map("tax_office")
+  taxNumber               String?                   @map("tax_number")
+  sicilNo                 String?                   @map("sicil_no")
+  mersisNo                String?                   @map("mersis_no")
+  kepAddress              String?                   @map("kep_address")
+  companyPhone            String?                   @map("company_phone")
+  companyEmail            String?                   @map("company_email")
   website                 String?
   sector                  String?
   employees               String?
   founded                 String?
-  logoUrl                 String?            @map("logo_url")
-  createdAt               DateTime           @default(now()) @map("created_at")
-  updatedAt               DateTime           @updatedAt @map("updated_at")
+  logoUrl                 String?                   @map("logo_url")
+  createdAt               DateTime                  @default(now()) @map("created_at")
+  updatedAt               DateTime                  @updatedAt @map("updated_at")
   city                    String?
   district                String?
-  country                 String?            @default("Türkiye")
+  country                 String?                   @default("Türkiye")
   chamber_of_commerce     String?
   chamber_registration_no String?
   social_media            Json?
@@ -50,6 +50,8 @@ model Company {
   shifts                  Shift[]
   users                   User[]
   warehouses              Warehouse[]
+  firms                   Firm[]
+  stockVouchers           StockVoucher[]
   workPlans               WorkPlan[]
   operations              Operation[]
   stations                Station[]
@@ -96,22 +98,22 @@ model User {
 }
 
 model Machine {
-  id                      String             @id @default(uuid())
-  companyId               String             @map("company_id")
+  id                      String                   @id @default(uuid())
+  companyId               String                   @map("company_id")
   code                    String
   name                    String
   brand                   String?
   model                   String?
-  installedDate           DateTime?          @map("installed_date")
-  status                  String             @default("active")
-  capacityPerShift        Int?               @map("capacity_per_shift")
+  installedDate           DateTime?                @map("installed_date")
+  status                  String                   @default("active")
+  capacityPerShift        Int?                     @map("capacity_per_shift")
   notes                   String?
-  displayOrder            Int                @default(0) @map("display_order")
-  createdAt               DateTime           @default(now()) @map("created_at")
-  updatedAt               DateTime           @updatedAt @map("updated_at")
-  company                 Company            @relation(fields: [companyId], references: [id])
-  backupOvertimePlanItems OvertimePlanItem[] @relation("BackupMachine")
-  overtimePlanItems       OvertimePlanItem[] @relation("MainMachine")
+  displayOrder            Int                      @default(0) @map("display_order")
+  createdAt               DateTime                 @default(now()) @map("created_at")
+  updatedAt               DateTime                 @updatedAt @map("updated_at")
+  company                 Company                  @relation(fields: [companyId], references: [id])
+  backupOvertimePlanItems OvertimePlanItem[]       @relation("BackupMachine")
+  overtimePlanItems       OvertimePlanItem[]       @relation("MainMachine")
   productionRecords       ProductionRecord[]
   productionPlans         ProductionPlan[]
   orderSteps              ProductionOrderStep[]
@@ -123,98 +125,98 @@ model Machine {
 }
 
 model Operator {
-  id                String             @id @default(uuid())
-  companyId         String             @map("company_id")
-  employeeId        String             @map("employee_id")
-  fullName          String             @map("full_name")
-  departmentId      String?            @map("department_id")
-  roleId            String?            @map("role_id")
-  phone             String?
-  email             String?
-  status            String             @default("active")
-  hireDate          DateTime?          @map("hire_date")
-  experienceYears   Int?               @map("experience_years")
-  certifications    String?
-  displayOrder      Int                @default(0) @map("display_order")
-  createdAt         DateTime           @default(now()) @map("created_at")
-  updatedAt         DateTime           @updatedAt @map("updated_at")
-  company           Company            @relation(fields: [companyId], references: [id])
-  department        Department?        @relation(fields: [departmentId], references: [id])
-  role              DepartmentRole?    @relation(fields: [roleId], references: [id])
-  overtimePlanItems OvertimePlanItem[]
-  productionRecords ProductionRecord[]
-  orderSteps        ProductionOrderStep[]
-  productionOrderEvents   ProductionOrderEvent[]
+  id                    String                 @id @default(uuid())
+  companyId             String                 @map("company_id")
+  employeeId            String                 @map("employee_id")
+  fullName              String                 @map("full_name")
+  departmentId          String?                @map("department_id")
+  roleId                String?                @map("role_id")
+  phone                 String?
+  email                 String?
+  status                String                 @default("active")
+  hireDate              DateTime?              @map("hire_date")
+  experienceYears       Int?                   @map("experience_years")
+  certifications        String?
+  displayOrder          Int                    @default(0) @map("display_order")
+  createdAt             DateTime               @default(now()) @map("created_at")
+  updatedAt             DateTime               @updatedAt @map("updated_at")
+  company               Company                @relation(fields: [companyId], references: [id])
+  department            Department?            @relation(fields: [departmentId], references: [id])
+  role                  DepartmentRole?        @relation(fields: [roleId], references: [id])
+  overtimePlanItems     OvertimePlanItem[]
+  productionRecords     ProductionRecord[]
+  orderSteps            ProductionOrderStep[]
+  productionOrderEvents ProductionOrderEvent[]
 
   @@unique([companyId, employeeId])
   @@map("operators")
 }
 
 model Shift {
-  id                String             @id @default(uuid())
-  companyId         String             @map("company_id")
-  shiftCode         String             @map("shift_code")
-  shiftName         String             @map("shift_name")
-  startTime         String             @map("start_time")
-  endTime           String             @map("end_time")
-  durationMinutes   Int                @map("duration_minutes")
-  status            String             @default("active")
-  colorCode         String?            @map("color_code")
-  displayOrder      Int                @default(0) @map("display_order")
-  createdAt         DateTime           @default(now()) @map("created_at")
-  updatedAt         DateTime           @updatedAt @map("updated_at")
+  id                String                @id @default(uuid())
+  companyId         String                @map("company_id")
+  shiftCode         String                @map("shift_code")
+  shiftName         String                @map("shift_name")
+  startTime         String                @map("start_time")
+  endTime           String                @map("end_time")
+  durationMinutes   Int                   @map("duration_minutes")
+  status            String                @default("active")
+  colorCode         String?               @map("color_code")
+  displayOrder      Int                   @default(0) @map("display_order")
+  createdAt         DateTime              @default(now()) @map("created_at")
+  updatedAt         DateTime              @updatedAt @map("updated_at")
   overtimePlans     OvertimePlan[]
   productionRecords ProductionRecord[]
   productionPlans   ProductionPlan[]
   steps             ProductionOrderStep[]
-  company           Company            @relation(fields: [companyId], references: [id])
+  company           Company               @relation(fields: [companyId], references: [id])
 
   @@unique([companyId, shiftCode])
   @@map("shifts")
 }
 
 model Department {
-  id           String           @id @default(uuid())
-  companyId    String           @map("company_id")
-  name         String
-  code         String?
-  status       String           @default("active")
-  displayOrder Int              @default(0) @map("display_order")
-  createdAt    DateTime         @default(now()) @map("created_at")
-  updatedAt    DateTime         @updatedAt @map("updated_at")
-  type         String?          @default("office")
-  address      String?
-  locationId   String?          @map("location_id")
-  workingHours String?          @map("working_hours")
-  openingDate  DateTime?        @map("opening_date")
-  notes        String?
-  headcountPlanned Int?      @map("headcount_planned")
-  roles        DepartmentRole[]
-  location     locations?       @relation(fields: [locationId], references: [id])
-  company      Company          @relation(fields: [companyId], references: [id])
-  operators    Operator[]
-  workPlans    WorkPlan[]
-  operations   Operation[]
-  stations     Station[]
+  id               String           @id @default(uuid())
+  companyId        String           @map("company_id")
+  name             String
+  code             String?
+  status           String           @default("active")
+  displayOrder     Int              @default(0) @map("display_order")
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+  type             String?          @default("office")
+  address          String?
+  locationId       String?          @map("location_id")
+  workingHours     String?          @map("working_hours")
+  openingDate      DateTime?        @map("opening_date")
+  notes            String?
+  headcountPlanned Int?             @map("headcount_planned")
+  roles            DepartmentRole[]
+  location         locations?       @relation(fields: [locationId], references: [id])
+  company          Company          @relation(fields: [companyId], references: [id])
+  operators        Operator[]
+  workPlans        WorkPlan[]
+  operations       Operation[]
+  stations         Station[]
 
   @@unique([companyId, name])
   @@map("departments")
 }
 
 model Station {
-  id           String     @id @default(uuid())
-  companyId    String     @map("company_id")
-  unitId       String     @map("unit_id")
+  id           String   @id @default(uuid())
+  companyId    String   @map("company_id")
+  unitId       String   @map("unit_id")
   code         String
   name         String
-  status       String     @default("active")
-  displayOrder Int        @default(0) @map("display_order")
-  createdAt    DateTime   @default(now()) @map("created_at")
-  updatedAt    DateTime   @updatedAt @map("updated_at")
+  status       String   @default("active")
+  displayOrder Int      @default(0) @map("display_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
-  company      Company    @relation(fields: [companyId], references: [id])
-  unit         Department @relation(fields: [unitId], references: [id])
-  operations   Operation[]
+  company    Company     @relation(fields: [companyId], references: [id])
+  unit       Department  @relation(fields: [unitId], references: [id])
+  operations Operation[]
 
   @@unique([unitId, code])
   @@map("stations")
@@ -238,45 +240,46 @@ model DepartmentRole {
 }
 
 model Product {
-  id                String             @id @default(uuid())
-  companyId         String             @map("company_id")
-  productCode       String             @map("product_code")
-  productName       String             @map("product_name")
-  brand             String?
-  productGroup      String?            @map("product_group")
-  description       String?
-  unitOfMeasure     String?            @map("unit_of_measure")
-  category          String?
-  cycleTimeSeconds  Float              @default(30) @map("cycle_time_seconds")
-  status            String             @default("active")
-  displayOrder      Int                @default(0) @map("display_order")
-  createdAt         DateTime           @default(now()) @map("created_at")
-  updatedAt         DateTime           @updatedAt @map("updated_at")
-  barcode           String?
-  trackingType           String?   @default("NONE") @map("tracking_type") // LOT, SERIAL, BOTH, NONE
-  defaultProductionQty   Int?      @default(0) @map("default_production_qty")
-  productClass           String?   @map("product_class")
-  stockType              String?   @map("stock_type")
-  targetWarehouseId      String?   @map("target_warehouse_id")
-  completionTriggerStep  Int?      @map("completion_trigger_step") 
+  id                    String   @id @default(uuid())
+  companyId             String   @map("company_id")
+  productCode           String   @map("product_code")
+  productName           String   @map("product_name")
+  brand                 String?
+  productGroup          String?  @map("product_group")
+  description           String?
+  unitOfMeasure         String?  @map("unit_of_measure")
+  category              String?
+  cycleTimeSeconds      Float    @default(30) @map("cycle_time_seconds")
+  status                String   @default("active")
+  displayOrder          Int      @default(0) @map("display_order")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+  barcode               String?
+  trackingType          String?  @default("NONE") @map("tracking_type") // LOT, SERIAL, BOTH, NONE
+  defaultProductionQty  Int?     @default(0) @map("default_production_qty")
+  productClass          String?  @map("product_class")
+  stockType             String?  @map("stock_type")
+  targetWarehouseId     String?  @map("target_warehouse_id")
+  completionTriggerStep Int?     @map("completion_trigger_step")
 
   overtimePlanItems OvertimePlanItem[]
   productionRecords ProductionRecord[]
   productionPlans   ProductionPlan[]
   stockLevels       StockLevel[]
   stockMovements    StockMovement[]
+  stockVoucherItems StockVoucherItem[]
   workPlanItems     WorkPlanItem[]
   recipes           ProductRecipe[]
   productionOrders  ProductionOrder[]
   componentOf       ProductionOrderComponent[]
   orderItems        OrderItem[]
-  routeId           String?            @map("route_id")
-  route             ProductionRoute?   @relation(fields: [routeId], references: [id])
-  company           Company            @relation(fields: [companyId], references: [id])
+  routeId           String?                    @map("route_id")
+  route             ProductionRoute?           @relation(fields: [routeId], references: [id])
+  company           Company                    @relation(fields: [companyId], references: [id])
 
-  measurements      Json?              @map("measurements") // { width: number, height: number, density: number, etc. }
-  defaultComponents ProductDefaultComponent[] @relation("ProductDefaults")
-  defaultMachines   ProductDefaultMachine[]
+  measurements       Json?                     @map("measurements") // { width: number, height: number, density: number, etc. }
+  defaultComponents  ProductDefaultComponent[] @relation("ProductDefaults")
+  defaultMachines    ProductDefaultMachine[]
   componentRelations ProductDefaultComponent[] @relation("ComponentRelation")
 
   @@unique([companyId, productCode])
@@ -284,37 +287,37 @@ model Product {
 }
 
 model ProductionRecord {
-  id                         String   @id @default(uuid())
-  companyId                  String   @map("company_id")
-  productionDate             DateTime @map("production_date")
-  shiftId                    String   @map("shift_id")
-  machineId                  String   @map("machine_id")
-  operatorId                 String?  @map("operator_id")
-  productId                  String?  @map("product_id")
-  producedQuantity           Int      @map("produced_quantity")
-  actualDurationMinutes      Float?   @map("actual_duration_minutes")
-  cycleTimeSeconds           Float    @map("cycle_time_seconds")
-  plannedDurationMinutes     Float?   @map("planned_duration_minutes")
-  cncReportedDurationMinutes Float?   @map("cnc_reported_duration_minutes")
-  plannedDowntimeMinutes     Float    @default(0) @map("planned_downtime_minutes")
-  unplannedDowntimeMinutes   Float?   @default(0) @map("unplanned_downtime_minutes")
-  downtimeMinutes            Float?   @default(0) @map("downtime_minutes")
+  id                         String    @id @default(uuid())
+  companyId                  String    @map("company_id")
+  productionDate             DateTime  @map("production_date")
+  shiftId                    String    @map("shift_id")
+  machineId                  String    @map("machine_id")
+  operatorId                 String?   @map("operator_id")
+  productId                  String?   @map("product_id")
+  producedQuantity           Int       @map("produced_quantity")
+  actualDurationMinutes      Float?    @map("actual_duration_minutes")
+  cycleTimeSeconds           Float     @map("cycle_time_seconds")
+  plannedDurationMinutes     Float?    @map("planned_duration_minutes")
+  cncReportedDurationMinutes Float?    @map("cnc_reported_duration_minutes")
+  plannedDowntimeMinutes     Float     @default(0) @map("planned_downtime_minutes")
+  unplannedDowntimeMinutes   Float?    @default(0) @map("unplanned_downtime_minutes")
+  downtimeMinutes            Float?    @default(0) @map("downtime_minutes")
   availability               Float?
   performance                Float?
   quality                    Float?
   oee                        Float?
-  defectQuantity             Int      @default(0) @map("defect_quantity")
-  plannedQuantity            Int?     @map("planned_quantity")
+  defectQuantity             Int       @default(0) @map("defect_quantity")
+  plannedQuantity            Int?      @map("planned_quantity")
   notes                      String?
-  qualityIssues              String?  @map("quality_issues")
-  createdAt                  DateTime @default(now()) @map("created_at")
-  updatedAt                  DateTime @updatedAt @map("updated_at")
-  is_maintenance             Boolean  @default(false)
-  company                    Company  @relation(fields: [companyId], references: [id])
-  machine                    Machine  @relation(fields: [machineId], references: [id])
+  qualityIssues              String?   @map("quality_issues")
+  createdAt                  DateTime  @default(now()) @map("created_at")
+  updatedAt                  DateTime  @updatedAt @map("updated_at")
+  is_maintenance             Boolean   @default(false)
+  company                    Company   @relation(fields: [companyId], references: [id])
+  machine                    Machine   @relation(fields: [machineId], references: [id])
   operator                   Operator? @relation(fields: [operatorId], references: [id])
-  product                    Product? @relation(fields: [productId], references: [id])
-  shift                      Shift    @relation(fields: [shiftId], references: [id])
+  product                    Product?  @relation(fields: [productId], references: [id])
+  shift                      Shift     @relation(fields: [shiftId], references: [id])
 
   @@index([companyId, productionDate])
   @@index([machineId, productionDate])
@@ -325,38 +328,38 @@ model ProductionRecord {
 }
 
 model AppSettings {
-  id                    String   @id @default(uuid())
-  companyId             String   @unique @map("company_id")
-  language              String   @default("tr")
-  timezone              String   @default("Europe/Istanbul")
-  dataRetentionMonths   Int      @default(24) @map("data_retention_months")
-  autoBackup            String   @default("daily") @map("auto_backup")
-  theme                 String   @default("dark")
-  tableDensity          String   @default("large") @map("table_density")
-  animationsEnabled     Boolean  @default(true) @map("animations_enabled")
-  notificationsEnabled  Boolean  @default(true) @map("notifications_enabled")
-  colorMode             String   @default("dark") @map("color_mode")
-  twoFactorEnabled      Boolean  @default(false) @map("two_factor_enabled")
-  ipRestrictionEnabled  Boolean  @default(false) @map("ip_restriction_enabled")
-  allowSupportAccess    Boolean  @default(false) @map("allow_support_access")
-  sapIntegrationEnabled Boolean  @default(false) @map("sap_integration_enabled")
-  webhooksEnabled       Boolean  @default(false) @map("webhooks_enabled")
-  allowed_ip_list       String   @default("[]")
-  dashboardLayout       String   @default("[]") @map("dashboard_layout")
-  referenceLocationId   String?  @map("reference_location_id")
-  standardShiftIds      String   @default("[]") @map("standard_shift_ids")
-  updatedAt             DateTime @updatedAt @map("updated_at")
-  font_family           String   @default("Inter")
-  productionEventWarehouseRequired Boolean @default(false) @map("production_event_warehouse_required")
-  
+  id                               String   @id @default(uuid())
+  companyId                        String   @unique @map("company_id")
+  language                         String   @default("tr")
+  timezone                         String   @default("Europe/Istanbul")
+  dataRetentionMonths              Int      @default(24) @map("data_retention_months")
+  autoBackup                       String   @default("daily") @map("auto_backup")
+  theme                            String   @default("dark")
+  tableDensity                     String   @default("large") @map("table_density")
+  animationsEnabled                Boolean  @default(true) @map("animations_enabled")
+  notificationsEnabled             Boolean  @default(true) @map("notifications_enabled")
+  colorMode                        String   @default("dark") @map("color_mode")
+  twoFactorEnabled                 Boolean  @default(false) @map("two_factor_enabled")
+  ipRestrictionEnabled             Boolean  @default(false) @map("ip_restriction_enabled")
+  allowSupportAccess               Boolean  @default(false) @map("allow_support_access")
+  sapIntegrationEnabled            Boolean  @default(false) @map("sap_integration_enabled")
+  webhooksEnabled                  Boolean  @default(false) @map("webhooks_enabled")
+  allowed_ip_list                  String   @default("[]")
+  dashboardLayout                  String   @default("[]") @map("dashboard_layout")
+  referenceLocationId              String?  @map("reference_location_id")
+  standardShiftIds                 String   @default("[]") @map("standard_shift_ids")
+  updatedAt                        DateTime @updatedAt @map("updated_at")
+  font_family                      String   @default("Inter")
+  productionEventWarehouseRequired Boolean  @default(false) @map("production_event_warehouse_required")
+
   // SMTP Configuration
-  smtpHost              String?  @map("smtp_host")
-  smtpPort              Int?     @map("smtp_port")
-  smtpUser              String?  @map("smtp_user")
-  smtpPass              String?  @map("smtp_pass")
-  smtpFrom              String?  @map("smtp_from")
-  
-  company               Company  @relation(fields: [companyId], references: [id])
+  smtpHost String? @map("smtp_host")
+  smtpPort Int?    @map("smtp_port")
+  smtpUser String? @map("smtp_user")
+  smtpPass String? @map("smtp_pass")
+  smtpFrom String? @map("smtp_from")
+
+  company Company @relation(fields: [companyId], references: [id])
 
   @@map("app_settings")
 }
@@ -412,21 +415,21 @@ model ImportHistory {
 }
 
 model OvertimePlan {
-  id        String             @id @default(uuid())
-  companyId String             @map("company_id")
-  planName  String             @map("plan_name")
-  startDate DateTime           @map("start_date")
-  endDate   DateTime           @map("end_date")
-  shiftId   String             @map("shift_id")
-  notes     String?
-  status    String             @default("planned")
-  createdBy String?            @map("created_by")
-  createdAt DateTime           @default(now()) @map("created_at")
+  id               String             @id @default(uuid())
+  companyId        String             @map("company_id")
+  planName         String             @map("plan_name")
+  startDate        DateTime           @map("start_date")
+  endDate          DateTime           @map("end_date")
+  shiftId          String             @map("shift_id")
+  notes            String?
+  status           String             @default("planned")
+  createdBy        String?            @map("created_by")
+  createdAt        DateTime           @default(now()) @map("created_at")
   updatedAt        DateTime           @updatedAt @map("updated_at")
   notificationSent Boolean            @default(false) @map("notification_sent")
   items            OvertimePlanItem[]
-  company   Company            @relation(fields: [companyId], references: [id])
-  shift     Shift              @relation(fields: [shiftId], references: [id])
+  company          Company            @relation(fields: [companyId], references: [id])
+  shift            Shift              @relation(fields: [shiftId], references: [id])
 
   @@index([companyId, startDate])
   @@map("overtime_plans")
@@ -472,27 +475,27 @@ model Notification {
 }
 
 model locations {
-  id                   String    @id
-  company_id           String
-  name                 String
-  type                 String
-  address              String?
-  phone                String?
-  email                String?
-  is_main              Boolean   @default(false)
-  working_hours        Json?
-  created_at           DateTime  @default(now())
-  updated_at           DateTime
-  location_code        String?   @map("location_code")
-  operational_status   String    @default("active") @map("operational_status")
-  opening_date         DateTime? @map("opening_date")
-  closure_date         DateTime? @map("closure_date")
-  contact_name         String?   @map("contact_name")
-  notes                String?
-  floor_area_sqm       Float?    @map("floor_area_sqm")
-  companies            Company  @relation(fields: [company_id], references: [id])
-  departments          Department[]
-  warehouses           Warehouse[]
+  id                 String       @id
+  company_id         String
+  name               String
+  type               String
+  address            String?
+  phone              String?
+  email              String?
+  is_main            Boolean      @default(false)
+  working_hours      Json?
+  created_at         DateTime     @default(now())
+  updated_at         DateTime
+  location_code      String?      @map("location_code")
+  operational_status String       @default("active") @map("operational_status")
+  opening_date       DateTime?    @map("opening_date")
+  closure_date       DateTime?    @map("closure_date")
+  contact_name       String?      @map("contact_name")
+  notes              String?
+  floor_area_sqm     Float?       @map("floor_area_sqm")
+  companies          Company      @relation(fields: [company_id], references: [id])
+  departments        Department[]
+  warehouses         Warehouse[]
 }
 
 model system_config {
@@ -506,22 +509,24 @@ model system_config {
 }
 
 model Warehouse {
-  id          String          @id @default(uuid())
-  companyId   String          @map("company_id")
-  name        String
-  code        String?
-  type        String          @default("general") // general, finished, semifinished, raw, consumable, workcenter, scrap
-  status      String          @default("active")
-  unitId      String?         @map("unit_id") // optional link to company unit/department
-  locationId  String?         @map("location_id")
-  displayOrder Int             @default(0) @map("display_order")
-  createdAt    DateTime        @default(now()) @map("created_at")
-  updatedAt    DateTime        @updatedAt @map("updated_at")
-  company      Company          @relation(fields: [companyId], references: [id])
-  location      locations?      @relation(fields: [locationId], references: [id])
-  stockLevels   StockLevel[]
-  movementsTo   StockMovement[] @relation("to")
-  movementsFrom StockMovement[] @relation("from")
+  id                    String                 @id @default(uuid())
+  companyId             String                 @map("company_id")
+  name                  String
+  code                  String?
+  type                  String                 @default("general") // general, finished, semifinished, raw, consumable, workcenter, scrap
+  status                String                 @default("active")
+  unitId                String?                @map("unit_id") // optional link to company unit/department
+  locationId            String?                @map("location_id")
+  displayOrder          Int                    @default(0) @map("display_order")
+  createdAt             DateTime               @default(now()) @map("created_at")
+  updatedAt             DateTime               @updatedAt @map("updated_at")
+  company               Company                @relation(fields: [companyId], references: [id])
+  location              locations?             @relation(fields: [locationId], references: [id])
+  stockLevels           StockLevel[]
+  movementsTo           StockMovement[]        @relation("to")
+  movementsFrom         StockMovement[]        @relation("from")
+  stockVouchers         StockVoucher[]         @relation("stock_voucher_warehouse")
+  targetStockVouchers   StockVoucher[]         @relation("stock_voucher_target_warehouse")
   productionOrderEvents ProductionOrderEvent[]
 
   @@unique([companyId, name])
@@ -551,7 +556,7 @@ model StockMovement {
   toWarehouseId   String?    @map("to_warehouse_id")
   lotNumber       String?    @map("lot_number")
   quantity        Float
-  type            String     // PRODUCTION, SALE, ADJUSTMENT, TRANSFER
+  type            String // PRODUCTION, SALE, ADJUSTMENT, TRANSFER
   referenceId     String?    @map("reference_id")
   description     String?
   createdAt       DateTime   @default(now()) @map("created_at")
@@ -562,54 +567,124 @@ model StockMovement {
   @@map("stock_movements")
 }
 
-model Customer {
-  id            String   @id @default(uuid())
-  companyId     String   @map("company_id")
+model Firm {
+  id            String         @id @default(uuid())
+  companyId     String         @map("company_id")
+  code          String?
   name          String
-  email         String?
+  type          String         @default("general")
+  taxOffice     String?        @map("tax_office")
+  taxNumber     String?        @map("tax_number")
   phone         String?
+  email         String?
   address       String?
-  taxOffice     String?  @map("tax_office")
-  taxNumber     String?  @map("tax_number")
-  status        String   @default("active")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-  company       Company  @relation(fields: [companyId], references: [id])
-  orders        Order[]
+  contactName   String?        @map("contact_name")
+  notes         String?
+  status        String         @default("active")
+  displayOrder  Int            @default(0) @map("display_order")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  company       Company        @relation(fields: [companyId], references: [id])
+  stockVouchers StockVoucher[]
+
+  @@unique([companyId, name])
+  @@map("firms")
+}
+
+model StockVoucher {
+  id                String   @id @default(uuid())
+  companyId         String   @map("company_id")
+  voucherNo         String   @map("voucher_no")
+  transactionDate   DateTime @default(now()) @map("transaction_date")
+  voucherType       String   @map("voucher_type")
+  direction         Int
+  firmId            String?  @map("firm_id")
+  controlStatus     String   @default("pending") @map("control_status")
+  warehouseId       String   @map("warehouse_id")
+  targetWarehouseId String?  @map("target_warehouse_id")
+  documentNo        String?  @map("document_no")
+  documentUrl       String?  @map("document_url")
+  documentName      String?  @map("document_name")
+  notes             String?
+  createdBy         String?  @map("created_by")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  company         Company            @relation(fields: [companyId], references: [id])
+  firm            Firm?              @relation(fields: [firmId], references: [id])
+  warehouse       Warehouse          @relation("stock_voucher_warehouse", fields: [warehouseId], references: [id])
+  targetWarehouse Warehouse?         @relation("stock_voucher_target_warehouse", fields: [targetWarehouseId], references: [id])
+  items           StockVoucherItem[]
+
+  @@unique([companyId, voucherNo])
+  @@index([companyId, transactionDate])
+  @@map("stock_vouchers")
+}
+
+model StockVoucherItem {
+  id        String   @id @default(uuid())
+  voucherId String   @map("voucher_id")
+  productId String   @map("product_id")
+  lotNumber String   @default("") @map("lot_number")
+  quantity  Float
+  unit      String?
+  notes     String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  voucher StockVoucher @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+  product Product      @relation(fields: [productId], references: [id])
+
+  @@map("stock_voucher_items")
+}
+
+model Customer {
+  id        String   @id @default(uuid())
+  companyId String   @map("company_id")
+  name      String
+  email     String?
+  phone     String?
+  address   String?
+  taxOffice String?  @map("tax_office")
+  taxNumber String?  @map("tax_number")
+  status    String   @default("active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  company   Company  @relation(fields: [companyId], references: [id])
+  orders    Order[]
 
   @@unique([companyId, name])
   @@map("customers")
 }
 
 model Order {
-  id           String      @id @default(uuid())
-  companyId    String      @map("company_id")
-  customerId   String      @map("customer_id")
-  orderNumber  String      @map("order_number")
-  orderDate    DateTime    @map("order_date")
-  dueDate      DateTime?   @map("due_date")
-  status       String      @default("pending") // pending, preparing, shipped, completed, cancelled
-  totalAmount  Float?      @map("total_amount")
-  notes        String?
-  createdAt    DateTime    @default(now()) @map("created_at")
-  updatedAt    DateTime    @updatedAt @map("updated_at")
-  company      Company     @relation(fields: [companyId], references: [id])
-  customer     Customer    @relation(fields: [customerId], references: [id])
-  orderItems   OrderItem[]
+  id          String      @id @default(uuid())
+  companyId   String      @map("company_id")
+  customerId  String      @map("customer_id")
+  orderNumber String      @map("order_number")
+  orderDate   DateTime    @map("order_date")
+  dueDate     DateTime?   @map("due_date")
+  status      String      @default("pending") // pending, preparing, shipped, completed, cancelled
+  totalAmount Float?      @map("total_amount")
+  notes       String?
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+  company     Company     @relation(fields: [companyId], references: [id])
+  customer    Customer    @relation(fields: [customerId], references: [id])
+  orderItems  OrderItem[]
 
   @@unique([companyId, orderNumber])
   @@map("orders")
 }
 
 model OrderItem {
-  id           String   @id @default(uuid())
-  orderId      String   @map("order_id")
-  productId    String   @map("product_id")
-  quantity     Float
-  shippedQty   Float    @default(0) @map("shipped_qty")
-  unitPrice    Float?   @map("unit_price")
-  order        Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product      Product  @relation(fields: [productId], references: [id])
+  id         String  @id @default(uuid())
+  orderId    String  @map("order_id")
+  productId  String  @map("product_id")
+  quantity   Float
+  shippedQty Float   @default(0) @map("shipped_qty")
+  unitPrice  Float?  @map("unit_price")
+  order      Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product    Product @relation(fields: [productId], references: [id])
 
   @@map("order_items")
 }
@@ -647,311 +722,313 @@ model CompanyOffDay {
 }
 
 model WorkPlan {
-  id          String         @id @default(uuid())
-  companyId   String         @map("company_id")
-  unitId      String         @map("unit_id")
-  planName    String?        @map("plan_name")
-  startDate   DateTime       @map("start_date")
-  endDate     DateTime       @map("end_date")
-  status      String         @default("active")
-  notes       String?
-  typeId      String?        @map("type_id")
-  createdAt   DateTime       @default(now()) @map("created_at")
-  updatedAt   DateTime       @updatedAt @map("updated_at")
-  type        WorkPlanType?  @relation(fields: [typeId], references: [id])
-  items       WorkPlanItem[]
-  company     Company        @relation(fields: [companyId], references: [id])
-  unit        Department     @relation(fields: [unitId], references: [id])
+  id        String         @id @default(uuid())
+  companyId String         @map("company_id")
+  unitId    String         @map("unit_id")
+  planName  String?        @map("plan_name")
+  startDate DateTime       @map("start_date")
+  endDate   DateTime       @map("end_date")
+  status    String         @default("active")
+  notes     String?
+  typeId    String?        @map("type_id")
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @updatedAt @map("updated_at")
+  type      WorkPlanType?  @relation(fields: [typeId], references: [id])
+  items     WorkPlanItem[]
+  company   Company        @relation(fields: [companyId], references: [id])
+  unit      Department     @relation(fields: [unitId], references: [id])
 
   @@map("work_plans")
 }
 
 model WorkPlanItem {
-  id              String   @id @default(uuid())
-  workPlanId      String   @map("work_plan_id")
-  productId       String   @map("product_id")
-  lotNumber       String?  @map("lot_number")
-  plannedQuantity Int      @map("planned_quantity")
-  actualQuantity  Int      @default(0) @map("actual_quantity")
-  status          String   @default("pending")
+  id              String               @id @default(uuid())
+  workPlanId      String               @map("work_plan_id")
+  productId       String               @map("product_id")
+  lotNumber       String?              @map("lot_number")
+  plannedQuantity Int                  @map("planned_quantity")
+  actualQuantity  Int                  @default(0) @map("actual_quantity")
+  status          String               @default("pending")
   notes           String?
-  orderStepId     String?  @map("order_step_id")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  orderStepId     String?              @map("order_step_id")
+  createdAt       DateTime             @default(now()) @map("created_at")
+  updatedAt       DateTime             @updatedAt @map("updated_at")
   orderStep       ProductionOrderStep? @relation(fields: [orderStepId], references: [id])
-  product         Product  @relation(fields: [productId], references: [id])
-  workPlan        WorkPlan @relation(fields: [workPlanId], references: [id], onDelete: Cascade)
+  product         Product              @relation(fields: [productId], references: [id])
+  workPlan        WorkPlan             @relation(fields: [workPlanId], references: [id], onDelete: Cascade)
 
   @@map("work_plan_items")
 }
 
 model Operation {
-  id              String         @id @default(uuid())
-  companyId       String         @map("company_id")
-  code            String
-  name            String
-  unitId          String         @map("unit_id")
-  stationId       String?        @map("station_id")
-  description     String?
-  status          String         @default("active")
-  displayOrder    Int            @default(0) @map("display_order")
-  createdAt       DateTime       @default(now()) @map("created_at")
-  updatedAt       DateTime       @updatedAt @map("updated_at")
-  
-  unit            Department     @relation(fields: [unitId], references: [id])
-  station         Station?       @relation(fields: [stationId], references: [id])
-  company         Company        @relation(fields: [companyId], references: [id])
-  recipes         ProductRecipe[]
-  orderSteps      ProductionOrderStep[]
-  workPlanTypes   WorkPlanType[]
-  routeSteps      RouteStep[]
+  id           String   @id @default(uuid())
+  companyId    String   @map("company_id")
+  code         String
+  name         String
+  unitId       String   @map("unit_id")
+  stationId    String?  @map("station_id")
+  description  String?
+  status       String   @default("active")
+  displayOrder Int      @default(0) @map("display_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  unit          Department            @relation(fields: [unitId], references: [id])
+  station       Station?              @relation(fields: [stationId], references: [id])
+  company       Company               @relation(fields: [companyId], references: [id])
+  recipes       ProductRecipe[]
+  orderSteps    ProductionOrderStep[]
+  workPlanTypes WorkPlanType[]
+  routeSteps    RouteStep[]
 
   @@unique([companyId, code])
   @@map("operations")
 }
 
 model ProductRecipe {
-  id              String    @id @default(uuid())
-  productId       String    @map("product_id")
-  operationId     String    @map("operation_id")
-  sequence        Int
-  estimatedTime   Int?      @map("estimated_time_minutes")
-  
-  product         Product   @relation(fields: [productId], references: [id])
-  operation       Operation @relation(fields: [operationId], references: [id])
+  id            String @id @default(uuid())
+  productId     String @map("product_id")
+  operationId   String @map("operation_id")
+  sequence      Int
+  estimatedTime Int?   @map("estimated_time_minutes")
+
+  product   Product   @relation(fields: [productId], references: [id])
+  operation Operation @relation(fields: [operationId], references: [id])
 
   @@unique([productId, sequence])
   @@map("product_recipes")
 }
 
 model ProductionOrder {
-  id              String         @id @default(uuid())
-  companyId       String         @map("company_id")
-  recordNumber    Int            @default(1) @map("record_number")
-  productId       String         @map("product_id")
-  lotNumber       String         @map("lot_number")
-  quantity        Int
-  status          String         @default("draft")
-  isStarred       Boolean        @default(false) @map("is_starred")
-  startDate       DateTime?      @map("start_date")
-  endDate         DateTime?      @map("end_date")
-  createdAt       DateTime       @default(now()) @map("created_at")
-  updatedAt       DateTime       @updatedAt @map("updated_at")
+  id           String    @id @default(uuid())
+  companyId    String    @map("company_id")
+  recordNumber Int       @default(1) @map("record_number")
+  productId    String    @map("product_id")
+  lotNumber    String    @map("lot_number")
+  quantity     Int
+  status       String    @default("draft")
+  isStarred    Boolean   @default(false) @map("is_starred")
+  startDate    DateTime? @map("start_date")
+  endDate      DateTime? @map("end_date")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
 
-  product         Product        @relation(fields: [productId], references: [id])
-  company         Company        @relation(fields: [companyId], references: [id])
-  
-  type                String         @default("Asıl") // Asıl, tekrar işlem, bölünmüş, Ar-Ge, Fason, Final
-  targetWarehouseId   String?        @map("target_warehouse_id")
-  notes               String?
-  expiryDate          DateTime?      @map("expiry_date")
-  sterilizationDate   DateTime?      @map("sterilization_date")
-  productionDate      DateTime?      @map("production_date")
-  parentId            String?        @map("parent_id")
+  product Product @relation(fields: [productId], references: [id])
+  company Company @relation(fields: [companyId], references: [id])
 
-  steps           ProductionOrderStep[]
-  components      ProductionOrderComponent[]
-  events          ProductionOrderEvent[]
-  machines        ProductionOrderMachine[]
-  parent          ProductionOrder? @relation("LinkedOrders", fields: [parentId], references: [id])
-  children        ProductionOrder[] @relation("LinkedOrders")
+  type              String    @default("Asıl") // Asıl, tekrar işlem, bölünmüş, Ar-Ge, Fason, Final
+  targetWarehouseId String?   @map("target_warehouse_id")
+  notes             String?
+  expiryDate        DateTime? @map("expiry_date")
+  sterilizationDate DateTime? @map("sterilization_date")
+  productionDate    DateTime? @map("production_date")
+  parentId          String?   @map("parent_id")
+
+  steps      ProductionOrderStep[]
+  components ProductionOrderComponent[]
+  events     ProductionOrderEvent[]
+  machines   ProductionOrderMachine[]
+  parent     ProductionOrder?           @relation("LinkedOrders", fields: [parentId], references: [id])
+  children   ProductionOrder[]          @relation("LinkedOrders")
 
   @@unique([companyId, lotNumber])
   @@map("production_orders")
 }
 
 model ProductionOrderStep {
-  id                String          @id @default(uuid())
-  productionOrderId String          @map("production_order_id")
-  operationId       String          @map("operation_id")
+  id                String @id @default(uuid())
+  productionOrderId String @map("production_order_id")
+  operationId       String @map("operation_id")
   sequence          Int
-  status            String          @default("pending")
-  
-  approvedQty       Int             @default(0) @map("approved_qty")
-  rejectedQty       Int             @default(0) @map("rejected_qty")
-  reworkQty         Int             @default(0) @map("rework_qty")
-  sampleQty         Int             @default(0) @map("sample_qty")
-  conditionalQty    Int             @default(0) @map("conditional_qty")
-  
-  operatorId        String?         @map("operator_id")
-  machineId         String?         @map("machine_id")
-  shiftId           String?         @map("shift_id")
-  workType          String?         @map("work_type")
-  
-  startTime         DateTime?       @map("start_time")
-  endTime           DateTime?       @map("end_time")
+  status            String @default("pending")
 
-  productionOrder   ProductionOrder @relation(fields: [productionOrderId], references: [id], onDelete: Cascade)
-  operation         Operation       @relation(fields: [operationId], references: [id])
-  operator          Operator?       @relation(fields: [operatorId], references: [id])
-  shift             Shift?          @relation(fields: [shiftId], references: [id])
-  machine           Machine?        @relation(fields: [machineId], references: [id])
-  workPlanItems     WorkPlanItem[]
-  events            ProductionOrderEvent[]
+  approvedQty    Int @default(0) @map("approved_qty")
+  rejectedQty    Int @default(0) @map("rejected_qty")
+  reworkQty      Int @default(0) @map("rework_qty")
+  sampleQty      Int @default(0) @map("sample_qty")
+  conditionalQty Int @default(0) @map("conditional_qty")
+
+  operatorId String? @map("operator_id")
+  machineId  String? @map("machine_id")
+  shiftId    String? @map("shift_id")
+  workType   String? @map("work_type")
+
+  startTime DateTime? @map("start_time")
+  endTime   DateTime? @map("end_time")
+
+  productionOrder ProductionOrder        @relation(fields: [productionOrderId], references: [id], onDelete: Cascade)
+  operation       Operation              @relation(fields: [operationId], references: [id])
+  operator        Operator?              @relation(fields: [operatorId], references: [id])
+  shift           Shift?                 @relation(fields: [shiftId], references: [id])
+  machine         Machine?               @relation(fields: [machineId], references: [id])
+  workPlanItems   WorkPlanItem[]
+  events          ProductionOrderEvent[]
 
   @@map("production_order_steps")
 }
 
 model WorkPlanType {
-  id                String         @id @default(uuid())
-  companyId         String         @map("company_id")
+  id                String  @id @default(uuid())
+  companyId         String  @map("company_id")
   name              String
-  targetOperationId String         @map("target_operation_id")
+  targetOperationId String  @map("target_operation_id")
   description       String?
-  
-  operation         Operation       @relation(fields: [targetOperationId], references: [id])
-  company           Company         @relation(fields: [companyId], references: [id])
-  workPlans         WorkPlan[]
+
+  operation Operation  @relation(fields: [targetOperationId], references: [id])
+  company   Company    @relation(fields: [companyId], references: [id])
+  workPlans WorkPlan[]
 
   @@map("work_plan_types")
 }
 
 model ProductionOrderComponent {
-  id                String          @id @default(uuid())
-  productionOrderId String          @map("production_order_id")
-  componentProductId String         @map("component_product_id")
-  quantity          Float
-  consumptionType   String          @default("UNIT") // UNIT, UNIT_CONSUMPTION, FIXED
-  unit              String          @default("PCS")
-  warehouseId       String?         @map("warehouse_id")
-  lotNumber         String?         @map("lot_number")
-  notes             String?
-  
-  productionOrder   ProductionOrder @relation(fields: [productionOrderId], references: [id], onDelete: Cascade)
-  componentProduct  Product         @relation(fields: [componentProductId], references: [id])
-  
+  id                 String  @id @default(uuid())
+  productionOrderId  String  @map("production_order_id")
+  componentProductId String  @map("component_product_id")
+  quantity           Float
+  unitQuantity       Float?  @map("unit_quantity")
+  consumptionType    String  @default("UNIT") // UNIT, UNIT_CONSUMPTION, FIXED
+  unit               String  @default("PCS")
+  warehouseId        String? @map("warehouse_id")
+  lotNumber          String? @map("lot_number")
+  notes              String?
+
+  productionOrder  ProductionOrder @relation(fields: [productionOrderId], references: [id], onDelete: Cascade)
+  componentProduct Product         @relation(fields: [componentProductId], references: [id])
+
   @@map("production_order_components")
 }
 
 model ProductDefaultComponent {
-  id                    String            @id @default(uuid())
-  companyId             String            @map("company_id")
-  productId             String            @map("product_id")
-  componentProductId    String            @map("component_product_id")
-  warehouseId           String?           @map("warehouse_id")
-  lotNumber             String?           @map("lot_number")
-  quantity              Float             @default(0)
-  consumptionType       String            @default("UNIT") // UNIT, UNIT_CONSUMPTION, FIXED
-  unit                  String            @default("PCS")
-  notes                 String?           @map("notes")
+  id                 String  @id @default(uuid())
+  companyId          String  @map("company_id")
+  productId          String  @map("product_id")
+  componentProductId String  @map("component_product_id")
+  warehouseId        String? @map("warehouse_id")
+  lotNumber          String? @map("lot_number")
+  quantity           Float   @default(0)
+  unitQuantity       Float?  @map("unit_quantity")
+  consumptionType    String  @default("UNIT") // UNIT, UNIT_CONSUMPTION, FIXED
+  unit               String  @default("PCS")
+  notes              String? @map("notes")
 
-  product               Product           @relation("ProductDefaults", fields: [productId], references: [id], onDelete: Cascade)
-  componentProduct      Product           @relation("ComponentRelation", fields: [componentProductId], references: [id])
-  company               Company           @relation(fields: [companyId], references: [id])
-  
+  product          Product @relation("ProductDefaults", fields: [productId], references: [id], onDelete: Cascade)
+  componentProduct Product @relation("ComponentRelation", fields: [componentProductId], references: [id])
+  company          Company @relation(fields: [companyId], references: [id])
+
   @@map("product_default_components")
 }
 
 model ProductDefaultMachine {
-  id                    String            @id @default(uuid())
-  companyId             String            @map("company_id")
-  productId             String            @map("product_id")
-  machineId             String            @map("machine_id")
-  unitTimeSeconds       Float             @default(0) @map("unit_time_seconds")
+  id              String @id @default(uuid())
+  companyId       String @map("company_id")
+  productId       String @map("product_id")
+  machineId       String @map("machine_id")
+  unitTimeSeconds Float  @default(0) @map("unit_time_seconds")
 
-  product               Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
-  machine               Machine           @relation(fields: [machineId], references: [id])
-  company               Company           @relation(fields: [companyId], references: [id])
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  machine Machine @relation(fields: [machineId], references: [id])
+  company Company @relation(fields: [companyId], references: [id])
 
   @@map("product_default_machines")
 }
 
 model ProductionRoute {
-  id          String   @id @default(uuid())
-  companyId   String   @map("company_id")
-  name        String
-  code        String?
-  description String?
-  status      String   @default("active")
-  displayOrder Int     @default(0) @map("display_order")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id           String   @id @default(uuid())
+  companyId    String   @map("company_id")
+  name         String
+  code         String?
+  description  String?
+  status       String   @default("active")
+  displayOrder Int      @default(0) @map("display_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
-  company     Company  @relation(fields: [companyId], references: [id])
-  steps       RouteStep[]
-  products    Product[]
+  company  Company     @relation(fields: [companyId], references: [id])
+  steps    RouteStep[]
+  products Product[]
 
   @@unique([companyId, name])
   @@map("production_routes")
 }
 
 model RouteStep {
-  id              String          @id @default(uuid())
-  routeId         String          @map("route_id")
-  operationId     String          @map("operation_id")
-  sequence        Int
-  estimatedTime   Int?            @map("estimated_time_minutes")
-  
-  route           ProductionRoute @relation(fields: [routeId], references: [id], onDelete: Cascade)
-  operation       Operation       @relation(fields: [operationId], references: [id])
+  id            String @id @default(uuid())
+  routeId       String @map("route_id")
+  operationId   String @map("operation_id")
+  sequence      Int
+  estimatedTime Int?   @map("estimated_time_minutes")
+
+  route     ProductionRoute @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  operation Operation       @relation(fields: [operationId], references: [id])
 
   @@unique([routeId, sequence])
   @@map("route_steps")
 }
 
 model ProductionOrderEvent {
-  id                String          @id @default(uuid())
-  productionOrderId String          @map("production_order_id")
-  stepId            String?         @map("step_id")
-  type              String          // RED, NUMUNE, TEKRAR_ISLEM, SARTLI_KABUL, ARIZA, DURUS
+  id                String   @id @default(uuid())
+  productionOrderId String   @map("production_order_id")
+  stepId            String?  @map("step_id")
+  type              String // RED, NUMUNE, TEKRAR_ISLEM, SARTLI_KABUL, ARIZA, DURUS
   description       String?
   quantity          Float?
-  operatorId        String?         @map("operator_id")
-  reasonId          String?         @map("reason_id")
-  warehouseId       String?         @map("warehouse_id")
-  createdAt         DateTime        @default(now()) @map("created_at")
-  
-  productionOrder   ProductionOrder @relation(fields: [productionOrderId], references: [id], onDelete: Cascade)
-  step              ProductionOrderStep? @relation(fields: [stepId], references: [id])
-  operator          Operator?       @relation(fields: [operatorId], references: [id])
-  reason            ProductionEventReason? @relation(fields: [reasonId], references: [id])
-  warehouse         Warehouse?      @relation(fields: [warehouseId], references: [id])
-  
+  operatorId        String?  @map("operator_id")
+  reasonId          String?  @map("reason_id")
+  warehouseId       String?  @map("warehouse_id")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  productionOrder ProductionOrder        @relation(fields: [productionOrderId], references: [id], onDelete: Cascade)
+  step            ProductionOrderStep?   @relation(fields: [stepId], references: [id])
+  operator        Operator?              @relation(fields: [operatorId], references: [id])
+  reason          ProductionEventReason? @relation(fields: [reasonId], references: [id])
+  warehouse       Warehouse?             @relation(fields: [warehouseId], references: [id])
+
   @@map("production_order_events")
 }
 
 model ProductionEventGroup {
-  id                String          @id @default(uuid())
-  companyId         String          @map("company_id")
-  code              String?
-  name              String
-  status            String          @default("active")
-  displayOrder      Int             @default(0) @map("display_order")
-  createdAt         DateTime        @default(now()) @map("created_at")
+  id           String   @id @default(uuid())
+  companyId    String   @map("company_id")
+  code         String?
+  name         String
+  status       String   @default("active")
+  displayOrder Int      @default(0) @map("display_order")
+  createdAt    DateTime @default(now()) @map("created_at")
 
-  reasons           ProductionEventReason[]
-  company           Company         @relation(fields: [companyId], references: [id])
+  reasons ProductionEventReason[]
+  company Company                 @relation(fields: [companyId], references: [id])
 
   @@map("production_event_groups")
 }
 
 model ProductionEventReason {
-  id                String          @id @default(uuid())
-  companyId         String          @map("company_id")
-  code              String?
-  name              String
-  type              String          // RED, NUMUNE, TEKRAR_ISLEM, SARTLI_KABUL
-  status            String          @default("active")
-  displayOrder      Int             @default(0) @map("display_order")
-  createdAt         DateTime        @default(now()) @map("created_at")
+  id           String   @id @default(uuid())
+  companyId    String   @map("company_id")
+  code         String?
+  name         String
+  type         String // RED, NUMUNE, TEKRAR_ISLEM, SARTLI_KABUL
+  status       String   @default("active")
+  displayOrder Int      @default(0) @map("display_order")
+  createdAt    DateTime @default(now()) @map("created_at")
 
-  groupId           String?         @map("group_id")
-  group             ProductionEventGroup? @relation(fields: [groupId], references: [id])
+  groupId String?               @map("group_id")
+  group   ProductionEventGroup? @relation(fields: [groupId], references: [id])
 
-  events            ProductionOrderEvent[]
-  company           Company         @relation(fields: [companyId], references: [id])
+  events  ProductionOrderEvent[]
+  company Company                @relation(fields: [companyId], references: [id])
 
   @@map("production_event_reasons")
 }
 
 model ProductionOrderMachine {
-  id                String          @id @default(uuid())
-  productionOrderId String          @map("production_order_id")
-  machineId         String          @map("machine_id")
-  unitTimeSeconds   Int?            @map("unit_time_seconds")
-  
-  productionOrder   ProductionOrder @relation(fields: [productionOrderId], references: [id], onDelete: Cascade)
-  machine           Machine         @relation(fields: [machineId], references: [id])
-  
+  id                String @id @default(uuid())
+  productionOrderId String @map("production_order_id")
+  machineId         String @map("machine_id")
+  unitTimeSeconds   Int?   @map("unit_time_seconds")
+
+  productionOrder ProductionOrder @relation(fields: [productionOrderId], references: [id], onDelete: Cascade)
+  machine         Machine         @relation(fields: [machineId], references: [id])
+
   @@map("production_order_machines")
 }

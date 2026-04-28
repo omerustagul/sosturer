@@ -3,7 +3,8 @@ import prisma from '../lib/prisma';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { authenticateToken, requireAdmin, AuthRequest } from '../middleware/auth';
-import { sendResetCode } from '../lib/email';
+import { sendResetCode, sendTwoFactorCode } from '../lib/email';
+import { getRequestIp, isIpAllowed, parseAllowedIpList } from '../utils/securitySettings';
 
 
 const router = Router();
@@ -40,8 +41,51 @@ router.post('/login', async (req: Request, res: Response): Promise<any> => {
     if (!user) return res.status(401).json({ error: 'Geçersiz e-posta veya şifre' });
     if (user.status !== 'active') return res.status(403).json({ error: 'Hesabınız pasif duruma getirilmiştir' });
 
+    const appSettings = user.companyId
+      ? await prisma.appSettings.findUnique({ where: { companyId: user.companyId } })
+      : null;
+
+    if (appSettings?.ipRestrictionEnabled) {
+      const requestIp = getRequestIp(req);
+      const allowedIps = parseAllowedIpList((appSettings as any).allowed_ip_list);
+
+      if (!isIpAllowed(requestIp, allowedIps)) {
+        return res.status(403).json({ error: 'Bu IP adresinden giriş yapılmasına izin verilmiyor.' });
+      }
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(401).json({ error: 'Geçersiz e-posta veya şifre' });
+
+    if (appSettings?.twoFactorEnabled) {
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      const expires = new Date(Date.now() + 5 * 60 * 1000);
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          two_factor_code: code,
+          two_factor_expires: expires
+        }
+      });
+
+      const sent = await sendTwoFactorCode(email, code);
+      if (!sent) {
+        return res.status(500).json({ error: 'Doğrulama kodu e-posta ile gönderilemedi. SMTP ayarlarını kontrol edin.' });
+      }
+
+      const twoFactorToken = jwt.sign(
+        { id: user.id, email: user.email, companyId: user.companyId, purpose: '2fa' },
+        JWT_SECRET,
+        { expiresIn: '5m' }
+      );
+
+      return res.json({
+        twoFactorRequired: true,
+        twoFactorToken,
+        message: 'Doğrulama kodu e-posta adresinize gönderildi.'
+      });
+    }
 
     const token = makeToken(user);
     const { password: _, ...safeUser } = user;
@@ -56,6 +100,54 @@ router.post('/login', async (req: Request, res: Response): Promise<any> => {
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ error: 'Sunucu hatası. Giriş yapılamadı.' });
+  }
+});
+
+router.post('/login/verify-2fa', async (req: Request, res: Response): Promise<any> => {
+  const { twoFactorToken, code } = req.body;
+
+  if (!twoFactorToken || !code) {
+    return res.status(400).json({ error: 'Doğrulama kodu zorunludur.' });
+  }
+
+  try {
+    const payload = jwt.verify(twoFactorToken, JWT_SECRET) as any;
+    if (payload.purpose !== '2fa') {
+      return res.status(403).json({ error: 'Geçersiz doğrulama isteği.' });
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: payload.id } });
+    if (!user || user.status !== 'active') {
+      return res.status(403).json({ error: 'Kullanıcı doğrulanamadı.' });
+    }
+
+    if (!user.two_factor_code || user.two_factor_code !== String(code).trim()) {
+      return res.status(400).json({ error: 'Doğrulama kodu hatalı.' });
+    }
+
+    if (!user.two_factor_expires || user.two_factor_expires < new Date()) {
+      return res.status(400).json({ error: 'Doğrulama kodunun süresi dolmuş.' });
+    }
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        two_factor_code: null,
+        two_factor_expires: null
+      }
+    });
+
+    const token = makeToken(user);
+    const { password: _, ...safeUser } = user;
+
+    let company = null;
+    if (user.companyId) {
+      company = await prisma.company.findUnique({ where: { id: user.companyId } });
+    }
+
+    res.json({ token, user: safeUser, company });
+  } catch (error) {
+    res.status(403).json({ error: 'Doğrulama oturumu geçersiz veya süresi dolmuş.' });
   }
 });
 

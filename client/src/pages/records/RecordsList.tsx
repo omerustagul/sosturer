@@ -965,7 +965,7 @@ export function RecordsList() {
   const [showAddOptions, setShowAddOptions] = useState(false);
 
   return (
-    <div className="p-4 lg:p-6 w-full space-y-10 animate-in fade-in slide-in-from-bottom-6 duration-700">
+    <div className="p-4 lg:p-6 w-full space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-700">
 
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6">
         <div>
@@ -1057,8 +1057,8 @@ export function RecordsList() {
       </div>
 
       {/* NEW: Filter Bar */}
-      <div className="modern-glass-card relative z-30 p-8 space-y-6">
-        <div className="flex flex-col gap-6">
+      <div className="modern-glass-card relative z-30 p-4 space-y-3">
+        <div className="flex flex-col gap-3">
           {/* Main (Always Visible) Filter Row */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
             <div className="space-y-2">
@@ -1348,7 +1348,7 @@ export function RecordsList() {
               <div className="w-24">
                 <CustomSelect
                   options={[
-                    { id: 10, label: '10' },
+                    { id: 20, label: '20' },
                     { id: 50, label: '50' },
                     { id: 250, label: '250' },
                     { id: 500, label: '500' },

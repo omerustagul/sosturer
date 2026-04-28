@@ -208,8 +208,7 @@ export function CompanyManagement() {
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
             <div className="flex items-center gap-4">
               <div className="relative group">
-                <div className="absolute -inset-1 bg-gradient-to-r from-theme-primary to-blue-600 rounded-2xl blur opacity-15 group-hover:opacity-30 transition duration-1000"></div>
-                <div className="relative w-16 h-16 bg-theme-base border-2 border-theme-primary/20 p-0 rounded-2xl flex items-center justify-center overflow-hidden transition-all duration-500 group-hover:scale-[1.02]">
+                <div className="relative w-16 h-16 rounded-2xl flex items-center justify-center overflow-hidden transition-all duration-500 group-hover:scale-[1.02]">
                   <img src={companyData.logo_url || "/logo.png"} className="w-full h-full object-contain" alt="Logo" />
                   <div className="absolute inset-0 bg-black/10 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer backdrop-blur-sm">
                     <Camera className="w-5 h-5 text-white" />
@@ -1397,7 +1396,7 @@ function NextGenUnits({ units, locations, onAdd, onDelete, onUpdate, onRefreshLo
             <div className="w-24">
               <CustomSelect
                 options={[
-                  { id: 10, label: '10' },
+                  { id: 20, label: '20' },
                   { id: 50, label: '50' },
                   { id: 250, label: '250' },
                   { id: 500, label: '500' },
@@ -1608,14 +1607,14 @@ function NextGenSchedule() {
         })}
       </div>
 
-      <div className="mt-6 p-2 rounded-2xl bg-gradient-to-r from-theme-primary/10 to-transparent border border-theme-primary/20 flex items-start gap-6 backdrop-blur-xl">
-        <div className="w-12 h-12 rounded-2xl bg-theme-primary/20 flex items-center justify-center shadow-lg shrink-0">
-          <Zap className="w-6 h-6 text-theme-primary" />
+      <div className="mt-6 p-2 rounded-2xl bg-gradient-to-r from-theme-primary/10 to-transparent border border-theme-primary/20 flex items-start gap-3 backdrop-blur-xl">
+        <div className="w-8 h-8 rounded-xl bg-theme-primary/20 flex items-center justify-center shadow-lg shrink-0">
+          <Zap className="w-4 h-4 text-theme-primary" />
         </div>
-        <div className="space-y-2">
-          <h4 className="text-xs font-black text-theme-primary uppercase tracking-widest">AKILLI ANALİZ ENTEGRASYONU</h4>
-          <p className="text-[11px] font-bold text-theme-muted uppercase leading-relaxed max-w-4xl">
-            BURADA İŞARETLEDİĞİNİZ GÜNLER SİSTEM TARAFINDAN <span className="text-theme-primary font-black underline decoration-2 underline-offset-4">"ÇALIŞILMAYAN GÜN"</span> OLARAK KABUL EDİLECEK VE ANALİZ RAPORLARINDA, EKSİK ÜRETİM KAYDI UYARILARINDA DİKKATE ALINMAYACAKTIR.
+        <div className="items-center justify-center space-y-0">
+          <h4 className="text-xs font-black text-theme-primary">AKILLI ANALİZ ENTEGRASYONU</h4>
+          <p className="text-[11px] font-bold text-theme-muted leading-relaxed max-w-4xl">
+            Burada işaretlediğiniz günler sistem tarafından <span className="text-theme-primary font-black underline decoration-2 underline-offset-4">"Çalışılmayan Gün"</span> olarak kabul edilecek ve analiz raporlarında, eksik üretim kaydı uyarılarında dikkate alınmayacaktır.
           </p>
         </div>
       </div>
@@ -1630,7 +1629,7 @@ function NextGenSchedule() {
               <div className="w-16 h-16 rounded-2xl bg-theme-primary/10 flex items-center justify-center border border-theme-primary/20 mx-auto mb-6 shadow-2xl shadow-theme-primary/10">
                 <CalendarDays className="w-8 h-8 text-theme-primary" />
               </div>
-              <h2 className="text-xl font-black text-theme-main uppercase tracking-tighter mb-2">TATİL VE İZİN TANIMI</h2>
+              <h2 className="text-xl font-black text-theme-main mb-2">TATİL VE İZİN TANIMI</h2>
               <p className="text-sm font-bold text-theme-dim opacity-90">
                 {format(modalDate, 'EEEE, d MMMM yyyy', { locale: tr })}
               </p>
@@ -1644,7 +1643,7 @@ function NextGenSchedule() {
                   value={modalLabel}
                   onChange={(e) => setModalLabel(e.target.value)}
                   placeholder="YAZMAYA BAŞLAYIN... (ÖRN: RAMAZAN BAYRAMI)"
-                  className="w-full h-12 bg-theme-surface/30 border-2 border-theme-primary/20 rounded-xl px-4 text-lg font-black text-theme-main placeholder:text-theme-main/10 outline-none focus:border-theme-primary transition-all text-center uppercase tracking-tight shadow-xl shadow-theme-primary/10"
+                  className="w-full h-12 bg-theme-surface/30 border-2 border-theme-primary/20 rounded-xl px-4 text-lg font-black text-theme-main placeholder:text-theme-main/10 outline-none focus:border-theme-primary transition-all text-center shadow-xl shadow-theme-primary/10"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') executeToggle(modalDate, modalLabel);
                     if (e.key === 'Escape') setModalDate(null);

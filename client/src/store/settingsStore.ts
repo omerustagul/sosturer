@@ -16,6 +16,7 @@ export interface AppSettings {
   sapIntegrationEnabled: boolean;
   webhooksEnabled: boolean;
   allowSupportAccess: boolean;
+  allowed_ip_list?: string;
   colorMode: 'light' | 'dark';
   dashboardLayout: string;
   referenceLocationId?: string;
@@ -74,6 +75,7 @@ const defaultSettings: AppSettings = {
   sapIntegrationEnabled: false,
   webhooksEnabled: false,
   allowSupportAccess: false,
+  allowed_ip_list: '[]',
   colorMode: getLocalStorage('color_mode', defaultMode) as 'light' | 'dark',
   dashboardLayout: '[]',
   referenceLocationId: '',
@@ -86,6 +88,16 @@ const defaultSettings: AppSettings = {
   productionEventWarehouseRequired: false,
 };
 
+const applyInitialDomSettings = () => {
+  const root = document.documentElement;
+  root.setAttribute('data-theme', defaultSettings.theme);
+  root.setAttribute('data-density', defaultSettings.tableDensity);
+  root.setAttribute('data-animations', String(defaultSettings.animationsEnabled));
+  root.setAttribute('data-color-mode', defaultSettings.colorMode);
+};
+
+applyInitialDomSettings();
+
 export const useSettingsStore = create<SettingsState>((set, get) => ({
   settings: defaultSettings,
   loading: false,
@@ -95,12 +107,13 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     try {
       const data = await api.get('/app-settings');
       if (data) {
-        set({ settings: data, isInitialized: true });
-        get().applyTheme(data.theme);
-        get().applyDensity(data.tableDensity);
-        get().applyAnimations(data.animationsEnabled);
-        get().applyColorMode(data.colorMode || 'dark');
-        get().applyLanguage(data.language);
+        const normalized = { ...defaultSettings, ...data };
+        set({ settings: normalized, isInitialized: true });
+        get().applyTheme(normalized.theme);
+        get().applyDensity(normalized.tableDensity);
+        get().applyAnimations(normalized.animationsEnabled);
+        get().applyColorMode(normalized.colorMode || defaultSettings.colorMode);
+        get().applyLanguage(normalized.language);
       }
     } catch (error) {
       console.error('Failed to fetch settings:', error);

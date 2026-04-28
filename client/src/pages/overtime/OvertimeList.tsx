@@ -593,7 +593,7 @@ export function OvertimeList() {
           <p className="text-[10px] font-bold text-theme-dim/40 uppercase mt-2">Filtrelerinizi güncelleyerek tekrar deneyin.</p>
         </div>
       ) : (
-        <div className="premium-card rounded-2xl overflow-hidden border-theme/10">
+        <div className="premium-card rounded-2xl overflow-hidden border-theme/60">
           <table className="w-full border-collapse density-aware-table">
             <thead>
               <tr className="bg-theme-surface/50 border-b border-theme/20">
@@ -732,7 +732,7 @@ export function OvertimeList() {
                 <div className="w-24">
                   <CustomSelect
                     options={[
-                      { id: 10, label: '10' },
+                      { id: 20, label: '20' },
                       { id: 50, label: '50' },
                       { id: 250, label: '250' },
                       { id: 500, label: '500' },

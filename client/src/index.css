@@ -53,7 +53,7 @@
   /* Theme Variables Base (Dark Default) */
   --bg-page: #0b1020;
   --bg-sidebar: #0a0f1b;
-  --bg-card: rgba(15, 23, 42, 0.38);
+  --bg-card: rgba(15, 23, 42, 0.80);
   --bg-surface: rgba(2, 6, 23, 0.55);
   --bg-form: rgba(2, 6, 23, 0.72);
 
@@ -166,30 +166,53 @@
   --table-padding-y: 0.5rem;
   --table-padding-x: 1rem;
   --table-font-size: 0.75rem;
+  --table-line-height: 1.2;
 }
 
 [data-density="medium"] {
   --table-padding-y: 1rem;
   --table-padding-x: 1.5rem;
   --table-font-size: 0.8125rem;
+  --table-line-height: 1.35;
 }
 
 [data-density="large"] {
   --table-padding-y: 1.5rem;
   --table-padding-x: 2rem;
   --table-font-size: 0.875rem;
+  --table-line-height: 1.5;
+}
+
+html[data-density] :where(table):not([data-density-ignore]) :where(th, td) {
+  padding-block: var(--table-padding-y) !important;
+  padding-inline: var(--table-padding-x) !important;
+  font-size: var(--table-font-size) !important;
+  line-height: var(--table-line-height) !important;
+}
+
+html[data-density="compact"] :where(table):not([data-density-ignore]) {
+  border-spacing: 0 0 !important;
+}
+
+html[data-density="large"] :where(table):not([data-density-ignore]) {
+  border-spacing: 0 0.25rem !important;
 }
 
 /* Animations Toggle - Aggressive Suppression */
 [data-animations="false"],
 [data-animations="false"] *,
+[data-animations="false"] *::before,
+[data-animations="false"] *::after,
 html[data-animations="false"] body,
 html[data-animations="false"] body * {
+  animation: none !important;
   animation-duration: 0ms !important;
   animation-delay: 0ms !important;
   animation-iteration-count: 1 !important;
+  transition: none !important;
   transition-duration: 0ms !important;
   transition-delay: 0ms !important;
+  scroll-behavior: auto !important;
   --transition-fast: 0s !important;
   --transition-normal: 0s !important;
   --transition-slow: 0s !important;
@@ -219,6 +242,7 @@ a:not(.no-hover-animation) {
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -234,6 +258,7 @@ a:not(.no-hover-animation) {
     opacity: 0;
     transform: translateY(-10px) scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -250,6 +275,7 @@ a:not(.no-hover-animation) {
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -265,6 +291,7 @@ a:not(.no-hover-animation) {
     opacity: 0;
     transform: translate(25px, -50%) scale(0.9);
   }
+
   100% {
     opacity: 1;
     transform: translate(0, -50%) scale(1);
@@ -275,10 +302,21 @@ a:not(.no-hover-animation) {
   animation: tooltip-slide-rtl 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
 }
 
-.animate-stagger-1 { animation-delay: 0.05s; }
-.animate-stagger-2 { animation-delay: 0.1s; }
-.animate-stagger-3 { animation-delay: 0.15s; }
-.animate-stagger-4 { animation-delay: 0.2s; }
+.animate-stagger-1 {
+  animation-delay: 0.05s;
+}
+
+.animate-stagger-2 {
+  animation-delay: 0.1s;
+}
+
+.animate-stagger-3 {
+  animation-delay: 0.15s;
+}
+
+.animate-stagger-4 {
+  animation-delay: 0.2s;
+}
 
 body {
   margin: 0;
@@ -299,7 +337,7 @@ body {
 
 @layer components {
   .form-input {
-    @apply h-10 w-full bg-theme-base border border-theme rounded-xl px-1.5 py-1 text-theme-main focus:outline-none focus:ring-2 focus:ring-theme-primary/50;
+    @apply h-10 w-full bg-theme-base/50 border border-theme rounded-xl px-1.5 py-1 text-theme-main focus:outline-none focus:ring-2 focus:ring-theme-primary/50;
   }
 
   .label-sm {
@@ -318,7 +356,9 @@ body {
     transition: transform 0.2s, border-color 0.2s, background-color var(--transition-speed);
   }
 
-  .premium-card:hover { border-color: var(--border-hover); }
+  .premium-card:hover {
+    border-color: var(--border-hover);
+  }
 
   .btn-primary {
     @apply bg-theme-primary text-white font-black rounded-xl transition-all shadow-xl shadow-theme-primary/20;
@@ -377,7 +417,10 @@ body {
 
 @utility no-scrollbar {
   scrollbar-width: none;
-  &::-webkit-scrollbar { display: none; }
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 * {
@@ -385,8 +428,15 @@ body {
   scrollbar-color: var(--primary) transparent;
 }
 
-*::-webkit-scrollbar { width: 8px; height: 8px; }
-*::-webkit-scrollbar-thumb { border-radius: 999px; background-color: var(--primary); }
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background-color: var(--primary);
+}
 
 input[type="date"]::-webkit-calendar-picker-indicator,
 input[type="time"]::-webkit-calendar-picker-indicator,

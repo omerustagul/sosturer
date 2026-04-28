@@ -228,7 +228,7 @@ export const CustomSelect = memo(({
       <div
         onClick={() => !disabled && setIsOpen(!isOpen)}
         className={cn(
-          "relative w-auto min-w-30 bg-theme-base border border-theme rounded-xl flex items-center justify-between cursor-pointer transition-all duration-300 group",
+          "relative w-auto min-w-20 bg-theme-base border border-theme rounded-xl flex items-center justify-between cursor-pointer transition-all duration-300 group",
           variant === 'inline' ? "h-10 px-2 py-1" : "h-10 px-2 py-1",
           isOpen && "ring-4 ring-theme-primary/10 border-theme-primary/40 bg-theme-surface shadow-primary-glow",
           !isOpen && !disabled && "hover:border-theme-primary/40 hover:bg-theme-surface/50",

@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../lib/prisma';
 import { AuthRequest } from '../middleware/auth';
+import { getRequestIp, parseAllowedIpList } from '../utils/securitySettings';
 
 const router = Router();
 
@@ -27,7 +28,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
     const companyId = req.user?.companyId;
     if (!companyId) return res.status(400).json({ error: 'Şirkete bağlı değilsiniz' });
 
-    const { id, updatedAt, companyId: _cid, company: _c, ...settingsData } = req.body;
+    const { id, updatedAt, companyId: _cid, company: _c, allowedIpList, ...settingsData } = req.body;
     
     // Sadece modele ait alanları filtrelenmiş veriden al (Prisma hatasını engellemek için)
     const filteredData: any = {};
@@ -36,7 +37,8 @@ router.post('/', async (req: AuthRequest, res: Response) => {
       'tableDensity', 'animationsEnabled', 'notificationsEnabled', 'twoFactorEnabled',
       'ipRestrictionEnabled', 'allowSupportAccess', 'sapIntegrationEnabled', 'webhooksEnabled',
       'colorMode', 'dashboardLayout', 'referenceLocationId', 'standardShiftIds',
-      'smtpHost', 'smtpPort', 'smtpUser', 'smtpPass', 'smtpFrom', 'productionEventWarehouseRequired'
+      'smtpHost', 'smtpPort', 'smtpUser', 'smtpPass', 'smtpFrom', 'productionEventWarehouseRequired',
+      'allowed_ip_list'
     ];
     
     validFields.forEach(field => {
@@ -44,6 +46,17 @@ router.post('/', async (req: AuthRequest, res: Response) => {
         filteredData[field] = settingsData[field];
       }
     });
+
+    if (allowedIpList !== undefined) {
+      filteredData.allowed_ip_list = allowedIpList;
+    }
+
+    if (filteredData.ipRestrictionEnabled === true) {
+      const allowedIps = parseAllowedIpList(filteredData.allowed_ip_list);
+      if (allowedIps.length === 0) {
+        filteredData.allowed_ip_list = JSON.stringify([getRequestIp(req)]);
+      }
+    }
 
     console.log(`[Settings] Updating settings for company: ${companyId}`);
     

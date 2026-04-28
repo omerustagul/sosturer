@@ -3,7 +3,7 @@ import {
   Bolt, DiamondPlus, ListOrdered, Logs, ChartArea, FileChartPie, ScanBarcode, CalendarRange,
   Settings, BarChart3, LogOut, TextAlignStart, Airplay,
   ChevronLeft, ChevronRight, Package, FileUser, User, ShieldCheck, Factory,
-  Bell, Building2, Warehouse, ShoppingCart, History, LayoutGrid, Boxes, GanttChart, Wrench,
+  Bell, Building2, Warehouse, ShoppingCart, History, LayoutGrid, Boxes, GanttChart, Wrench, FileText,
   Moon, Sun, Activity
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
@@ -208,6 +208,7 @@ export function Layout() {
       isDropdown: true,
       children: [
         { icon: Package, label: t('inventory.dashboard', 'Depo Durumu'), path: '/inventory/dashboard' },
+        { icon: FileText, label: 'Stok Fişleri', path: '/inventory/stock-vouchers' },
         { icon: History, label: t('inventory.movements', 'Stok Hareketleri'), path: '/inventory/movements' },
       ]
     },
@@ -265,7 +266,7 @@ export function Layout() {
   return (
     <div className="h-screen bg-theme-base text-theme-main font-sans w-full flex flex-col overflow-hidden selection:bg-theme-primary/30">
       {/* Header */}
-      <header className="h-16 border-b border-theme bg-theme-surface/90 backdrop-blur-2xl px-6 flex items-center justify-between shrink-0 z-50 shadow-[0_4px_30px_rgba(0,0,0,0.1)]">
+      <header className="h-16 border-b border-theme bg-theme-surface/90 backdrop-blur-2xl px-4 flex items-center justify-between shrink-0 z-50 shadow-[0_4px_30px_rgba(0,0,0,0.1)]">
         <div className="flex items-center gap-6">
           <Link to="/" className="flex items-center gap-2 group">
             <div className="relative flex items-center justify-center">
@@ -288,7 +289,7 @@ export function Layout() {
           </Link>
 
           <div className="hidden lg:flex items-center gap-2 pl-5 border-l border-theme h-8">
-            <span className="text-xs font-black text-theme-main max-w-[400px]">
+            <span className="text-xs font-bold text-theme-muted max-w-[400px]">
               {companyName}
             </span>
           </div>
@@ -313,21 +314,21 @@ export function Layout() {
 
             {/* Live Work / Shift Status */}
             <div className={`flex items-center h-10 gap-2.5 border p-1.5 rounded-xl backdrop-blur-xl shadow-lg transition-all duration-700 group shadow-lg ${workStatus.type === 'closed'
-              ? 'bg-theme-error/5 border-theme-error/20 hover:bg-theme-error/10 hover:border-theme-error/40'
+              ? 'bg-theme-danger/5 border-theme-danger/20 hover:bg-theme-danger/10 hover:border-theme-danger/40'
               : workStatus.type === 'overtime'
                 ? 'bg-theme-warning/5 border-theme-warning/30 hover:bg-theme-warning/10 hover:border-theme-warning/50'
                 : 'bg-theme-success/5 border-theme-success/20 hover:bg-theme-success/10 hover:border-theme-success/40'
               }`}>
               <div className={`relative flex items-center justify-center h-7 w-7 rounded-lg border overflow-hidden ${workStatus.type === 'closed'
-                ? 'bg-theme-error/10 border-theme-error/20'
+                ? 'bg-theme-danger/10 border-theme-danger/20'
                 : workStatus.type === 'overtime'
                   ? 'bg-theme-warning/10 border-theme-warning/30'
                   : 'bg-theme-success/10 border-theme-success/20'
                 }`}>
-                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-20 scale-150 ${workStatus.type === 'closed' ? 'bg-theme-error' : workStatus.type === 'overtime' ? 'bg-theme-warning' : 'bg-theme-success'
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-20 scale-150 ${workStatus.type === 'closed' ? 'bg-theme-danger' : workStatus.type === 'overtime' ? 'bg-theme-warning' : 'bg-theme-success'
                   }`}></span>
                 {workStatus.type === 'closed' ? (
-                  <Moon className="w-4 h-4 text-theme-error relative z-10" />
+                  <Moon className="w-4 h-4 text-theme-danger relative z-10" />
                 ) : workStatus.type === 'overtime' ? (
                   <Activity className="w-4 h-4 text-theme-warning relative z-10 animate-pulse" />
                 ) : (
@@ -336,7 +337,7 @@ export function Layout() {
               </div>
 
               <div className="flex flex-col items-start vertical-align-middle pr-2">
-                <span className={`text-[9px] font-black tracking-[0.2em] uppercase leading-none mt-0.5 ${workStatus.type === 'closed' ? 'text-theme-error' : workStatus.type === 'overtime' ? 'text-theme-warning' : 'text-theme-success'
+                <span className={`text-[9px] font-black tracking-[0.2em] uppercase leading-none mt-0.5 ${workStatus.type === 'closed' ? 'text-theme-danger' : workStatus.type === 'overtime' ? 'text-theme-warning' : 'text-theme-success'
                   }`}>
                   {workStatus.label}
                 </span>
@@ -488,9 +489,9 @@ export function Layout() {
 
           {!isCollapsed && user.role !== 'superadmin' && (
             <div className="mt-auto p-4 border-t border-theme/10 opacity-40">
-              <div className="flex items-center gap-3 px-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                <span className="text-[9px] font-black uppercase tracking-widest text-theme-muted">Sistem Aktif</span>
+              <div className="flex items-center gap-2 px-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-bounce" />
+                <span className="text-[10px] font-black text-theme-muted">Sosturer v26.4.28</span>
               </div>
             </div>
           )}

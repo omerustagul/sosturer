@@ -309,7 +309,7 @@ export function Analytics() {
               <div className="w-24">
                 <CustomSelect
                   options={[
-                    { id: 10, label: '10' },
+                    { id: 20, label: '20' },
                     { id: 50, label: '50' },
                     { id: 250, label: '250' },
                     { id: 500, label: '500' },

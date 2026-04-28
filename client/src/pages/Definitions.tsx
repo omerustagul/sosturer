@@ -5,7 +5,7 @@ import {
   Database, Factory, Users, Clock, Package,
   Plus, Trash2, Edit, FileUp, Download, UploadCloud,
   CheckCircle2, AlertCircle, List, ChevronLeft, ChevronRight, Search, Info, Settings, LayoutGrid,
-  Warehouse, Building2, Workflow, Map, Layers
+  Warehouse, Building2, Workflow, Map, Layers, Handshake
 } from 'lucide-react';
 import { Loading } from '../components/common/Loading';
 import { CustomSelect } from '../components/common/CustomSelect';
@@ -18,7 +18,7 @@ import { RecipeModal } from '../components/planning/RecipeModal';
 import { RecipeDetailModal } from '../components/planning/RecipeDetailModal';
 import { notify } from '../store/notificationStore';
 
-type TabType = 'machines' | 'operators' | 'shifts' | 'products' | 'work-centers' | 'stations' | 'warehouses' | 'department-roles' | 'import' | 'operations' | 'routes' | 'event-reasons' | 'event-groups';
+type TabType = 'machines' | 'operators' | 'shifts' | 'products' | 'firms' | 'work-centers' | 'stations' | 'warehouses' | 'department-roles' | 'import' | 'operations' | 'routes' | 'event-reasons' | 'event-groups';
 
 // Helper for Turkish characters in uppercase
 const toTRUpper = (str: string) => (str || '').toLocaleUpperCase('tr-TR');
@@ -34,6 +34,7 @@ export function Definitions() {
     { id: 'operators', label: 'Personeller', icon: Users, indent: true },
     { id: 'shifts', label: 'Vardiyalar', icon: Clock, indent: true },
     { id: 'products', label: 'Stok Kartları', icon: Package, indent: true },
+    { id: 'firms', label: 'Firmalar', icon: Handshake, indent: true },
     { id: '_group_departments', label: 'DEPARTMANLAR', isGroupHeader: true, icon: LayoutGrid },
     { id: 'work-centers', label: 'İş Merkezleri', icon: Building2, indent: true },
     { id: 'stations', label: 'İstasyonlar', icon: List, indent: true },
@@ -340,6 +341,14 @@ export function Definitions() {
           item.productGroup?.toLowerCase().includes(lowerSearch) ||
           item.category?.toLowerCase().includes(lowerSearch)
         );
+      } else if (activeTab === 'firms') {
+        return (
+          item.code?.toLowerCase().includes(lowerSearch) ||
+          item.name?.toLowerCase().includes(lowerSearch) ||
+          item.taxNumber?.toLowerCase().includes(lowerSearch) ||
+          item.phone?.toLowerCase().includes(lowerSearch) ||
+          item.email?.toLowerCase().includes(lowerSearch)
+        );
       } else if (activeTab === 'work-centers') {
         return (
           item.name?.toLowerCase().includes(lowerSearch) ||
@@ -394,7 +403,7 @@ export function Definitions() {
 
   const SortHeader = ({ label, sortKey }: { label: string; sortKey: string }) => (
     <th
-      className="px-2 py-3 text-[10px] font-black text-theme-muted uppercase tracking-widest cursor-pointer hover:text-theme-primary transition-colors whitespace-nowrap text-center"
+      className="px-2 py-3 text-[10px] border-b border-theme font-black text-theme-muted cursor-pointer hover:text-theme-primary transition-colors whitespace-nowrap text-center"
       onClick={() => handleSort(sortKey)}
     >
       <div className="flex items-center gap-1">
@@ -650,7 +659,7 @@ export function Definitions() {
     <div className="h-[calc(100vh-64px)] p-4 lg:p-6 w-full flex flex-col gap-4 animate-in fade-in duration-500 overflow-hidden">
       <div className="shrink-0 flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-black text-theme-main flex items-center gap-2 tracking-tight">
+          <h2 className="text-xl font-black text-theme-main flex items-center gap-2">
             <Database className="w-5 h-5 text-theme-primary" /> SİSTEM TANIMLARI
           </h2>
           <p className="text-theme-muted text-[11px] font-bold mt-0.5">Makine, operatör ve ürün gibi <strong className="text-theme-primary lowercase">temel sistem tanımlamalarını</strong> buradan yönetebilirsiniz.</p>
@@ -692,7 +701,7 @@ export function Definitions() {
                   onClick={() => toggleGroup(tab.id)}
                   className="flex items-center justify-between w-full pt-4 pb-2 px-1 group transition-all"
                 >
-                  <span className="text-[9px] font-black text-theme-dim uppercase group-hover:text-theme-primary tracking-widest">{tab.label}</span>
+                  <span className="text-[9px] font-black text-theme-dim uppercase group-hover:text-theme-primary">{tab.label}</span>
                   <ChevronLeft className={`w-2.5 h-2.5 text-theme-dim/60 group-hover:text-theme-primary transition-transform duration-300 ${isOpen ? '-rotate-90' : ''}`} />
                 </button>
               );
@@ -734,7 +743,7 @@ export function Definitions() {
                   <p className="text-theme-muted text-[10px] font-bold">Excel üzerinden sisteme hızlıca veri, tablo, liste ve daha fazlasını aktarın.</p>
                 </div>
                 <div className="w-full md:w-80">
-                  <label className="text-[10px] font-black text-theme-dim tracking-widest mb-2 block">İÇE AKTARILACAK ALAN</label>
+                  <label className="text-[10px] font-black text-theme-dim mb-2 block">İÇE AKTARILACAK ALAN</label>
                   <CustomSelect
                     value={importType}
                     onChange={setImportType}
@@ -777,7 +786,7 @@ export function Definitions() {
                       <div className="w-10 h-10 bg-theme-primary/10 rounded-xl flex items-center justify-center">
                         <UploadCloud className="w-6 h-6 text-theme-primary" />
                       </div>
-                      <h4 className="font-bold text-theme-main uppercase tracking-wider text-sm">DOSYA SEÇİN</h4>
+                      <h4 className="font-bold text-theme-main uppercase text-sm">DOSYA SEÇİN</h4>
                     </div>
 
                     <div className="relative group">
@@ -813,7 +822,7 @@ export function Definitions() {
                       <div className="w-8 h-8 bg-theme-success/10 rounded-lg flex items-center justify-center">
                         <List className="w-4 h-4 text-theme-success" />
                       </div>
-                      <h4 className="font-bold text-theme-main uppercase tracking-widest text-xs">İŞLEM GÜNLÜĞÜ</h4>
+                      <h4 className="font-bold text-theme-main uppercase text-xs">İŞLEM GÜNLÜĞÜ</h4>
                     </div>
                     {importLogs.length > 0 && <span className="text-[10px] bg-theme-base/40 text-theme-muted px-3 py-1 rounded-full font-bold">{importLogs.length} KAYIT</span>}
                   </div>
@@ -825,7 +834,7 @@ export function Definitions() {
                         : 'bg-theme-danger/10 border-theme-danger/20 text-theme-danger'
                         }`}>
                         {uploadStatus.type === 'success' ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
-                        <span className="font-bold text-xs uppercase tracking-wider">{uploadStatus.message}</span>
+                        <span className="font-bold text-xs uppercase">{uploadStatus.message}</span>
                       </div>
                     )}
 
@@ -838,7 +847,7 @@ export function Definitions() {
                     ) : (
                       <div className="h-full flex flex-col items-center justify-center text-center opacity-20 py-20">
                         <Info className="w-12 h-12 mb-4 text-theme-dim" />
-                        <p className="font-bold text-theme-main uppercase tracking-widest leading-loose">Yükleme yapıldığında<br />detaylar burada listelenecektir.</p>
+                        <p className="font-bold text-theme-main uppercase leading-loose">Yükleme yapıldığında<br />detaylar burada listelenecektir.</p>
                       </div>
                     )}
                   </div>
@@ -985,8 +994,8 @@ export function Definitions() {
                     </div>
                   </div>
                   <div className="py-4 p-2 bg-theme-base/20 flex justify-end gap-3">
-                    <button type="button" onClick={() => setShowAddForm(false)} className="px-6 py-2.5 text-xs font-black text-theme-dim border border-theme rounded-xl hover:bg-theme-main/10 transition-all uppercase tracking-widest">İPTAL</button>
-                    <button type="submit" className="px-8 py-2.5 text-xs font-black text-white bg-theme-primary rounded-xl hover:bg-theme-primary-hover transition-all shadow-lg shadow-theme-primary/20 uppercase tracking-widest">
+                    <button type="button" onClick={() => setShowAddForm(false)} className="px-6 py-2.5 text-xs font-black text-theme-dim border border-theme rounded-xl hover:bg-theme-main/10 transition-all uppercase">İPTAL</button>
+                    <button type="submit" className="px-8 py-2.5 text-xs font-black text-white bg-theme-primary rounded-xl hover:bg-theme-primary-hover transition-all shadow-lg shadow-theme-primary/20 uppercase">
                       {isEditing ? 'DEĞİŞİKLİKLERİ KAYDET' : 'KAYDET'}
                     </button>
                   </div>
@@ -1003,7 +1012,7 @@ export function Definitions() {
                     {filteredData.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-20 text-center opacity-40">
                         {activeTab === 'warehouses' ? <Warehouse className="w-12 h-12 mb-4 text-theme-dim" /> : <Building2 className="w-12 h-12 mb-4 text-theme-dim" />}
-                        <p className="font-black text-theme-main uppercase tracking-widest text-sm">Henüz {activeTab === 'warehouses' ? 'depo' : 'iş merkezi'} tanımlanmamış</p>
+                        <p className="font-black text-theme-main uppercase text-sm">Henüz {activeTab === 'warehouses' ? 'depo' : 'iş merkezi'} tanımlanmamış</p>
                         <p className="text-xs text-theme-muted mt-1">Yeni Ekle butonuna tıklayarak başlayın.</p>
                       </div>
                     ) : (
@@ -1037,7 +1046,7 @@ export function Definitions() {
                           <div key={group.locName} className="space-y-4">
                             <div className="flex items-center gap-3 pb-2 border-b-2 border-theme/20">
                               <div className="w-2 h-6 bg-theme-primary rounded-full" />
-                              <h4 className="text-xs font-black text-theme-main uppercase tracking-widest">{group.locName}</h4>
+                              <h4 className="text-xs font-black text-theme-main uppercase">{group.locName}</h4>
                               <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-theme-primary/10 text-theme-primary border border-theme-primary/20">
                                 {group.items.length} {activeTab === 'warehouses' ? 'DEPO' : activeTab === 'work-centers' ? 'İŞ MERKEZİ' : 'İSTASYON'}
                               </span>
@@ -1069,9 +1078,9 @@ export function Definitions() {
                                     </div>
 
                                     <div className="relative z-10">
-                                      <p className="text-sm font-black text-theme-main uppercase leading-none tracking-tight mb-1">{item.name}</p>
+                                      <p className="text-sm font-black text-theme-main uppercase leading-none mb-1">{item.name}</p>
                                       <div className="flex flex-wrap gap-2 mt-3">
-                                        <span className={`text-[10px] font-black px-2 py-1 rounded-lg border uppercase tracking-wider ${activeTab === 'warehouses'
+                                        <span className={`text-[10px] font-black px-2 py-1 rounded-lg border uppercase ${activeTab === 'warehouses'
                                           ? 'bg-amber-500/10 text-amber-600 border-amber-500/20'
                                           : activeTab === 'stations'
                                             ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
@@ -1081,7 +1090,7 @@ export function Definitions() {
                                         </span>
                                         <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-theme-base/40 border border-theme/20">
                                           <div className={`w-1.5 h-1.5 rounded-full ${item.status === 'active' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-rose-500'}`} />
-                                          <span className={`text-[10px] font-black uppercase tracking-widest ${item.status === 'active' ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                          <span className={`text-[10px] font-black uppercase ${item.status === 'active' ? 'text-emerald-500' : 'text-rose-500'}`}>
                                             {item.status === 'active' ? 'AKTİF' : 'PASİF'}
                                           </span>
                                         </div>
@@ -1338,6 +1347,45 @@ export function Definitions() {
                         </>
                       )}
 
+                      {activeTab === 'firms' && (
+                        <>
+                          <div className="space-y-1"><label className="label-sm">FİRMA KODU</label><input value={formData.code || ''} className="form-input" onChange={(e) => setFormData({ ...formData, code: e.target.value })} placeholder="örn. FRM-001" /></div>
+                          <div className="space-y-1"><label className="label-sm">FİRMA ADI</label><input required value={formData.name || ''} className="form-input" onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
+                          <div className="space-y-1">
+                            <label className="label-sm">FİRMA TİPİ</label>
+                            <CustomSelect
+                              options={[
+                                { id: 'general', label: 'Genel' },
+                                { id: 'supplier', label: 'Tedarikçi' },
+                                { id: 'customer', label: 'Müşteri' },
+                                { id: 'logistics', label: 'Lojistik' },
+                                { id: 'customs', label: 'Gümrük' },
+                                { id: 'consignment', label: 'Konsinye' }
+                              ]}
+                              value={formData.type || 'general'}
+                              onChange={(val) => setFormData({ ...formData, type: val })}
+                              searchable={false}
+                            />
+                          </div>
+                          <div className="space-y-1"><label className="label-sm">VERGİ DAİRESİ</label><input value={formData.taxOffice || ''} className="form-input" onChange={(e) => setFormData({ ...formData, taxOffice: e.target.value })} /></div>
+                          <div className="space-y-1"><label className="label-sm">VERGİ NO</label><input value={formData.taxNumber || ''} className="form-input" onChange={(e) => setFormData({ ...formData, taxNumber: e.target.value })} /></div>
+                          <div className="space-y-1"><label className="label-sm">TELEFON</label><input value={formData.phone || ''} className="form-input" onChange={(e) => setFormData({ ...formData, phone: e.target.value })} /></div>
+                          <div className="space-y-1"><label className="label-sm">E-POSTA</label><input type="email" value={formData.email || ''} className="form-input" onChange={(e) => setFormData({ ...formData, email: e.target.value })} /></div>
+                          <div className="space-y-1"><label className="label-sm">YETKİLİ</label><input value={formData.contactName || ''} className="form-input" onChange={(e) => setFormData({ ...formData, contactName: e.target.value })} /></div>
+                          <div className="space-y-1 md:col-span-2"><label className="label-sm">ADRES</label><input value={formData.address || ''} className="form-input" onChange={(e) => setFormData({ ...formData, address: e.target.value })} /></div>
+                          <div className="space-y-1">
+                            <label className="label-sm">DURUM</label>
+                            <CustomSelect
+                              options={[{ id: 'active', label: 'Aktif' }, { id: 'passive', label: 'Pasif' }]}
+                              value={formData.status || 'active'}
+                              onChange={(val) => setFormData({ ...formData, status: val })}
+                              searchable={false}
+                            />
+                          </div>
+                          <div className="space-y-1 md:col-span-2 lg:col-span-3"><label className="label-sm">NOTLAR</label><input value={formData.notes || ''} className="form-input" onChange={(e) => setFormData({ ...formData, notes: e.target.value })} /></div>
+                        </>
+                      )}
+
                       {activeTab === 'operations' && (
                         <>
                           <div className="space-y-1"><label className="label-sm">OPERASYON KODU</label><input required value={formData.code || ''} className="form-input" onChange={(e) => setFormData({ ...formData, code: e.target.value })} /></div>
@@ -1435,8 +1483,8 @@ export function Definitions() {
 
                     </div>
                     <div className="py-4 p-2 bg-theme-base/20 border-t border-theme flex justify-end gap-3">
-                      <button type="button" onClick={() => setShowAddForm(false)} className="px-6 py-2.5 text-xs font-black text-theme-dim border border-theme rounded-xl hover:bg-theme-main/10 transition-all uppercase tracking-widest">İPTAL</button>
-                      <button type="submit" className="px-8 py-2.5 text-xs font-black text-white bg-theme-primary rounded-xl hover:bg-theme-primary-hover transition-all shadow-lg shadow-theme-primary/20 uppercase tracking-widest">
+                      <button type="button" onClick={() => setShowAddForm(false)} className="px-6 py-2.5 text-xs font-black text-theme-dim border border-theme rounded-xl hover:bg-theme-main/10 transition-all uppercase">İPTAL</button>
+                      <button type="submit" className="px-8 py-2.5 text-xs font-black text-white bg-theme-primary rounded-xl hover:bg-theme-primary-hover transition-all shadow-lg shadow-theme-primary/20 uppercase">
                         {isEditing ? 'DEĞİŞİKLİKLERİ KAYDET' : 'KAYDET'}
                       </button>
                     </div>
@@ -1471,68 +1519,78 @@ export function Definitions() {
                               </div>
                             </label>
                           </th>
-                          <SortHeader label="KOD / ID" sortKey={
-                            (activeTab === 'machines' || activeTab === 'operations' || activeTab === 'routes' || activeTab === 'stations' || activeTab === 'work-centers') ? 'code' :
+                          <SortHeader label="Kod / ID" sortKey={
+                            (activeTab === 'machines' || activeTab === 'operations' || activeTab === 'routes' || activeTab === 'stations' || activeTab === 'work-centers' || activeTab === 'firms') ? 'code' :
                               activeTab === 'operators' ? 'employeeId' :
                                 activeTab === 'shifts' ? 'shiftCode' :
                                   (activeTab === 'warehouses' || activeTab === 'department-roles' || activeTab === 'event-reasons') ? 'id' :
                                     'productCode'
                           } />
-                          <SortHeader label="TANIM / İSİM" sortKey={(activeTab === 'machines' || activeTab === 'operators' || activeTab === 'shifts' || activeTab === 'department-roles' || activeTab === 'stations' || activeTab === 'work-centers' || activeTab === 'warehouses' || activeTab === 'event-reasons') ? 'name' : 'productName'} />
-                          {activeTab === 'machines' && <SortHeader label="MARKA" sortKey="brand" />}
-                          {activeTab === 'machines' && <SortHeader label="MODEL" sortKey="model" />}
-                          {activeTab === 'machines' && <SortHeader label="KURULUM" sortKey="installedDate" />}
-                          {activeTab === 'machines' && <SortHeader label="KAPASİTE/VARDİYA" sortKey="capacityPerShift" />}
-                          {activeTab === 'machines' && <SortHeader label="NOT" sortKey="notes" />}
+                          <SortHeader label="Tanım / İsim" sortKey={(activeTab === 'machines' || activeTab === 'operators' || activeTab === 'shifts' || activeTab === 'department-roles' || activeTab === 'stations' || activeTab === 'work-centers' || activeTab === 'warehouses' || activeTab === 'event-reasons' || activeTab === 'firms') ? 'name' : 'productName'} />
+                          {activeTab === 'machines' && <SortHeader label="Marka" sortKey="brand" />}
+                          {activeTab === 'machines' && <SortHeader label="Model" sortKey="model" />}
+                          {activeTab === 'machines' && <SortHeader label="Kurulum" sortKey="installedDate" />}
+                          {activeTab === 'machines' && <SortHeader label="Kapasite/Vardiya" sortKey="capacityPerShift" />}
+                          {activeTab === 'machines' && <SortHeader label="Not" sortKey="notes" />}
 
-                          {activeTab === 'department-roles' && <SortHeader label="DEPARTMAN" sortKey="department.name" />}
+                          {activeTab === 'department-roles' && <SortHeader label="Departman Adı" sortKey="department.name" />}
 
-                          {activeTab === 'operators' && <SortHeader label="DEPARTMAN" sortKey="department" />}
-                          {activeTab === 'operators' && <SortHeader label="GÖREV / ROL" sortKey="role" />}
-                          {activeTab === 'operators' && <SortHeader label="İŞE GİRİŞ" sortKey="hireDate" />}
-                          {activeTab === 'operators' && <SortHeader label="TECRÜBE" sortKey="experienceYears" />}
-                          {activeTab === 'operators' && <SortHeader label="SERTİFİKA" sortKey="certifications" />}
+                          {activeTab === 'operators' && <SortHeader label="Departman" sortKey="department" />}
+                          {activeTab === 'operators' && <SortHeader label="Görev / Rol" sortKey="role" />}
+                          {activeTab === 'operators' && <SortHeader label="İşe Giriş" sortKey="hireDate" />}
+                          {activeTab === 'operators' && <SortHeader label="Tecrübe" sortKey="experienceYears" />}
+                          {activeTab === 'operators' && <SortHeader label="Sertifika" sortKey="certifications" />}
 
-                          {activeTab === 'shifts' && <SortHeader label="BAŞLANGIÇ" sortKey="startTime" />}
-                          {activeTab === 'shifts' && <SortHeader label="BİTİŞ" sortKey="endTime" />}
-                          {activeTab === 'shifts' && <SortHeader label="SÜRE (DK)" sortKey="durationMinutes" />}
-                          {activeTab === 'shifts' && <SortHeader label="RENK" sortKey="colorCode" />}
+                          {activeTab === 'shifts' && <SortHeader label="Başlangıç" sortKey="startTime" />}
+                          {activeTab === 'shifts' && <SortHeader label="Bitiş" sortKey="endTime" />}
+                          {activeTab === 'shifts' && <SortHeader label="Süre (dk)" sortKey="durationMinutes" />}
+                          {activeTab === 'shifts' && <SortHeader label="Renk" sortKey="colorCode" />}
 
                           {activeTab === 'products' && (
                             <>
-                              <SortHeader label="MARKA" sortKey="brand" />
-                              <SortHeader label="Ü. GRUBU" sortKey="productGroup" />
-                              <SortHeader label="SINIF" sortKey="productClass" />
-                              <SortHeader label="AÇIKLAMA" sortKey="description" />
-                              <SortHeader label="BİRİM" sortKey="unitOfMeasure" />
-                              <SortHeader label="KATEGORİ" sortKey="category" />
+                              <SortHeader label="Marka" sortKey="brand" />
+                              <SortHeader label="Ü. Grubu" sortKey="productGroup" />
+                              <SortHeader label="Sınıf" sortKey="productClass" />
+                              <SortHeader label="Açıklama" sortKey="description" />
+                              <SortHeader label="Birim" sortKey="unitOfMeasure" />
+                              <SortHeader label="Kategori" sortKey="category" />
                             </>
                           )}
 
-                          {(activeTab === 'operations' || activeTab === 'stations') && <SortHeader label="İŞ MERKEZİ / BİRİM" sortKey="unitId" />}
-                          {activeTab === 'operations' && <SortHeader label="İSTASYON" sortKey="stationId" />}
-                          {activeTab === 'routes' && <th className="px-2 py-3 text-[10px] font-black text-theme-muted tracking-widest text-center uppercase">ADIM SAYISI</th>}
+                          {activeTab === 'firms' && (
+                            <>
+                              <SortHeader label="Tip" sortKey="type" />
+                              <SortHeader label="Vergi No" sortKey="taxNumber" />
+                              <SortHeader label="Telefon" sortKey="phone" />
+                              <SortHeader label="E-Posta" sortKey="email" />
+                              <SortHeader label="Yetkili" sortKey="contactName" />
+                            </>
+                          )}
+
+                          {(activeTab === 'operations' || activeTab === 'stations') && <SortHeader label="İş Merkezi / Birim" sortKey="unitId" />}
+                          {activeTab === 'operations' && <SortHeader label="İstasyon" sortKey="stationId" />}
+                          {activeTab === 'routes' && <th className="px-2 py-3 text-[10px] border-b border-theme font-black text-theme-muted text-center uppercase">Adım Sayısı</th>}
 
                           {activeTab === 'warehouses' && (
                             <>
-                              <SortHeader label="TİP" sortKey="type" />
-                              <SortHeader label="LOKASYON" sortKey="unitId" />
+                              <SortHeader label="Tip" sortKey="type" />
+                              <SortHeader label="Lokasyon" sortKey="unitId" />
                             </>
                           )}
                           {activeTab === 'work-centers' && (
                             <>
-                              <SortHeader label="LOKASYON" sortKey="locationId" />
+                              <SortHeader label="Lokasyon" sortKey="locationId" />
                             </>
                           )}
                           {activeTab === 'event-reasons' && (
                             <>
-                              <SortHeader label="GRUP" sortKey="groupId" />
-                              <SortHeader label="TİP" sortKey="type" />
+                              <SortHeader label="Grup" sortKey="groupId" />
+                              <SortHeader label="Tip" sortKey="type" />
                             </>
                           )}
 
-                          <SortHeader label="DURUM" sortKey="status" />
-                          <th className="px-2 py-3 text-[10px] font-black text-theme-muted tracking-widest text-center">İŞLEMLER</th>
+                          <SortHeader label="Durum" sortKey="status" />
+                          <th className="px-2 py-3 text-[10px] border-b border-theme font-black text-theme-muted text-center">İşlemler</th>
                         </tr>
                       </thead>
                       <SortableTableBody
@@ -1568,8 +1626,8 @@ export function Definitions() {
                               <td className="px-2 py-3 border-b border-theme/30 font-bold text-theme-primary font-mono text-sm leading-none">
                                 {isEditingRow ? (
                                   <input
-                                    value={localChanges[item.id]?.[(activeTab === 'machines' || activeTab === 'operations' || activeTab === 'routes' || activeTab === 'stations' || activeTab === 'work-centers' || activeTab === 'warehouses' || activeTab === 'event-reasons' || activeTab === 'event-groups') ? 'code' : activeTab === 'operators' ? 'employeeId' : activeTab === 'shifts' ? 'shiftCode' : (activeTab === 'department-roles') ? 'id' : 'productCode'] ?? (item.code || item.employeeId || item.shiftCode || item.productCode || (activeTab === 'department-roles' ? item.id : ''))}
-                                    onChange={(e) => updateLocalChanges(item.id, (activeTab === 'machines' || activeTab === 'operations' || activeTab === 'routes' || activeTab === 'stations' || activeTab === 'work-centers' || activeTab === 'warehouses' || activeTab === 'event-reasons' || activeTab === 'event-groups') ? 'code' : activeTab === 'operators' ? 'employeeId' : activeTab === 'shifts' ? 'shiftCode' : (activeTab === 'department-roles') ? 'id' : 'productCode', e.target.value)}
+                                    value={localChanges[item.id]?.[(activeTab === 'machines' || activeTab === 'operations' || activeTab === 'routes' || activeTab === 'stations' || activeTab === 'work-centers' || activeTab === 'warehouses' || activeTab === 'event-reasons' || activeTab === 'event-groups' || activeTab === 'firms') ? 'code' : activeTab === 'operators' ? 'employeeId' : activeTab === 'shifts' ? 'shiftCode' : (activeTab === 'department-roles') ? 'id' : 'productCode'] ?? (item.code || item.employeeId || item.shiftCode || item.productCode || (activeTab === 'department-roles' ? item.id : ''))}
+                                    onChange={(e) => updateLocalChanges(item.id, (activeTab === 'machines' || activeTab === 'operations' || activeTab === 'routes' || activeTab === 'stations' || activeTab === 'work-centers' || activeTab === 'warehouses' || activeTab === 'event-reasons' || activeTab === 'event-groups' || activeTab === 'firms') ? 'code' : activeTab === 'operators' ? 'employeeId' : activeTab === 'shifts' ? 'shiftCode' : (activeTab === 'department-roles') ? 'id' : 'productCode', e.target.value)}
                                     className="settings-inline-input text-theme-primary font-mono"
                                   />
                                 ) : (item.code || item.employeeId || item.shiftCode || item.productCode || (activeTab === 'department-roles' ? item.id.slice(0, 8) : item.id.slice(0, 8)))}
@@ -1577,8 +1635,8 @@ export function Definitions() {
                               <td className="px-2 py-3 border-b border-theme/30 text-xs text-theme-main font-bold whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">
                                 {isEditingRow ? (
                                   <input
-                                    value={localChanges[item.id]?.[(activeTab === 'machines' || activeTab === 'operations' || activeTab === 'routes' || activeTab === 'stations' || activeTab === 'work-centers' || activeTab === 'warehouses' || activeTab === 'event-groups') ? 'name' : activeTab === 'operators' ? 'fullName' : activeTab === 'shifts' ? 'shiftName' : activeTab === 'department-roles' ? 'name' : 'productName'] ?? (item.name || item.fullName || item.shiftName || item.productName || '')}
-                                    onChange={(e) => updateLocalChanges(item.id, (activeTab === 'machines' || activeTab === 'operations' || activeTab === 'routes' || activeTab === 'stations' || activeTab === 'work-centers' || activeTab === 'warehouses' || activeTab === 'event-groups') ? 'name' : activeTab === 'operators' ? 'fullName' : activeTab === 'shifts' ? 'shiftName' : activeTab === 'department-roles' ? 'name' : 'productName', e.target.value)}
+                                    value={localChanges[item.id]?.[(activeTab === 'machines' || activeTab === 'operations' || activeTab === 'routes' || activeTab === 'stations' || activeTab === 'work-centers' || activeTab === 'warehouses' || activeTab === 'event-groups' || activeTab === 'firms') ? 'name' : activeTab === 'operators' ? 'fullName' : activeTab === 'shifts' ? 'shiftName' : activeTab === 'department-roles' ? 'name' : 'productName'] ?? (item.name || item.fullName || item.shiftName || item.productName || '')}
+                                    onChange={(e) => updateLocalChanges(item.id, (activeTab === 'machines' || activeTab === 'operations' || activeTab === 'routes' || activeTab === 'stations' || activeTab === 'work-centers' || activeTab === 'warehouses' || activeTab === 'event-groups' || activeTab === 'firms') ? 'name' : activeTab === 'operators' ? 'fullName' : activeTab === 'shifts' ? 'shiftName' : activeTab === 'department-roles' ? 'name' : 'productName', e.target.value)}
                                     className="settings-inline-input"
                                   />
                                 ) : (item.name || item.fullName || item.shiftName || item.productName)}
@@ -1699,6 +1757,48 @@ export function Definitions() {
                                   </td>
                                   <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap">
                                     {isEditingRow ? <input value={localChanges[item.id]?.category ?? (item.category || '')} onChange={e => updateLocalChanges(item.id, 'category', e.target.value)} className="settings-inline-input" /> : (item.category || '-')}
+                                  </td>
+                                </>
+                              )}
+
+                              {activeTab === 'firms' && (
+                                <>
+                                  <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap">
+                                    {isEditingRow ? (
+                                      <CustomSelect
+                                        variant="inline"
+                                        options={[
+                                          { id: 'general', label: 'Genel' },
+                                          { id: 'supplier', label: 'Tedarikçi' },
+                                          { id: 'customer', label: 'Müşteri' },
+                                          { id: 'logistics', label: 'Lojistik' },
+                                          { id: 'customs', label: 'Gümrük' },
+                                          { id: 'consignment', label: 'Konsinye' }
+                                        ]}
+                                        value={localChanges[item.id]?.type ?? (item.type || 'general')}
+                                        onChange={(val) => updateLocalChanges(item.id, 'type', val)}
+                                        searchable={false}
+                                      />
+                                    ) : (({
+                                      general: 'Genel',
+                                      supplier: 'Tedarikçi',
+                                      customer: 'Müşteri',
+                                      logistics: 'Lojistik',
+                                      customs: 'Gümrük',
+                                      consignment: 'Konsinye'
+                                    }[item.type as string] || item.type) || '-')}
+                                  </td>
+                                  <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap">
+                                    {isEditingRow ? <input value={localChanges[item.id]?.taxNumber ?? (item.taxNumber || '')} onChange={e => updateLocalChanges(item.id, 'taxNumber', e.target.value)} className="settings-inline-input" /> : (item.taxNumber || '-')}
+                                  </td>
+                                  <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap">
+                                    {isEditingRow ? <input value={localChanges[item.id]?.phone ?? (item.phone || '')} onChange={e => updateLocalChanges(item.id, 'phone', e.target.value)} className="settings-inline-input" /> : (item.phone || '-')}
+                                  </td>
+                                  <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap max-w-[180px] overflow-hidden text-ellipsis">
+                                    {isEditingRow ? <input value={localChanges[item.id]?.email ?? (item.email || '')} onChange={e => updateLocalChanges(item.id, 'email', e.target.value)} className="settings-inline-input" /> : (item.email || '-')}
+                                  </td>
+                                  <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap">
+                                    {isEditingRow ? <input value={localChanges[item.id]?.contactName ?? (item.contactName || '')} onChange={e => updateLocalChanges(item.id, 'contactName', e.target.value)} className="settings-inline-input" /> : (item.contactName || '-')}
                                   </td>
                                 </>
                               )}
@@ -1886,11 +1986,11 @@ export function Definitions() {
               <div className="p-4 border-t border-theme bg-theme-base/20 flex flex-col md:flex-row items-center justify-between gap-6">
                 <div className="flex items-center gap-6 order-2 md:order-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-black text-theme-dim whitespace-nowrap uppercase tracking-widest">SAYFADA:</span>
+                    <span className="text-[11px] font-black text-theme-dim whitespace-nowrap uppercase">SAYFADA:</span>
                     <div className="w-24">
                       <CustomSelect
                         options={[
-                          { id: 10, label: '10' },
+                          { id: 20, label: '20' },
                           { id: 50, label: '50' },
                           { id: 250, label: '250' },
                           { id: 500, label: '500' },
@@ -1925,7 +2025,7 @@ export function Definitions() {
                     <span className="text-theme-primary font-black text-sm min-w-[20px] text-center">
                       {currentPage + 1}
                     </span>
-                    <span className="text-theme-dim font-bold text-xs uppercase tracking-widest">/</span>
+                    <span className="text-theme-dim font-bold text-xs uppercase">/</span>
                     <span className="text-theme-muted font-black text-sm min-w-[20px] text-center">
                       {pageCount || 1}
                     </span>

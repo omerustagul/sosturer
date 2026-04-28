@@ -29,6 +29,7 @@ export function AppSettings() {
   const [localSettings, setLocalSettings] = useState(settings);
   const [isSaving, setIsSaving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [savingSecurityKey, setSavingSecurityKey] = useState<string | null>(null);
 
   const [locations, setLocations] = useState<any[]>([]);
   const [shifts, setShifts] = useState<any[]>([]);
@@ -82,6 +83,36 @@ export function AppSettings() {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const updateSecuritySetting = async (field: 'twoFactorEnabled' | 'ipRestrictionEnabled' | 'allowSupportAccess', value: boolean) => {
+    const nextSettings = { ...localSettings, [field]: value };
+    setLocalSettings(nextSettings);
+    setSavingSecurityKey(field);
+
+    try {
+      await updateSettings(nextSettings);
+      notify.success('Güvenlik Ayarı Güncellendi', 'Erişim ve güvenlik tercihi kaydedildi.');
+    } catch (error) {
+      setLocalSettings(localSettings);
+      notify.error('Güvenlik Ayarı Kaydedilemedi', 'Lütfen tekrar deneyin.');
+    } finally {
+      setSavingSecurityKey(null);
+    }
+  };
+
+  const parseAllowedIps = () => {
+    try {
+      const parsed = JSON.parse(localSettings.allowed_ip_list || '[]');
+      return Array.isArray(parsed) ? parsed.join('\n') : '';
+    } catch (error) {
+      return localSettings.allowed_ip_list || '';
+    }
+  };
+
+  const updateAllowedIps = (value: string) => {
+    const ips = value.split(/[\n,;]/).map((ip) => ip.trim()).filter(Boolean);
+    setLocalSettings({ ...localSettings, allowed_ip_list: JSON.stringify(ips) });
   };
 
   const handleExportData = async () => {
@@ -186,7 +217,7 @@ export function AppSettings() {
                   </h3>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
                   <SettingItem label="Uygulama Dili" description="Tüm modüllerin ve arayüzün varsayılan dili">
                     <CustomSelect
                       options={[
@@ -271,7 +302,7 @@ export function AppSettings() {
                   </h3>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
                   <SettingItem label="Arayüz Teması" description="Uygulamanın genel renk paleti ve atmosferi">
                     <div className="grid grid-cols-4 gap-3">
                       {[
@@ -447,24 +478,39 @@ export function AppSettings() {
                   <SettingItem label="İki Faktörlü Doğrulama" description="Hesabınızı ek bir güvenlik katmanı ile koruyun">
                     <Toggle
                       active={localSettings.twoFactorEnabled}
-                      onClick={() => setLocalSettings({ ...localSettings, twoFactorEnabled: !localSettings.twoFactorEnabled })}
-                      label={localSettings.twoFactorEnabled ? "KORUMALI" : "STANDART"}
+                      disabled={savingSecurityKey === 'twoFactorEnabled'}
+                      onClick={() => updateSecuritySetting('twoFactorEnabled', !localSettings.twoFactorEnabled)}
+                      label={savingSecurityKey === 'twoFactorEnabled' ? "KAYDEDİLİYOR" : localSettings.twoFactorEnabled ? "KORUMALI" : "STANDART"}
                     />
                   </SettingItem>
 
                   <SettingItem label="Statik IP Kısıtlaması" description="Sisteme sadece belirli ağ adreslerinden erişilsin">
                     <Toggle
                       active={localSettings.ipRestrictionEnabled}
-                      onClick={() => setLocalSettings({ ...localSettings, ipRestrictionEnabled: !localSettings.ipRestrictionEnabled })}
-                      label={localSettings.ipRestrictionEnabled ? "FİLTRELEMELİ" : "SERBEST"}
+                      disabled={savingSecurityKey === 'ipRestrictionEnabled'}
+                      onClick={() => updateSecuritySetting('ipRestrictionEnabled', !localSettings.ipRestrictionEnabled)}
+                      label={savingSecurityKey === 'ipRestrictionEnabled' ? "KAYDEDİLİYOR" : localSettings.ipRestrictionEnabled ? "FİLTRELEMELİ" : "SERBEST"}
                     />
                   </SettingItem>
 
                   <SettingItem label="Destek Erişim İzni" description="Teknik sorunlarda Sosturer ekibine geçici erişim yetkisi ver">
                     <Toggle
                       active={localSettings.allowSupportAccess}
-                      onClick={() => setLocalSettings({ ...localSettings, allowSupportAccess: !localSettings.allowSupportAccess })}
-                      label={localSettings.allowSupportAccess ? "YETKİLİ" : "KAPALI"}
+                      disabled={savingSecurityKey === 'allowSupportAccess'}
+                      onClick={() => updateSecuritySetting('allowSupportAccess', !localSettings.allowSupportAccess)}
+                      label={savingSecurityKey === 'allowSupportAccess' ? "KAYDEDİLİYOR" : localSettings.allowSupportAccess ? "YETKİLİ" : "KAPALI"}
+                    />
+                  </SettingItem>
+
+                  <SettingItem label="İzinli IP Listesi" description="IP kısıtlaması açıksa her satıra bir IP adresi veya 192.168.1.* formatı yazın">
+                    <textarea
+                      value={parseAllowedIps()}
+                      onChange={(e) => updateAllowedIps(e.target.value)}
+                      onBlur={() => updateSettings(localSettings).catch(() => notify.error('IP Listesi Kaydedilemedi', 'Lütfen tekrar deneyin.'))}
+                      rows={4}
+                      disabled={!localSettings.ipRestrictionEnabled}
+                      placeholder={"127.0.0.1\n192.168.1.*"}
+                      className="w-full min-h-24 bg-theme-base border border-theme rounded-xl px-4 py-3 text-xs font-bold text-theme-main outline-none focus:ring-2 focus:ring-theme-primary disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                     />
                   </SettingItem>
                 </div>
@@ -562,7 +608,7 @@ export function AppSettings() {
                   </h3>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
                   <SettingItem
                     label="Üretim Takvimi Referans Lokasyonu"
                     description="Eksik üretim kayıtları ve OEE hesaplamaları için hangi lokasyonun (Örn. Merkez Üretim Tesisi) çalışma saatleri referans alınsın?"
@@ -659,12 +705,13 @@ function ThemeOption({ color, label, active = false, onClick }: { color: string,
   );
 }
 
-function Toggle({ active, label, onClick }: { active: boolean, label: string, onClick: () => void }) {
+function Toggle({ active, label, onClick, disabled = false }: { active: boolean, label: string, onClick: () => void, disabled?: boolean }) {
   return (
     <div className="flex items-center gap-5">
       <button
         onClick={onClick}
-        className={`w-16 h-8 rounded-full relative transition-all duration-500 ease-out px-1 ${active ? 'bg-theme-primary shadow-lg shadow-theme-primary/20' : 'bg-theme-muted/10 border border-theme'}`}
+        disabled={disabled}
+        className={`w-16 h-8 rounded-full relative transition-all duration-500 ease-out px-1 disabled:opacity-60 disabled:cursor-wait ${active ? 'bg-theme-primary shadow-lg shadow-theme-primary/20' : 'bg-theme-muted/10 border border-theme'}`}
       >
         <div className={`w-6 h-6 bg-white rounded-full transition-all duration-500 shadow-xl flex items-center justify-center ${active ? 'translate-x-8' : 'translate-x-0'}`}>
           <div className={`w-2 h-2 rounded-full ${active ? 'bg-theme-primary' : 'bg-theme-muted opacity-40'}`} />

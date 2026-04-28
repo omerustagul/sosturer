@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../../lib/api';
 import {
   DiamondPlus, Save, ChevronLeft, Plus,
   Package, Layers, Workflow, Boxes,
   AlertTriangle, Cpu, ShoppingBag, Link2,
-  ClipboardList, Calendar, Trash2, CheckCircle2,
+  ClipboardList, Calendar, Trash2, Check, CheckCircle2,
   AlertCircle, History, Clock, UserCircle,
   Play, RotateCcw,
   User as UserIcon, Type, Timer
@@ -35,7 +35,6 @@ export function ProductionOrderForm() {
   const [products, setProducts] = useState<any[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
 
-
   // Form State
   const [formData, setFormData] = useState<any>({
     productId: '',
@@ -51,6 +50,8 @@ export function ProductionOrderForm() {
     productionDate: ''
   });
 
+  const isCompleted = formData.status === 'completed';
+
   // Tab Data
   const [steps, setSteps] = useState<any[]>([]);
   const [components, setComponents] = useState<any[]>([]);
@@ -62,6 +63,9 @@ export function ProductionOrderForm() {
   // Sign Modal State
   const [showSignModal, setShowSignModal] = useState(false);
   const [signingStep, setSigningStep] = useState<any>(null);
+  const [bulkSigningSteps, setBulkSigningSteps] = useState<any[]>([]);
+  const [isBulkSignMode, setIsBulkSignMode] = useState(false);
+  const [selectedStepIndices, setSelectedStepIndices] = useState<number[]>([]);
   const [signFormData, setSignFormData] = useState<any>({
     operatorId: '',
     shiftId: '',
@@ -121,7 +125,8 @@ export function ProductionOrderForm() {
         [index]: Array.isArray(res) ? res.map((l: any) => ({
           id: l.lotNumber,
           label: l.lotNumber,
-          subLabel: `Stok: ${l.quantity}`
+          subLabel: `Stok: ${l.quantity}`,
+          availableQty: Number(l.quantity || 0)
         })) : []
       }));
     } catch (e) {
@@ -129,50 +134,54 @@ export function ProductionOrderForm() {
     }
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const [pRes, wRes, oRes, sRes, erRes] = await Promise.all([
-          api.get('/products'),
-          api.get('/inventory/warehouses'),
-          api.get('/operators'),
-          api.get('/shifts'),
-          api.get('/production-event-reasons')
-        ]);
-        setProducts(pRes || []);
-        setWarehouses(wRes || []);
-        setOperators(oRes || []);
-        setShifts(sRes || []);
-        setEventReasons(erRes || []);
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [pRes, wRes, oRes, sRes, erRes] = await Promise.all([
+        api.get('/products'),
+        api.get('/inventory/warehouses'),
+        api.get('/operators'),
+        api.get('/shifts'),
+        api.get('/production-event-reasons')
+      ]);
+      setProducts(pRes || []);
+      setWarehouses(wRes || []);
+      setOperators(oRes || []);
+      setShifts(sRes || []);
+      setEventReasons(erRes || []);
 
 
-        if (isEditing) {
-          const order = await api.get(`/production-orders/${identifier}`);
-          setFormData({
-            ...order,
-            startDate: order.startDate?.slice(0, 10),
-            endDate: order.endDate?.slice(0, 10),
-            expiryDate: order.expiryDate?.slice(0, 10),
-            sterilizationDate: order.sterilizationDate?.slice(0, 10),
-            productionDate: order.productionDate?.slice(0, 10)
-          });
-          setSteps(order.steps || []);
-          setComponents(order.components || []);
-          setOrderEvents(order.events || []);
-          setAssignedMachines(order.machines || []);
-        }
-      } catch (e) {
-        console.error('Failed to fetch order details:', e);
-      } finally {
-        setLoading(false);
+      if (isEditing) {
+        const order = await api.get(`/production-orders/${identifier}`);
+        setFormData({
+          ...order,
+          startDate: order.startDate?.slice(0, 10),
+          endDate: order.endDate?.slice(0, 10),
+          expiryDate: order.expiryDate?.slice(0, 10),
+          sterilizationDate: order.sterilizationDate?.slice(0, 10),
+          productionDate: order.productionDate?.slice(0, 10)
+        });
+        setSteps(order.steps || []);
+        setComponents(order.components || []);
+        setOrderEvents(order.events || []);
+        setAssignedMachines(order.machines || []);
       }
-    };
+    } catch (e) {
+      console.error('Failed to fetch order details:', e);
+    } finally {
+      setLoading(false);
+    }
+  }, [identifier, isEditing]);
+
+  useEffect(() => {
     fetchData();
-  }, [lotNumber, identifier, isEditing]);
+  }, [fetchData]);
 
   const handleStatusChange = async (newStatus: string) => {
-    if (!isEditing || !formData.id) return;
+    if (!isEditing || !formData.id) {
+      setFormData((prev: any) => ({ ...prev, status: newStatus }));
+      return;
+    }
 
     if (newStatus === 'completed') {
       const allDone = steps.every(s => s.status === 'completed');
@@ -180,20 +189,36 @@ export function ProductionOrderForm() {
         showAlert('Tüm operasyon adımları tamamlanmadan üretim emri bitirilemez!', 'EKSİK İŞLEM', 'danger');
         return;
       }
-      
+
+      // Validate Components
+      const incompleteComponents = components.some(c => !c.lotNumber || !c.quantity || Number(c.quantity) <= 0);
+      if (incompleteComponents) {
+        showAlert('Bazı bileşenlerin lot numarası veya miktarı eksik! Lütfen bileşen tablosunu kontrol edin.', 'EKSİK BİLEŞEN', 'danger');
+        setActiveTab('components');
+        return;
+      }
+
+      // Check stock availability for all components
+      for (let i = 0; i < components.length; i++) {
+        const c = components[i];
+        const lot = (rowLots[i] || []).find((l: any) => l.id === c.lotNumber);
+        if (lot && Number(c.quantity) > lot.availableQty) {
+          showAlert(`"${c.componentProduct?.name}" için yeterli stok yok! Seçilen: ${c.quantity}, Mevcut: ${lot.availableQty}`, 'STOK YETERSİZ', 'danger');
+          setActiveTab('components');
+          return;
+        }
+      }
+
       if (!window.confirm('Bu üretim emrini tamamlamak istediğinize emin misiniz? Bu işlem geri alınamaz ve ürünler stoklarınıza eklenecektir.')) {
         return;
       }
     }
 
-    try {
-      await api.patch(`/production-orders/${formData.id}/status`, { status: newStatus });
-      setFormData((prev: any) => ({ ...prev, status: newStatus }));
-      if (newStatus === 'completed') {
-        showAlert('Üretim emri başarıyla tamamlandı ve ürünler hedef depoya aktarıldı.', 'TAMAMLANDI', 'info');
-      }
-    } catch (e: any) {
-      showAlert(e.response?.data?.error || 'Durum güncellenemedi.', 'HATA', 'danger');
+    // Update locally first, persistence will happen on handleSave or we can keep status immediate if preferred
+    // The user said "kaydet butonuna bastıktan sonra veritabanına işlensin", so we update locally.
+    setFormData((prev: any) => ({ ...prev, status: newStatus }));
+    if (newStatus === 'completed') {
+      showAlert('Üretim emri tamamlandı olarak işaretlendi. Değişikliklerin kalıcı olması için KAYDET butonuna basınız.', 'BİLGİ', 'info');
     }
   };
 
@@ -227,18 +252,18 @@ export function ProductionOrderForm() {
       return;
     }
 
-    // CHECK FOR EVENTS: If a previous step has non-accepted qty that is not fully logged in Events tab, block this sign
+    // CHECK FOR EVENTS
     if (idx > 0) {
       for (let i = 0; i < idx; i++) {
         const prev = steps[i];
-        const nonAccepted = (prev.rejectedQty || 0) + (prev.reworkQty || 0) + (prev.sampleQty || 0) + (prev.conditionalQty || 0);
+        const nonAccepted = Number(prev.rejectedQty || 0) + Number(prev.reworkQty || 0) + Number(prev.sampleQty || 0) + Number(prev.conditionalQty || 0);
         if (nonAccepted > 0) {
           const logged = orderEvents
-            .filter((e: any) => e.stepId === prev.id)
-            .reduce((s: number, e: any) => s + (e.quantity || 0), 0);
+            .filter((e: any) => e.stepId === prev.id || (e.sequence === prev.sequence))
+            .reduce((s: number, e: any) => s + Number(e.quantity || 0), 0);
 
           if (logged < nonAccepted) {
-            showAlert(`"${prev.operation?.name}" operasyonunda ${nonAccepted} adet kabul edilmeyen ürün (Red, Numune vb.) çıktı. Bu ürünler için OLAYLAR sekmesinden olay formu oluşturulmadan bir sonraki operasyon imzalanamaız. (Eksik: ${nonAccepted - logged} Adet)`, 'OLAY KAYDI ZORUNLU', 'danger');
+            showAlert(`"${prev.operation?.name}" operasyonunda ${nonAccepted} adet kabul edilmeyen ürün çıktı. OLAYLAR sekmesinden olay formu oluşturulmadan devam edilemez.`, 'OLAY KAYDI ZORUNLU', 'danger');
             setActiveTab('events');
             return;
           }
@@ -246,25 +271,52 @@ export function ProductionOrderForm() {
       }
     }
 
-    // Auto-select operator if matches current user fullName
     const matchedOperator = operators.find(o => o.fullName === authUser?.fullName);
-
-    // Local datetime string for the input
     const now = new Date();
     const tzOffset = now.getTimezoneOffset() * 60000;
     const localISO = new Date(now.getTime() - tzOffset).toISOString().slice(0, 16);
 
-    // Determine max allowable quantity based on previous step
-    const prevStepApprovedQty = idx === 0
-      ? formData.quantity
-      : (steps[idx - 1]?.approvedQty || 0);
+    const prevStepApprovedQty = Number(idx === 0 ? formData.quantity : (steps[idx - 1]?.approvedQty || 0));
 
+    setBulkSigningSteps([]);
     setSigningStep({ ...step, index: idx });
     setSignFormData({
       operatorId: matchedOperator?.id || '',
       shiftId: getCurrentShiftId(),
       workType: 'İşlem',
-      approvedQty: prevStepApprovedQty, // Default to max allowed
+      approvedQty: prevStepApprovedQty,
+      rejectedQty: 0,
+      reworkQty: 0,
+      sampleQty: 0,
+      conditionalQty: 0,
+      recordDate: localISO
+    });
+    setShowSignModal(true);
+  };
+
+  const handleBulkSignClick = () => {
+    if (selectedStepIndices.length === 0) {
+      showAlert('Lütfen imzalanacak operasyonları seçin.', 'SEÇİM YOK', 'warning');
+      return;
+    }
+
+    const matchedOperator = operators.find(o => o.fullName === authUser?.fullName);
+    const now = new Date();
+    const tzOffset = now.getTimezoneOffset() * 60000;
+    const localISO = new Date(now.getTime() - tzOffset).toISOString().slice(0, 16);
+
+    // For bulk, we'll assume the quantity is the max allowed for each step
+    // in the executeStepSign we will calculate properly.
+    const firstIdx = Math.min(...selectedStepIndices);
+    const prevMax = Number(firstIdx === 0 ? formData.quantity : (steps[firstIdx - 1]?.approvedQty || 0));
+
+    setBulkSigningSteps(selectedStepIndices.sort((a, b) => a - b));
+    setSigningStep(null);
+    setSignFormData({
+      operatorId: matchedOperator?.id || '',
+      shiftId: getCurrentShiftId(),
+      workType: 'İşlem',
+      approvedQty: prevMax,
       rejectedQty: 0,
       reworkQty: 0,
       sampleQty: 0,
@@ -275,94 +327,107 @@ export function ProductionOrderForm() {
   };
 
   const executeStepSign = async () => {
-    // Validation: Total quantity entered cannot exceed previous step's approved quantity (or lot quantity for first step)
-    const prevStepApprovedQty = signingStep.index === 0
-      ? formData.quantity
-      : (steps[signingStep.index - 1]?.approvedQty || 0);
+    const newSteps = [...steps];
+    const opName = operators.find(o => o.id === signFormData.operatorId)?.fullName || authUser?.fullName;
 
-    const totalEntered =
-      Number(signFormData.approvedQty || 0) +
-      Number(signFormData.rejectedQty || 0) +
-      Number(signFormData.reworkQty || 0) +
-      Number(signFormData.sampleQty || 0) +
-      Number(signFormData.conditionalQty || 0);
+    if (bulkSigningSteps.length > 0) {
+      // BULK SIGN
+      let currentApprovedQty = Number(signFormData.approvedQty || 0);
 
-    if (totalEntered > prevStepApprovedQty) {
-      showAlert(`Girilen toplam adetlerin toplamı (${totalEntered}), işlenebilir maksimum miktarı (${prevStepApprovedQty}) aşamaz! Lütfen girdiğiniz miktarları kontrol edin.`, 'MİKTAR HATASI', 'danger');
-      return;
-    }
-
-    try {
-      await api.patch(`/production-orders/steps/${signingStep.id}`, {
-        ...signFormData,
-        status: 'completed',
-        startTime: signingStep.startTime || signFormData.recordDate,
-        endTime: signFormData.recordDate
-      });
-
-      setSteps(prev => prev.map((s, i) => i === signingStep.index ? {
-        ...s,
-        ...signFormData,
-        status: 'completed',
-        confirmedBy: operators.find(o => o.id === signFormData.operatorId)?.fullName || authUser?.fullName
-      } : s));
-
-      setShowSignModal(false);
-    } catch (e: any) {
-      showAlert(e.response?.data?.error || 'Kayıt sırasında hata oluştu.', 'HATA', 'danger');
-    }
-  };
-
-  const handleEventSubmit = async () => {
-    if (!eventFormData.stepId || !eventFormData.type || !eventFormData.quantity || !eventFormData.reasonId) {
-      showAlert('Lütfen tüm zorunlu alanları (Operasyon, Tip, Miktar, Sebep) doldurun.', 'EKSİK BİLGİ', 'warning');
-      return;
-    }
-
-    if (settings?.productionEventWarehouseRequired && !eventFormData.warehouseId) {
-      showAlert('Ayarlar gereği olay kaydında depo seçilmesi zorunludur.', 'DEPO ZORUNLU', 'warning');
-      return;
-    }
-
-    try {
-      if (eventFormData.id) {
-        // UPDATE
-        const res = await api.put(`/production-orders/events/${eventFormData.id}`, {
-          ...eventFormData,
-          quantity: Number(eventFormData.quantity)
-        });
-        setOrderEvents((prev: any[]) => prev.map(e => e.id === eventFormData.id ? res : e));
-      } else {
-        // CREATE
-        const res = await api.post(`/production-orders/${formData.id}/events`, {
-          ...eventFormData,
-          quantity: Number(eventFormData.quantity)
-        });
-        setOrderEvents((prev: any[]) => [...prev, res]);
+      for (const idx of bulkSigningSteps) {
+        newSteps[idx] = {
+          ...newSteps[idx],
+          ...signFormData,
+          status: 'completed',
+          confirmedBy: opName,
+          endTime: signFormData.recordDate
+        };
+        // Reset non-approved quantities for intermediate steps in bulk for simplicity
+        // as the modal inputs are applied to the "batch"
+        if (idx !== bulkSigningSteps[bulkSigningSteps.length - 1]) {
+          newSteps[idx].rejectedQty = 0;
+          newSteps[idx].reworkQty = 0;
+          newSteps[idx].sampleQty = 0;
+          newSteps[idx].conditionalQty = 0;
+        }
       }
-      setShowEventModal(false);
-    } catch (e: any) {
-      showAlert(e.response?.data?.error || 'Olay kaydedilirken bir hata oluştu.', 'HATA', 'danger');
+      setSteps(newSteps);
+      setIsBulkSignMode(false);
+      setSelectedStepIndices([]);
+    } else {
+      // SINGLE SIGN
+      const prevStepApprovedQty = signingStep.index === 0
+        ? formData.quantity
+        : (steps[signingStep.index - 1]?.approvedQty || 0);
+
+      const totalEntered =
+        Number(signFormData.approvedQty || 0) +
+        Number(signFormData.rejectedQty || 0) +
+        Number(signFormData.reworkQty || 0) +
+        Number(signFormData.sampleQty || 0) +
+        Number(signFormData.conditionalQty || 0);
+
+      if (totalEntered > prevStepApprovedQty) {
+        showAlert(`Miktar hatası! Maksimum: ${prevStepApprovedQty}`, 'HATA', 'danger');
+        return;
+      }
+
+      newSteps[signingStep.index] = {
+        ...newSteps[signingStep.index],
+        ...signFormData,
+        status: 'completed',
+        confirmedBy: opName,
+        endTime: signFormData.recordDate
+      };
+      setSteps(newSteps);
     }
+
+    setShowSignModal(false);
+    showAlert('İmza işlemi yerel olarak kaydedildi. Kalıcı olması için KAYDET butonuna basınız.', 'BİLGİ', 'info');
   };
 
-  const handleEventDelete = async (eventId: string) => {
-    if (!window.confirm('Bu olay kaydını silmek istediğinize emin misiniz?')) return;
-    try {
-      await api.delete(`/production-orders/events/${eventId}`);
-      setOrderEvents(prev => prev.filter(e => e.id !== eventId));
-    } catch (e: any) {
-      showAlert(e.response?.data?.error || 'Silme işlemi başarısız.', 'HATA', 'danger');
+  const handleEventSubmit = () => {
+    if (!eventFormData.stepId || !eventFormData.type || !eventFormData.quantity || !eventFormData.reasonId) {
+      showAlert('Lütfen tüm zorunlu alanları doldurun.', 'EKSİK BİLGİ', 'warning');
+      return;
     }
+
+    if (eventFormData.id || eventFormData.localId) {
+      // UPDATE
+      setOrderEvents((prev: any[]) => prev.map(e => (e.id === eventFormData.id || (e.localId && e.localId === eventFormData.localId)) ? { ...e, ...eventFormData, quantity: Number(eventFormData.quantity) } : e));
+    } else {
+      // CREATE
+      const newEvent = {
+        ...eventFormData,
+        localId: Math.random().toString(36).substr(2, 9),
+        quantity: Number(eventFormData.quantity),
+        createdAt: eventFormData.createdAt || new Date().toISOString()
+      };
+      setOrderEvents((prev: any[]) => [...prev, newEvent]);
+    }
+    setShowEventModal(false);
+    showAlert('Olay kaydı listeye eklendi. Kalıcı olması için KAYDET butonuna basınız.', 'BİLGİ', 'info');
   };
 
-  const handleStepRollback = async (stepId: string, idx: number) => {
-    try {
-      await api.patch(`/production-orders/steps/${stepId}`, { status: 'pending' });
-      setSteps(prev => prev.map((s, i) => i === idx ? { ...s, status: 'pending' } : s));
-    } catch (e) {
-      alert('Geri alma başarısız.');
-    }
+  const handleEventDelete = (eventId: string) => {
+    setOrderEvents(prev => prev.filter(e => e.id !== eventId && e.localId !== eventId));
+  };
+
+  const handleStepRollback = (stepId: string, idx: number) => {
+    setSteps(prev => prev.map((s, i) => i === idx ? {
+      ...s,
+      status: 'pending',
+      approvedQty: 0,
+      rejectedQty: 0,
+      reworkQty: 0,
+      sampleQty: 0,
+      conditionalQty: 0,
+      confirmedBy: null,
+      operatorId: null,
+      startTime: null,
+      endTime: null
+    } : s));
+    showAlert('İmza geri çekildi. Kalıcı olması için KAYDET butonuna basınız.', 'BİLGİ', 'info');
   };
 
   const currentStepIdx = steps.findIndex(s => s.status !== 'completed');
@@ -420,18 +485,28 @@ export function ProductionOrderForm() {
     try {
       const payload = {
         ...formData,
+        status: formData.status, // Ensure status is explicitly included
         components,
         machines: assignedMachines,
         steps,
+        events: orderEvents
       };
       if (isEditing) {
         await api.put(`/production-orders/${formData.id}`, payload);
+        await fetchData();
+        showAlert('Üretim emri başarıyla güncellendi.', 'BAŞARILI', 'info');
       } else {
-        await api.post('/production-orders', payload);
+        const res = await api.post('/production-orders', payload);
+        showAlert('Üretim emri başarıyla oluşturuldu.', 'BAŞARILI', 'info');
+        if (res && res.id) {
+          navigate(`/production-orders/${res.id}`);
+        } else {
+          navigate('/production-orders');
+        }
       }
-      navigate('/production-orders');
-    } catch (e) {
-      alert('Kaydedilirken hata oluştu.');
+    } catch (e: any) {
+      console.error('Save error:', e);
+      showAlert(`Kaydedilirken hata oluştu: ${e.message || 'Bilinmeyen hata'}`, 'HATA', 'danger');
     } finally {
       setSaving(false);
     }
@@ -492,7 +567,7 @@ export function ProductionOrderForm() {
   return (
     <div className="min-h-screen pb-20 space-y-8 animate-in fade-in duration-500">
       {/* Header Bar */}
-      <div className="h-20 bg-theme-surface/80 backdrop-blur-xl border-b border-theme px-6 sticky top-0 z-40 flex items-center justify-between">
+      <div className="h-20 bg-theme-surface/80 backdrop-blur-[6px] border-b border-theme px-6 sticky top-0 z-40 flex items-center justify-between">
         <div className="flex items-start justify-center gap-2">
           <button onClick={() => navigate('/production-orders')} className="p-1 border border-theme rounded-xl hover:bg-theme-main/5 text-theme-muted transition-all">
             <ChevronLeft className="w-6 h-6" />
@@ -544,129 +619,152 @@ export function ProductionOrderForm() {
             </div>
           )}
 
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="h-10 px-4 py-2 bg-theme-primary text-white rounded-xl font-black text-xs shadow-xl shadow-theme-primary/20 hover:bg-theme-primary-hover transition-all flex items-center gap-3 active:scale-95 disabled:opacity-50"
-          >
-            {saving ? <Loading size="sm" /> : <><Save className="w-4 h-4" />KAYDET</>}
-          </button>
+          {!isCompleted && (
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="h-10 px-4 py-2 bg-theme-primary text-white rounded-xl font-black text-xs shadow-xl shadow-theme-primary/20 hover:bg-theme-primary-hover transition-all flex items-center gap-3 active:scale-95 disabled:opacity-50"
+            >
+              {saving ? <Loading size="sm" /> : <><Save className="w-4 h-4" />KAYDET</>}
+            </button>
+          )}
         </div>
       </div>
 
-      <div className="mx-auto px-6 grid grid-cols-1 xl:grid-cols-4 gap-4">
-        {/* Left Column: Core Info */}
-        <div className="xl:col-span-1 space-y-6">
-          <div className="modern-glass-card p-4 bg-theme-base/20 border-theme-primary/10 shadow-inner">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-[10px] font-black text-theme-muted uppercase tracking-[0.2em]">Özet Bilgi</span>
-              <div className={`w-2 h-2 rounded-full animate-pulse shadow-lg ${formData.status === 'active' ? 'bg-theme-success shadow-theme-success/50' : formData.status === 'completed' ? 'bg-theme-primary shadow-theme-primary/50' : 'bg-theme-warning shadow-theme-warning/50'}`} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="p-3 rounded-xl bg-theme-surface border border-theme-border/50 flex flex-col gap-1 shadow-sm">
-                <span className="text-[8px] font-black text-theme-muted uppercase tracking-widest">GÜNCEL DURUM</span>
-                <span className={`text-[10px] font-black uppercase tracking-wider ${formData.status === 'active' ? 'text-theme-success' : formData.status === 'completed' ? 'text-theme-primary' : 'text-theme-warning'}`}>
-                  {formData.status === 'planned' ? 'Planlandı' :
-                    formData.status === 'active' ? 'Devam Ediyor' :
-                      formData.status === 'completed' ? 'Tamamlandı' :
-                        formData.status === 'cancelled' ? 'İptal Edildi' : formData.status}
-                </span>
+      <div className="mx-auto px-6 space-y-6">
+        {/* Top Row: Core Info & Classification */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Summary Card */}
+          <div className="lg:col-span-3 space-y-6">
+            <div className="modern-glass-card p-4 bg-theme-base/20 border-theme-primary/10 shadow-inner h-full flex flex-col justify-center">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-[10px] font-black text-theme-muted uppercase tracking-[0.2em]">Özet Bilgi</span>
+                <div className={`w-2 h-2 rounded-full animate-pulse shadow-lg ${formData.status === 'active' ? 'bg-theme-success shadow-theme-success/50' : formData.status === 'completed' ? 'bg-theme-primary shadow-theme-primary/50' : 'bg-theme-warning shadow-theme-warning/50'}`} />
               </div>
-              <div className="p-3 rounded-xl bg-theme-surface border border-theme-border/50 flex flex-col gap-1 shadow-sm">
-                <span className="text-[8px] font-black text-theme-muted uppercase tracking-widest">İŞ EMRİ TİPİ</span>
-                <span className="text-[10px] font-black text-theme-dim uppercase tracking-wider">{formData.type} Üretim</span>
+              <div className="grid grid-cols-1 gap-3">
+                <div className="p-3 rounded-xl bg-theme-surface border border-theme-border/50 flex flex-col gap-1 shadow-sm">
+                  <span className="text-[8px] font-black text-theme-muted uppercase tracking-widest">GÜNCEL DURUM</span>
+                  <span className={`text-xs font-black uppercase tracking-wider ${formData.status === 'active' ? 'text-theme-success' : formData.status === 'completed' ? 'text-theme-primary' : 'text-theme-warning'}`}>
+                    {formData.status === 'planned' ? 'Planlandı' :
+                      formData.status === 'active' ? 'Devam Ediyor' :
+                        formData.status === 'completed' ? 'Tamamlandı' :
+                          formData.status === 'cancelled' ? 'İptal Edildi' : formData.status}
+                  </span>
+                </div>
+                <div className="p-3 rounded-xl bg-theme-surface border border-theme-border/50 flex flex-col gap-1 shadow-sm">
+                  <span className="text-[8px] font-black text-theme-muted uppercase tracking-widest">İŞ EMRİ TİPİ</span>
+                  <span className="text-xs font-black text-theme-dim uppercase tracking-wider">{formData.type} Üretim</span>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="modern-glass-card p-4 space-y-6">
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 pb-4 border-b border-theme mb-2">
-                <Package className="w-4 h-4 text-theme-primary" />
-                <h3 className="text-sm font-bold text-theme-main">Ürün ve Miktar</h3>
-              </div>
+          {/* Configuration Card */}
+          <div className="lg:col-span-9">
+            <div className="modern-glass-card p-6 h-full">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Product & Qty */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 pb-2 border-b border-theme/50 mb-2">
+                    <Package className="w-4 h-4 text-theme-primary" />
+                    <h3 className="text-xs font-black text-theme-main uppercase tracking-widest">Ürün ve Miktar</h3>
+                  </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-theme-muted uppercase tracking-widest">STOK KARTI / ÜRÜN</label>
-                <CustomSelect
-                  options={products.map(p => ({ id: p.id, label: p.productCode, subLabel: p.productName }))}
-                  value={formData.productId}
-                  onChange={handleProductChange}
-                  placeholder="Ürün Seçin"
-                  disabled={isEditing}
-                />
-              </div>
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-theme-muted uppercase tracking-widest">STOK KARTI / ÜRÜN</label>
+                    <CustomSelect
+                      options={products.map(p => ({ id: p.id, label: p.productCode, subLabel: p.productName }))}
+                      value={formData.productId}
+                      onChange={handleProductChange}
+                      placeholder="Ürün Seçin"
+                      disabled={isEditing}
+                    />
+                  </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-theme-muted uppercase tracking-widest">PLANLANAN ADET</label>
-                  <input
-                    type="number"
-                    value={formData.quantity}
-                    onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                    className="form-input"
-                  />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-black text-theme-muted uppercase tracking-widest">ADET</label>
+                      <input
+                        type="number"
+                        value={formData.quantity}
+                        disabled={isCompleted}
+                        onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                        className={`form-input h-10 text-xs ${isCompleted ? 'bg-theme-base/20' : ''}`}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-black text-theme-muted uppercase tracking-widest">LOT NO</label>
+                      <input
+                        value={formData.lotNumber}
+                        disabled
+                        className="form-input h-10 text-xs bg-theme-base/20 font-black tracking-tighter"
+                        placeholder="Otomatik"
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-theme-muted uppercase tracking-widest">LOT NUMARASI</label>
-                  <input
-                    value={formData.lotNumber}
-                    disabled
-                    className="form-input bg-theme-base/20"
-                    placeholder="Otomatik"
-                  />
+
+                {/* Classification */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 pb-2 border-b border-theme/50 mb-2">
+                    <Layers className="w-4 h-4 text-theme-primary" />
+                    <h3 className="text-xs font-black text-theme-main uppercase tracking-widest">Klasifikasyon</h3>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-theme-muted uppercase tracking-widest">EMİR TİPİ</label>
+                    <CustomSelect
+                      options={[
+                        { id: 'Asıl', label: 'Asıl Üretim' },
+                        { id: 'Tekrar', label: 'Tekrar İşlem' },
+                        { id: 'Bölünmüş', label: 'Bölünmüş İşemri' },
+                        { id: 'ArGe', label: 'Ar-Ge / Numune' },
+                        { id: 'Fason', label: 'Fason Üretim' },
+                        { id: 'Final', label: 'Final Kontrol' }
+                      ]}
+                      value={formData.type}
+                      disabled={isCompleted}
+                      onChange={(v) => setFormData({ ...formData, type: v })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-theme-muted uppercase tracking-widest">HEDEF DEPO</label>
+                    <CustomSelect
+                      options={warehouses.map(w => ({ id: w.id, label: w.name }))}
+                      value={formData.targetWarehouseId}
+                      disabled={isCompleted}
+                      onChange={(v) => setFormData({ ...formData, targetWarehouseId: v })}
+                    />
+                  </div>
+                </div>
+
+                {/* Tracking Info */}
+                <div className="flex flex-col justify-center">
+                  <div className="p-5 bg-theme-primary/5 border border-theme-primary/10 rounded-2xl space-y-4 shadow-inner">
+                    <div className="flex items-center gap-3 text-theme-primary">
+                      <div className="p-2 bg-theme-primary/10 rounded-lg">
+                        <AlertCircle className="w-5 h-5" />
+                      </div>
+                      <span className="text-[10px] font-black uppercase tracking-widest">ÜRETİM TAKİBİ</span>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[10px] text-theme-muted font-black uppercase tracking-widest">TAKİP TİPİ</p>
+                      <p className="text-sm text-theme-main font-black tracking-widest bg-theme-surface/50 p-2 rounded-xl border border-theme/30 inline-block">
+                        {products.find(p => p.id === formData.productId)?.trackingType || 'BELİRTİLMEMİŞ'}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 pb-4 border-b border-theme mb-2">
-                <Layers className="w-4 h-4 text-theme-primary" />
-                <h3 className="text-sm font-bold text-theme-main">Klasifikasyon</h3>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-theme-muted uppercase tracking-widest">ÜRETİM EMRİ TİPİ</label>
-                <CustomSelect
-                  options={[
-                    { id: 'Asıl', label: 'Asıl Üretim' },
-                    { id: 'Tekrar', label: 'Tekrar İşlem' },
-                    { id: 'Bölünmüş', label: 'Bölünmüş İşemri' },
-                    { id: 'ArGe', label: 'Ar-Ge / Numune' },
-                    { id: 'Fason', label: 'Fason Üretim' },
-                    { id: 'Final', label: 'Final Kontrol' }
-                  ]}
-                  value={formData.type}
-                  onChange={(v) => setFormData({ ...formData, type: v })}
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-theme-muted uppercase tracking-widest">HEDEF DEPO</label>
-                <CustomSelect
-                  options={warehouses.map(w => ({ id: w.id, label: w.name }))}
-                  value={formData.targetWarehouseId}
-                  onChange={(v) => setFormData({ ...formData, targetWarehouseId: v })}
-                />
-              </div>
-            </div>
-
-            <div className="p-4 bg-theme-primary/5 border border-theme-primary/20 rounded-2xl space-y-3">
-              <div className="flex items-center gap-2 text-theme-primary">
-                <AlertCircle className="w-4 h-4" />
-                <span className="text-[10px] font-black uppercase tracking-widest">TAKİP SİSTEMİ</span>
-              </div>
-              <p className="text-[11px] text-theme-dim font-bold leading-relaxed">
-                Ürüne ait takip tipi: <span className="text-theme-primary">{products.find(p => p.id === formData.productId)?.trackingType || 'BELİRTİLMEMİŞ'}</span>
-              </p>
             </div>
           </div>
         </div>
 
-        {/* Right Column: Tabs and Details */}
-        <div className="xl:col-span-3 space-y-6">
+        {/* Bottom Row: Full Width Tabs and Details */}
+        <div className="w-full space-y-6">
           <div className="modern-glass-card overflow-hidden p-0 flex flex-col min-h-[450px]">
             {/* Tabs Header */}
             <div className="bg-theme-base/20 border-b border-theme px-6 overflow-x-auto">
-              <div className="flex justify-between items-center w-full gap-4 pt-6 py-4">
+              <div className="flex justify-between items-center w-full gap-4 pt-6 py-4 px-12">
                 {[
                   { id: 'operations', label: 'OPERASYONLAR', icon: Workflow },
                   { id: 'components', label: 'BİLEŞENLER', icon: Boxes },
@@ -698,21 +796,55 @@ export function ProductionOrderForm() {
             <div className="flex-1 p-3">
               {activeTab === 'operations' && (
                 <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+                  <div className="flex justify-between items-center px-2">
+                    <p className="text-[10px] font-black text-theme-muted uppercase tracking-widest">OPERASYON VE PROSES AKIŞI</p>
+                    <div className="flex items-center gap-3">
+                      {isBulkSignMode ? (
+                        <>
+                          <button
+                            onClick={() => {
+                              setIsBulkSignMode(false);
+                              setSelectedStepIndices([]);
+                            }}
+                            className="text-[10px] font-black text-theme-danger uppercase hover:underline"
+                          >
+                            VAZGEÇ
+                          </button>
+                          <button
+                            onClick={handleBulkSignClick}
+                            className="h-9 px-4 bg-theme-success text-white rounded-xl font-black text-[10px] uppercase shadow-lg shadow-theme-success/20 flex items-center gap-2 active:scale-95"
+                          >
+                            <CheckCircle2 className="w-4 h-4" /> SEÇİLENLERİ İMZALA ({selectedStepIndices.length})
+                          </button>
+                        </>
+                      ) : (
+                        !isCompleted && formData.status === 'active' && (
+                          <button
+                            onClick={() => setIsBulkSignMode(true)}
+                            className="h-9 px-4 bg-theme-base border border-theme text-theme-muted hover:text-theme-primary hover:border-theme-primary/30 rounded-xl font-black text-[10px] uppercase transition-all flex items-center gap-2"
+                          >
+                            <Layers className="w-4 h-4" /> TOPLU İMZALAMA
+                          </button>
+                        )
+                      )}
+                    </div>
+                  </div>
                   <table className="w-full text-left">
                     <thead>
-                      <tr className="border-b border-theme text-[9px] font-black text-theme-muted uppercase tracking-widest bg-theme-base/10">
-                        <th className="px-2 py-3 text-center">SIRA</th>
-                        <th className="px-2 py-3">PROSES KODU</th>
-                        <th className="px-2 py-3">OPERASYON ADI</th>
-                        <th className="px-2 py-3">KABUL ADETİ</th>
-                        <th className="px-2 py-3">DURUM</th>
-                        <th className="px-2 py-3">ONAYLAYAN</th>
+                      <tr className="border-b border-theme text-[9px] font-black text-theme-muted bg-theme-base/10">
+                        <th className="px-2 py-3 text-center">Sıra</th>
+                        {isBulkSignMode && <th className="px-2 py-3 text-center w-10">SEÇ</th>}
+                        <th className="px-2 py-3">Proses Kodu</th>
+                        <th className="px-2 py-3">Operasyon Adı</th>
+                        <th className="px-2 py-3">Kabul Adeti</th>
+                        <th className="px-2 py-3">Durum</th>
+                        <th className="px-2 py-3">Onaylayan</th>
                         <th className="px-2 py-3 text-center">#</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-theme">
                       {steps.map((step, idx) => {
-                        const isCompleted = step.status === 'completed';
+                        const isStepCompleted = step.status === 'completed';
                         const isCurrent = idx === activeStepIdx;
                         const isFuture = idx > activeStepIdx;
                         const isPast = idx < activeStepIdx;
@@ -725,49 +857,71 @@ export function ProductionOrderForm() {
                         return (
                           <tr
                             key={idx}
-                            className={`transition-all duration-300 border-b border-theme/50 ${rowOpacity} ${isCurrent ? 'bg-theme-primary/[0.03] shadow-inner' : ''}`}
+                            className={`transition-all duration-300 border-b border-theme/50 ${isCurrent ? 'bg-theme-primary/[0.03] shadow-inner' : ''}`}
                           >
-                            <td className="px-2 py-4 font-black text-center">
-                              <div className={`w-6 h-6 rounded-lg flex items-center justify-center mx-auto text-[10px] ${isCompleted ? 'bg-theme-success text-white' : isCurrent ? 'bg-theme-primary text-white animate-pulse' : 'bg-theme-base border border-theme text-theme-muted'}`}>
-                                {isCompleted ? <CheckCircle2 className="w-3.5 h-3.5" /> : step.sequence}
+                            <td className={`px-2 py-4 font-black text-center ${rowOpacity}`}>
+                              <div className={`w-4.5 h-4.5 rounded-full flex items-center justify-center mx-auto text-[10px] ${isStepCompleted ? 'bg-theme-success text-white' : isCurrent ? 'bg-theme-primary text-white animate-pulse' : 'bg-theme-base border border-theme text-theme-muted'}`}>
+                                {isStepCompleted ? <Check className="w-2.5 h-2.5" /> : step.sequence}
                               </div>
                             </td>
-                            <td className="px-2 py-4 text-xs font-bold text-theme-main">{step.operation?.code}</td>
-                            <td className="px-2 py-4 text-xs font-bold text-theme-dim">
+                            {isBulkSignMode && (
+                              <td className="px-2 py-4 text-center">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedStepIndices.includes(idx)}
+                                  disabled={isStepCompleted || idx < activeStepIdx}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      // Range selection logic
+                                      const newIndices = [];
+                                      for (let i = activeStepIdx; i <= idx; i++) {
+                                        if (steps[i].status !== 'completed') newIndices.push(i);
+                                      }
+                                      setSelectedStepIndices(Array.from(new Set([...selectedStepIndices, ...newIndices])));
+                                    } else {
+                                      setSelectedStepIndices(selectedStepIndices.filter(i => i < idx));
+                                    }
+                                  }}
+                                  className="w-4.5 h-4.5 rounded-2xl border border-theme text-theme-primary focus:ring-theme-primary bg-theme-base transition-all"
+                                />
+                              </td>
+                            )}
+                            <td className={`px-2 py-4 text-xs font-bold text-theme-main ${rowOpacity}`}>{step.operation?.code}</td>
+                            <td className={`px-2 py-4 text-xs font-bold text-theme-dim ${rowOpacity}`}>
                               <div className="flex flex-col">
                                 <span>{step.operation?.name}</span>
                                 {isCurrent && <span className="text-[9px] text-theme-primary animate-pulse font-black mt-1">AKTİF OPERASYON</span>}
                               </div>
                             </td>
-                            <td className="px-2 py-4">
+                            <td className={`px-2 py-4 ${rowOpacity}`}>
                               <div className="flex flex-col gap-1">
-                                <span className={`text-[11px] font-black ${isCompleted ? 'text-theme-success' : isCurrent ? 'text-theme-primary' : 'text-theme-muted'}`}>
-                                  {isCompleted ? `${step.approvedQty} ADET` : 'BEKLİYOR'}
+                                <span className={`text-[11px] font-black ${isStepCompleted ? 'text-theme-success' : isCurrent ? 'text-theme-primary' : 'text-theme-muted'}`}>
+                                  {isStepCompleted ? `${Number(step.approvedQty || 0)} ADET` : 'BEKLİYOR'}
                                 </span>
-                                {isCompleted && step.rejectedQty > 0 && (
+                                {isStepCompleted && Number(step.rejectedQty || 0) > 0 && (
                                   <span className="text-[9px] font-bold text-theme-danger">-{step.rejectedQty} RED</span>
                                 )}
                               </div>
                             </td>
-                            <td className="px-2 py-4">
+                            <td className={`px-2 py-4 ${rowOpacity}`}>
                               <div className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider shadow-sm border
-                                ${isCompleted ? 'bg-theme-success/10 text-theme-success border-theme-success/20' :
+                                ${isStepCompleted ? 'bg-theme-success/10 text-theme-success border-theme-success/20' :
                                   isCurrent ? 'bg-theme-primary/10 text-theme-primary border-theme-primary/20 animate-pulse' :
                                     'bg-theme-base/50 text-theme-muted border-theme/50'}`}>
-                                <div className={`w-1.5 h-1.5 rounded-full ${isCompleted ? 'bg-theme-success' : isCurrent ? 'bg-theme-primary animate-ping' : 'bg-theme-muted'}`} />
-                                {isCompleted ? 'TAMAMLANDI' : isCurrent ? 'SIRADAKİ' : 'BEKLİYOR'}
+                                <div className={`w-1.5 h-1.5 rounded-full ${isStepCompleted ? 'bg-theme-success' : isCurrent ? 'bg-theme-primary animate-ping' : 'bg-theme-muted'}`} />
+                                {isStepCompleted ? 'TAMAMLANDI' : isCurrent ? 'SIRADAKİ' : 'BEKLİYOR'}
                               </div>
                             </td>
-                            <td className="px-2 py-4">
+                            <td className={`px-2 py-4 ${rowOpacity}`}>
                               <div className="flex items-center gap-2 text-[10px] font-bold">
                                 <div className="w-8 h-8 rounded-full bg-theme-base border border-theme flex items-center justify-center shrink-0 shadow-sm">
-                                  <UserCircle className={`w-5 h-5 ${isCompleted ? 'text-theme-primary' : 'opacity-20'}`} />
+                                  <UserCircle className={`w-5 h-5 ${isStepCompleted ? 'text-theme-primary' : 'opacity-20'}`} />
                                 </div>
                                 <div className="flex flex-col">
                                   <span className={step.confirmedBy || step.operator?.fullName ? 'text-theme-main font-black' : 'italic text-theme-muted opacity-50'}>
-                                    {step.confirmedBy || step.operator?.fullName || (isCompleted ? 'Atanmamış' : 'Personel Bekleniyor')}
+                                    {step.confirmedBy || step.operator?.fullName || (isStepCompleted ? 'Atanmamış' : 'Personel Bekleniyor')}
                                   </span>
-                                  {isCompleted && (step.shift?.shiftName || step.workType) && (
+                                  {isStepCompleted && (step.shift?.shiftName || step.workType) && (
                                     <div className="flex items-center gap-1 mt-0.5">
                                       {step.shift?.shiftName && (
                                         <span className="text-[8px] text-theme-primary font-black uppercase tracking-tighter ring-1 ring-theme-primary/20 px-1 rounded bg-theme-primary/5">
@@ -784,9 +938,9 @@ export function ProductionOrderForm() {
                                 </div>
                               </div>
                             </td>
-                            <td className="px-2 py-4 text-right">
+                            <td className={`px-2 py-4 text-right ${rowOpacity}`}>
                               <div className="flex items-center justify-end gap-2">
-                                {isCurrent && (
+                                {isCurrent && !isCompleted && !isBulkSignMode && (
                                   <button
                                     onClick={() => handleStepSign(step, idx)}
                                     className="h-10 px-4 bg-theme-primary text-white rounded-xl font-black text-[10px] uppercase shadow-lg shadow-theme-primary/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
@@ -794,16 +948,16 @@ export function ProductionOrderForm() {
                                     <CheckCircle2 className="w-4 h-4" /> İMZALA
                                   </button>
                                 )}
-                                {isPast && idx === activeStepIdx - 1 && (
+                                {isPast && idx === activeStepIdx - 1 && !isCompleted && !isBulkSignMode && (
                                   <button
                                     onClick={() => handleStepRollback(step.id, idx)}
-                                    className="p-2.5 bg-theme-surface border border-theme text-theme-muted hover:text-theme-danger hover:border-theme-danger/30 transition-all rounded-xl shadow-sm"
-                                    title="Geri Çek"
+                                    className="p-1.5 bg-theme-danger/10 border border-theme-danger/30 text-theme-danger hover:text-theme-base hover:bg-theme-danger hover:border-theme-danger transition-all rounded-xl shadow-sm"
+                                    title="İmzayı Geri Çek"
                                   >
                                     <RotateCcw className="w-4 h-4" />
                                   </button>
                                 )}
-                                {isPast && idx !== activeStepIdx - 1 && (
+                                {isPast && (idx !== activeStepIdx - 1 || isCompleted || isBulkSignMode) && (
                                   <div className="p-2.5 opacity-10 cursor-not-allowed">
                                     <CheckCircle2 className="w-4 h-4 text-theme-success" />
                                   </div>
@@ -827,21 +981,23 @@ export function ProductionOrderForm() {
                 <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
                   <div className="flex justify-between items-center mb-4">
                     <p className="text-[10px] font-black text-theme-muted uppercase">HAMMADDE VE BİLEŞEN LİSTESİ</p>
-                    <button onClick={addComponent} className="btn-secondary h-10 px-4 py-2 flex items-center gap-2 text-[9px] font-black bg-theme-primary/10 rounded-xl text-theme-primary border border-theme-primary/20 shadow-lg shadow-theme-primary/10 hover:scale-103">
-                      <Plus className="w-3.5 h-3.5" /> BİLEŞEN EKLE
-                    </button>
+                    {!isCompleted && (
+                      <button onClick={addComponent} className="btn-secondary h-10 px-4 py-2 flex items-center gap-2 text-[9px] font-black bg-theme-primary/10 rounded-xl text-theme-primary border border-theme-primary/20 shadow-lg shadow-theme-primary/10 hover:scale-103">
+                        <Plus className="w-3.5 h-3.5" /> BİLEŞEN EKLE
+                      </button>
+                    )}
                   </div>
-                  <div className="border border-theme rounded-xl overflow-hidden">
-                    <table className="w-full">
+                  <div className="border border-theme rounded-xl overflow-x-auto">
+                    <table className="w-full min-w-[1000px]">
                       <thead className="bg-theme-base/10">
-                        <tr className="text-[9px] font-black text-theme-muted uppercase">
-                          <th className="px-2 py-3">BİLEŞEN ÜRÜN</th>
-                          <th className="px-2 py-3">DEPO</th>
-                          <th className="px-2 py-3">LOT NUMARASI</th>
-                          <th className="px-2 py-3">TİP</th>
-                          <th className="px-2 py-3 w-32">MİKTAR</th>
-                          <th className="px-2 py-3">NOTLAR</th>
-                          <th className="px-2 py-3 w-20">SİL</th>
+                        <tr className="text-[9px] font-black text-theme-muted">
+                          <th className="px-2 py-3 w-12">Bileşen Ürün</th>
+                          <th className="px-2 py-3">Depo</th>
+                          <th className="px-2 py-3">Giriş Numarası</th>
+                          <th className="px-2 py-3">Tipi</th>
+                          <th className="px-2 py-3 w-32">Miktar</th>
+                          <th className="px-2 py-3 w-64">Notlar</th>
+                          <th className="px-2 py-3 w-20">Sil</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-theme">
@@ -851,6 +1007,7 @@ export function ProductionOrderForm() {
                               <CustomSelect
                                 options={products.map(p => ({ id: p.id, label: p.productCode, subLabel: p.productName }))}
                                 value={c.componentProductId}
+                                disabled={isCompleted}
                                 onChange={(v) => {
                                   const nc = [...components];
                                   nc[i].componentProductId = v;
@@ -860,10 +1017,11 @@ export function ProductionOrderForm() {
                                 }}
                               />
                             </td>
-                            <td className="px-2 py-3">
+                            <td className="px-2 py-3 w-12">
                               <CustomSelect
                                 options={warehouses.map(w => ({ id: w.id, label: w.name }))}
                                 value={c.warehouseId}
+                                disabled={isCompleted}
                                 onChange={(v) => {
                                   const nc = [...components];
                                   nc[i].warehouseId = v;
@@ -884,17 +1042,18 @@ export function ProductionOrderForm() {
                                   setComponents(nc);
                                 }}
                                 placeholder={!c.componentProductId || !c.warehouseId ? "Ürün/Depo seçin" : "Lot Seçin"}
-                                disabled={!c.componentProductId || !c.warehouseId}
+                                disabled={isCompleted || !c.componentProductId || !c.warehouseId}
                               />
                             </td>
                             <td className="px-2 py-3">
                               <CustomSelect
                                 options={[
-                                  { id: 'UNIT', label: 'Birim' },
-                                  { id: 'UNIT_CONSUMPTION', label: 'Sarfiyat' },
-                                  { id: 'FIXED', label: 'Sabit' }
+                                  { id: 'UNIT', label: 'Birim Miktar' },
+                                  { id: 'UNIT_CONSUMPTION', label: 'Birim Sarfiyat' },
+                                  { id: 'FIXED', label: 'Sabit Miktar' }
                                 ]}
                                 value={c.consumptionType}
+                                disabled={isCompleted}
                                 onChange={(v) => {
                                   const nc = [...components];
                                   nc[i].consumptionType = v;
@@ -904,17 +1063,55 @@ export function ProductionOrderForm() {
                             </td>
                             <td className="px-2 py-3">
                               <div className="flex gap-2 items-center">
-                                <input
-                                  type="number"
-                                  value={c.quantity}
-                                  disabled={c.consumptionType === 'UNIT_CONSUMPTION'}
-                                  onChange={(e) => {
-                                    const nc = [...components];
-                                    nc[i].quantity = e.target.value;
-                                    setComponents(nc);
-                                  }}
-                                  className={`form-input text-xs text-right w-15 ${c.consumptionType === 'UNIT_CONSUMPTION' ? 'bg-theme-base/5 opacity-50 cursor-not-allowed' : ''}`}
-                                />
+                                {c.consumptionType === 'UNIT' && (
+                                  <div className="flex items-center gap-1">
+                                    <input
+                                      type="number"
+                                      value={c.unitQuantity || ''}
+                                      placeholder="Birim"
+                                      disabled={isCompleted || !c.lotNumber}
+                                      onChange={(e) => {
+                                        const val = Number(e.target.value);
+                                        const nc = [...components];
+                                        nc[i].unitQuantity = val;
+                                        nc[i].quantity = val * (formData.quantity || 0);
+                                        setComponents(nc);
+                                        const lot = (rowLots[i] || []).find((l: any) => l.id === c.lotNumber);
+                                        if (lot && nc[i].quantity > lot.availableQty) {
+                                          showAlert(`"${c.componentProduct?.name}" için yeterli stok yok! Mevcut: ${lot.availableQty}`, 'STOK YETERSİZ', 'warning');
+                                        }
+                                      }}
+                                      className={`form-input text-xs text-right w-14 border-theme-primary/30 bg-theme-primary/5 ${(!c.lotNumber || isCompleted) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    />
+                                    <span className="text-[10px] text-theme-muted">x</span>
+                                  </div>
+                                )}
+                                <div className="relative">
+                                  <input
+                                    type="number"
+                                    value={c.quantity}
+                                    min="1"
+                                    disabled={isCompleted || c.consumptionType === 'UNIT_CONSUMPTION' || !c.lotNumber}
+                                    onChange={(e) => {
+                                      let val = Number(e.target.value);
+                                      const lot = (rowLots[i] || []).find((l: any) => l.id === c.lotNumber);
+                                      if (lot && val > lot.availableQty) {
+                                        val = lot.availableQty;
+                                        showAlert(`"${c.componentProduct?.name}" için maksimum stok ${lot.availableQty} adet seçilebilir.`, 'STOK SINIRI', 'warning');
+                                      }
+                                      if (val < 1) val = 1;
+                                      const nc = [...components];
+                                      nc[i].quantity = val;
+                                      setComponents(nc);
+                                    }}
+                                    className={`form-input text-xs text-right w-16 ${(isCompleted || c.consumptionType === 'UNIT_CONSUMPTION' || !c.lotNumber) ? 'bg-theme-base/5 opacity-50 cursor-not-allowed' : ''} ${c.consumptionType === 'UNIT' ? 'font-bold text-theme-primary bg-theme-primary/5' : ''}`}
+                                  />
+                                  {!c.lotNumber && !isCompleted && (
+                                    <div className="absolute inset-0 flex items-center justify-center bg-theme-danger/5 backdrop-blur-[1px] pointer-events-none rounded-lg border border-theme-danger/20">
+                                      <span className="text-[10px] font-black text-theme-danger animate-pulse tracking-tighter">LOT SEÇİN</span>
+                                    </div>
+                                  )}
+                                </div>
                                 <div className="w-full h-10">
                                   <CustomSelect
                                     variant="inline"
@@ -931,6 +1128,7 @@ export function ProductionOrderForm() {
                                       { id: 'KUTU', label: 'Kutu' },
                                     ]}
                                     value={c.unit || 'PCS'}
+                                    disabled={isCompleted}
                                     onChange={(v) => {
                                       const nc = [...components];
                                       nc[i].unit = v;
@@ -940,21 +1138,24 @@ export function ProductionOrderForm() {
                                 </div>
                               </div>
                             </td>
-                            <td className="px-2 py-3">
+                            <td className="px-2 py-3 w-64">
                               <input
                                 value={c.notes}
+                                disabled={isCompleted}
                                 onChange={(e) => {
                                   const nc = [...components];
                                   nc[i].notes = e.target.value;
                                   setComponents(nc);
                                 }}
-                                className="form-input text-xs"
+                                className={`form-input w-64 text-xs ${isCompleted ? 'bg-theme-base/20 opacity-50' : ''}`}
                               />
                             </td>
-                            <td className="px-2 py-3">
-                              <button onClick={() => setComponents(components.filter((_, idx) => idx !== i))} className="p-3 text-theme-danger hover:bg-theme-danger/10 rounded-lg">
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+                            <td className="px-2 py-3 text-center">
+                              {!isCompleted && (
+                                <button onClick={() => setComponents(components.filter((_, idx) => idx !== i))} className="p-3 text-theme-danger hover:bg-theme-danger/10 rounded-lg">
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
                             </td>
                           </tr>
                         ))}
@@ -968,9 +1169,11 @@ export function ProductionOrderForm() {
                 <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
                   <div className="flex justify-between items-center mb-4">
                     <p className="text-[10px] font-black text-theme-muted uppercase">ATANMIŞ MAKİNE VE TEZGAH BİLGİSİ</p>
-                    <button onClick={addMachine} className="btn-secondary h-10 px-4 py-2 flex items-center gap-2 text-[9px] font-black bg-theme-primary/10 rounded-xl text-theme-primary border border-theme-primary/20 shadow-lg shadow-theme-primary/10 hover:scale-103">
-                      <Plus className="w-3.5 h-3.5" /> MAKİNE EKLE
-                    </button>
+                    {!isCompleted && (
+                      <button onClick={addMachine} className="btn-secondary h-10 px-4 py-2 flex items-center gap-2 text-[9px] font-black bg-theme-primary/10 rounded-xl text-theme-primary border border-theme-primary/20 shadow-lg shadow-theme-primary/10 hover:scale-103">
+                        <Plus className="w-3.5 h-3.5" /> MAKİNE EKLE
+                      </button>
+                    )}
                   </div>
                   <div className="grid grid-cols-1 gap-4">
                     {assignedMachines.map((m, i) => {
@@ -989,10 +1192,11 @@ export function ProductionOrderForm() {
                           </div>
 
                           <div className="flex-1 grid grid-cols-12 gap-4 items-center">
-                            <div className="col-span-12 lg:col-span-7">
+                            <div className="col-span-12 lg:col-span-3">
                               <CustomSelect
                                 options={machineOptions}
                                 value={m.machineId}
+                                disabled={isCompleted || !formData.productId}
                                 onChange={(v) => {
                                   const nm = [...assignedMachines];
                                   nm[i].machineId = v;
@@ -1002,11 +1206,10 @@ export function ProductionOrderForm() {
                                   setAssignedMachines(nm);
                                 }}
                                 placeholder={!formData.productId ? "Önce Ürün Seçin" : "Makine Seçin..."}
-                                disabled={!formData.productId}
                               />
                             </div>
 
-                            <div className="col-span-12 lg:col-span-5 flex items-center gap-4 bg-theme-base/30 h-10 px-4 py-2 rounded-xl border border-theme/50">
+                            <div className="col-span-12 lg:col-span-5 w-56 flex items-center justify-between gap-4 bg-theme-base/30 h-10 px-4 py-2 rounded-xl border border-theme/50">
                               <div className="flex items-center gap-2 shrink-0">
                                 <Clock className="w-4 h-4 text-theme-primary/60" />
                                 <span className="text-[10px] font-black text-theme-muted uppercase tracking-tighter">BİRİM SÜRE (SN)</span>
@@ -1014,22 +1217,25 @@ export function ProductionOrderForm() {
                               <input
                                 type="number"
                                 value={m.unitTimeSeconds}
+                                disabled={isCompleted}
                                 onChange={(e) => {
                                   const nm = [...assignedMachines];
                                   nm[i].unitTimeSeconds = e.target.value;
                                   setAssignedMachines(nm);
                                 }}
-                                className="form-input h-8 text-xs text-right font-bold w-full bg-transparent border-none focus:ring-0 p-0"
+                                className={`form-input h-8 text-xs text-right font-bold w-16 bg-transparent border-none focus:ring-0 p-0 ${isCompleted ? 'opacity-50' : ''}`}
                               />
                             </div>
                           </div>
 
-                          <button
-                            onClick={() => setAssignedMachines(assignedMachines.filter((_, idx) => idx !== i))}
-                            className="p-3 text-theme-muted hover:text-theme-danger hover:bg-theme-danger/10 rounded-xl transition-all shrink-0 active:scale-90"
-                          >
-                            <Trash2 className="w-5 h-5" />
-                          </button>
+                          {!isCompleted && (
+                            <button
+                              onClick={() => setAssignedMachines(assignedMachines.filter((_, idx) => idx !== i))}
+                              className="p-3 text-theme-muted hover:text-theme-danger hover:bg-theme-danger/10 rounded-xl transition-all shrink-0 active:scale-90"
+                            >
+                              <Trash2 className="w-5 h-5" />
+                            </button>
+                          )}
                         </div>
                       );
                     })}
@@ -1042,8 +1248,9 @@ export function ProductionOrderForm() {
                   <p className="text-[10px] font-black text-theme-muted uppercase tracking-widest">ÜRETİM EMRİ ÖZEL NOTLARI</p>
                   <textarea
                     value={formData.notes}
+                    disabled={isCompleted}
                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    className="form-input flex-1 min-h-[400px] py-6 px-6 text-sm leading-relaxed"
+                    className={`form-input flex-1 min-h-[400px] py-6 px-6 text-sm leading-relaxed ${isCompleted ? 'bg-theme-base/20 opacity-50' : ''}`}
                     placeholder="Üretim sırasında dikkat edilmesi gereken hususlar..."
                   />
                 </div>
@@ -1066,11 +1273,11 @@ export function ProductionOrderForm() {
                       <div className="space-y-4">
                         <div className="space-y-2">
                           <label className="text-[9px] font-black text-theme-muted uppercase">BAŞLAMA TARİHİ</label>
-                          <input type="date" value={formData.startDate} onChange={(e) => setFormData({ ...formData, startDate: e.target.value })} className="form-input" />
+                          <input type="date" value={formData.startDate} disabled={isCompleted} onChange={(e) => setFormData({ ...formData, startDate: e.target.value })} className={`form-input ${isCompleted ? 'bg-theme-base/20 opacity-50' : ''}`} />
                         </div>
                         <div className="space-y-2">
                           <label className="text-[9px] font-black text-theme-muted uppercase">BİTİŞ TARİHİ</label>
-                          <input type="date" value={formData.endDate} onChange={(e) => setFormData({ ...formData, endDate: e.target.value })} className="form-input" />
+                          <input type="date" value={formData.endDate} disabled={isCompleted} onChange={(e) => setFormData({ ...formData, endDate: e.target.value })} className={`form-input ${isCompleted ? 'bg-theme-base/20 opacity-50' : ''}`} />
                         </div>
                       </div>
                     </div>
@@ -1085,11 +1292,11 @@ export function ProductionOrderForm() {
                       <div className="space-y-4">
                         <div className="space-y-2">
                           <label className="text-[9px] font-black text-theme-muted uppercase">ÜRETİM TARİHİ</label>
-                          <input type="date" value={formData.productionDate} onChange={(e) => setFormData({ ...formData, productionDate: e.target.value })} className="form-input" />
+                          <input type="date" value={formData.productionDate} disabled={isCompleted} onChange={(e) => setFormData({ ...formData, productionDate: e.target.value })} className={`form-input ${isCompleted ? 'bg-theme-base/20 opacity-50' : ''}`} />
                         </div>
                         <div className="space-y-2">
                           <label className="text-[9px] font-black text-theme-muted uppercase">SON KULLANMA TARİHİ</label>
-                          <input type="date" value={formData.expiryDate} onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })} className="form-input" />
+                          <input type="date" value={formData.expiryDate} disabled={isCompleted} onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })} className={`form-input ${isCompleted ? 'bg-theme-base/20 opacity-50' : ''}`} />
                         </div>
                       </div>
                     </div>
@@ -1104,7 +1311,7 @@ export function ProductionOrderForm() {
                       <div className="space-y-4">
                         <div className="space-y-2">
                           <label className="text-[9px] font-black text-theme-muted uppercase">STERİL TARİHİ</label>
-                          <input type="date" value={formData.sterilizationDate} onChange={(e) => setFormData({ ...formData, sterilizationDate: e.target.value })} className="form-input" />
+                          <input type="date" value={formData.sterilizationDate} disabled={isCompleted} onChange={(e) => setFormData({ ...formData, sterilizationDate: e.target.value })} className={`form-input ${isCompleted ? 'bg-theme-base/20 opacity-50' : ''}`} />
                         </div>
                       </div>
                     </div>
@@ -1119,25 +1326,27 @@ export function ProductionOrderForm() {
                       <p className="text-[10px] font-black text-theme-muted uppercase">OLAY VE UYGUNSUZLUK KAYITLARI</p>
                       <p className="text-[10px] font-bold text-theme-dim">Red, numune ve şartlı kabul gibi durumlar için zorunlu olay kayıtları.</p>
                     </div>
-                    <button
-                      onClick={() => {
-                        setEventFormData({
-                          stepId: '',
-                          type: '',
-                          quantity: 0,
-                          operatorId: operators.find(o => o.fullName === authUser?.fullName)?.id || '',
-                          reasonId: '',
-                          warehouseId: '',
-                          description: '',
-                          createdAt: new Date().toISOString().slice(0, 16)
-                        });
-                        setShowEventModal(true);
-                      }}
-                      className="flex items-center gap-2 px-5 py-2.5 bg-theme-primary text-white rounded-xl hover:bg-theme-primary-hover transition-all text-[11px] font-black uppercase tracking-widest shadow-lg shadow-theme-primary/20 group"
-                    >
-                      <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform" />
-                      YENİ OLAY EKLE
-                    </button>
+                    {!isCompleted && (
+                      <button
+                        onClick={() => {
+                          setEventFormData({
+                            stepId: '',
+                            type: '',
+                            quantity: 0,
+                            operatorId: operators.find(o => o.fullName === authUser?.fullName)?.id || '',
+                            reasonId: '',
+                            warehouseId: '',
+                            description: '',
+                            createdAt: new Date().toISOString().slice(0, 16)
+                          });
+                          setShowEventModal(true);
+                        }}
+                        className="flex items-center gap-2 px-5 py-2.5 bg-theme-primary text-white rounded-xl hover:bg-theme-primary-hover transition-all text-[11px] font-black uppercase tracking-widest shadow-lg shadow-theme-primary/20 group"
+                      >
+                        <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform" />
+                        YENİ OLAY EKLE
+                      </button>
+                    )}
                   </div>
 
                   <div className="space-y-4">
@@ -1206,31 +1415,35 @@ export function ProductionOrderForm() {
                                 >
                                   DETAY
                                 </button>
-                                <button
-                                  onClick={() => {
-                                    setEventFormData({
-                                      id: evt.id,
-                                      stepId: evt.stepId,
-                                      type: evt.type,
-                                      quantity: evt.quantity,
-                                      operatorId: evt.operatorId,
-                                      reasonId: evt.reasonId,
-                                      warehouseId: evt.warehouseId || '',
-                                      description: evt.description || '',
-                                      createdAt: new Date(evt.createdAt).toISOString().slice(0, 16)
-                                    });
-                                    setShowEventModal(true);
-                                  }}
-                                  className="px-3 py-1.5 bg-theme-primary/10 border border-theme-primary/30 hover:bg-theme-primary/20 text-theme-primary text-[9px] font-black uppercase rounded-lg transition-all"
-                                >
-                                  DÜZENLE
-                                </button>
-                                <button
-                                  onClick={() => handleEventDelete(evt.id)}
-                                  className="p-1.5 bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500/20 text-rose-500 rounded-lg transition-all"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
+                                {!isCompleted && (
+                                  <>
+                                    <button
+                                      onClick={() => {
+                                        setEventFormData({
+                                          id: evt.id,
+                                          stepId: evt.stepId,
+                                          type: evt.type,
+                                          quantity: evt.quantity,
+                                          operatorId: evt.operatorId,
+                                          reasonId: evt.reasonId,
+                                          warehouseId: evt.warehouseId || '',
+                                          description: evt.description || '',
+                                          createdAt: new Date(evt.createdAt).toISOString().slice(0, 16)
+                                        });
+                                        setShowEventModal(true);
+                                      }}
+                                      className="px-3 py-1.5 bg-theme-primary/10 border border-theme-primary/30 hover:bg-theme-primary/20 text-theme-primary text-[9px] font-black uppercase rounded-lg transition-all"
+                                    >
+                                      DÜZENLE
+                                    </button>
+                                    <button
+                                      onClick={() => handleEventDelete(evt.id)}
+                                      className="p-1.5 bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500/20 text-rose-500 rounded-lg transition-all"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -1341,90 +1554,95 @@ export function ProductionOrderForm() {
 
                 {/* Column 2: Quantities */}
                 <div className="p-4 bg-theme-base/10 rounded-2xl border border-theme space-y-4">
-                  <div className="space-y-1 pb-4 border-b border-theme/50">
-                    <label className="text-[9px] font-black text-theme-muted uppercase tracking-widest">
-                      {signingStep?.index === 0 ? 'TOPLAM PERSONEL PLANLANAN' : 'ÖNCEKİ OPERASYONDAN GELEN'}
-                    </label>
-                    <div className="text-2xl font-black text-theme-primary">
-                      {signingStep?.index === 0 ? formData.quantity : (steps[signingStep?.index - 1]?.approvedQty || 0)} ADET
-                    </div>
-                  </div>
+                  {(() => {
+                    const firstBulkIdx = bulkSigningSteps.length > 0 ? Math.min(...bulkSigningSteps) : null;
+                    const referenceIdx = signingStep ? signingStep.index : firstBulkIdx;
+                    const prevMax = Number(referenceIdx === 0 ? formData.quantity : (steps[(referenceIdx || 0) - 1]?.approvedQty || 0));
+                    return (
+                      <>
+                        <div className="space-y-1 pb-4 border-b border-theme/50">
+                          <label className="text-[9px] font-black text-theme-muted uppercase tracking-widest">
+                            {signingStep?.index === 0 ? 'TOPLAM PERSONEL PLANLANAN' : 'ÖNCEKİ OPERASYONDAN GELEN'}
+                          </label>
+                          <div className="text-2xl font-black text-theme-primary">
+                            {prevMax} ADET
+                          </div>
+                        </div>
 
-                  <div className="grid grid-cols-2 gap-4 pt-2">
-                    <div className="space-y-1">
-                      <label className="text-[9px] font-black text-theme-success uppercase tracking-widest">KABUL ADETİ</label>
-                      <input
-                        type="number"
-                        value={signFormData.approvedQty}
-                        onChange={e => setSignFormData({ ...signFormData, approvedQty: Number(e.target.value) })}
-                        className="form-input h-12 p-2 text-lg font-black border-theme-success/30 focus:border-theme-success bg-theme-success/5"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[9px] font-black text-theme-danger uppercase tracking-widest">RED ADETİ</label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={signFormData.rejectedQty}
-                        onChange={e => {
-                          const val = Number(e.target.value);
-                          const prevMax = signingStep?.index === 0 ? formData.quantity : (steps[signingStep?.index - 1]?.approvedQty || 0);
-                          const others = Number(signFormData.reworkQty || 0) + Number(signFormData.sampleQty || 0) + Number(signFormData.conditionalQty || 0);
-                          const newApproved = Math.max(0, prevMax - (val + others));
-                          setSignFormData({ ...signFormData, rejectedQty: val, approvedQty: newApproved });
-                        }}
-                        className="form-input h-12 p-2 text-lg font-black border-theme-danger/30 focus:border-theme-danger bg-theme-danger/5"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[9px] font-black text-theme-warning uppercase tracking-widest">TEKRAR İŞLEM</label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={signFormData.reworkQty}
-                        onChange={e => {
-                          const val = Number(e.target.value);
-                          const prevMax = signingStep?.index === 0 ? formData.quantity : (steps[signingStep?.index - 1]?.approvedQty || 0);
-                          const others = Number(signFormData.rejectedQty || 0) + Number(signFormData.sampleQty || 0) + Number(signFormData.conditionalQty || 0);
-                          const newApproved = Math.max(0, prevMax - (val + others));
-                          setSignFormData({ ...signFormData, reworkQty: val, approvedQty: newApproved });
-                        }}
-                        className="form-input h-12 p-2 text-lg font-black border-theme-warning/30 focus:border-theme-warning bg-theme-warning/5"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[9px] font-black text-theme-info uppercase tracking-widest">NUMUNE ADETİ</label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={signFormData.sampleQty}
-                        onChange={e => {
-                          const val = Number(e.target.value);
-                          const prevMax = signingStep?.index === 0 ? formData.quantity : (steps[signingStep?.index - 1]?.approvedQty || 0);
-                          const others = Number(signFormData.rejectedQty || 0) + Number(signFormData.reworkQty || 0) + Number(signFormData.conditionalQty || 0);
-                          const newApproved = Math.max(0, prevMax - (val + others));
-                          setSignFormData({ ...signFormData, sampleQty: val, approvedQty: newApproved });
-                        }}
-                        className="form-input h-12 p-2 text-lg font-black border-theme-info/30 focus:border-theme-info bg-theme-info/5"
-                      />
-                    </div>
-                    <div className="col-span-2 space-y-1">
-                      <label className="text-[9px] font-black text-theme-dim uppercase tracking-widest">ŞARTLI KABUL</label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={signFormData.conditionalQty}
-                        onChange={e => {
-                          const val = Number(e.target.value);
-                          const prevMax = signingStep?.index === 0 ? formData.quantity : (steps[signingStep?.index - 1]?.approvedQty || 0);
-                          const others = Number(signFormData.rejectedQty || 0) + Number(signFormData.reworkQty || 0) + Number(signFormData.sampleQty || 0);
-                          const newApproved = Math.max(0, prevMax - (val + others));
-                          setSignFormData({ ...signFormData, conditionalQty: val, approvedQty: newApproved });
-                        }}
-                        className="form-input h-12 p-2 text-lg font-black border-theme-dim/30 bg-theme-base/20"
-                      />
-                    </div>
-                  </div>
+                        <div className="grid grid-cols-2 gap-4 pt-2">
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-black text-theme-success uppercase tracking-widest">KABUL ADETİ</label>
+                            <input
+                              type="number"
+                              value={signFormData.approvedQty}
+                              onChange={e => setSignFormData({ ...signFormData, approvedQty: Number(e.target.value) })}
+                              className="form-input h-12 p-2 text-lg font-black border-theme-success/30 focus:border-theme-success bg-theme-success/5"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-black text-theme-danger uppercase tracking-widest">RED ADETİ</label>
+                            <input
+                              type="number"
+                              min="0"
+                              value={signFormData.rejectedQty}
+                              onChange={e => {
+                                const val = Number(e.target.value);
+                                const others = Number(signFormData.reworkQty || 0) + Number(signFormData.sampleQty || 0) + Number(signFormData.conditionalQty || 0);
+                                const newApproved = Math.max(0, prevMax - (val + others));
+                                setSignFormData({ ...signFormData, rejectedQty: val, approvedQty: newApproved });
+                              }}
+                              className="form-input h-12 p-2 text-lg font-black border-theme-danger/30 focus:border-theme-danger bg-theme-danger/5"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-black text-theme-warning uppercase tracking-widest">TEKRAR İŞLEM</label>
+                            <input
+                              type="number"
+                              min="0"
+                              value={signFormData.reworkQty}
+                              onChange={e => {
+                                const val = Number(e.target.value);
+                                const others = Number(signFormData.rejectedQty || 0) + Number(signFormData.sampleQty || 0) + Number(signFormData.conditionalQty || 0);
+                                const newApproved = Math.max(0, prevMax - (val + others));
+                                setSignFormData({ ...signFormData, reworkQty: val, approvedQty: newApproved });
+                              }}
+                              className="form-input h-12 p-2 text-lg font-black border-theme-warning/30 focus:border-theme-warning bg-theme-warning/5"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-black text-theme-info uppercase tracking-widest">NUMUNE ADETİ</label>
+                            <input
+                              type="number"
+                              min="0"
+                              value={signFormData.sampleQty}
+                              onChange={e => {
+                                const val = Number(e.target.value);
+                                const others = Number(signFormData.rejectedQty || 0) + Number(signFormData.reworkQty || 0) + Number(signFormData.conditionalQty || 0);
+                                const newApproved = Math.max(0, prevMax - (val + others));
+                                setSignFormData({ ...signFormData, sampleQty: val, approvedQty: newApproved });
+                              }}
+                              className="form-input h-12 p-2 text-lg font-black border-theme-info/30 focus:border-theme-info bg-theme-info/5"
+                            />
+                          </div>
+                          <div className="col-span-2 space-y-1">
+                            <label className="text-[9px] font-black text-theme-dim uppercase tracking-widest">ŞARTLI KABUL</label>
+                            <input
+                              type="number"
+                              min="0"
+                              value={signFormData.conditionalQty}
+                              onChange={e => {
+                                const val = Number(e.target.value);
+                                const others = Number(signFormData.rejectedQty || 0) + Number(signFormData.reworkQty || 0) + Number(signFormData.sampleQty || 0);
+                                const newApproved = Math.max(0, prevMax - (val + others));
+                                setSignFormData({ ...signFormData, conditionalQty: val, approvedQty: newApproved });
+                              }}
+                              className="form-input h-12 p-2 text-lg font-black border-theme-dim/30 bg-theme-base/20"
+                            />
+                          </div>
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
             </div>

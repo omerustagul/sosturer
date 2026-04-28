@@ -20,12 +20,12 @@ interface ProductEditModalProps {
   machines?: any[];     // For machine assignment
 }
 
-export function ProductEditModal({ 
-  product, onClose, onSave, warehouses, routes, 
-  allProducts = [], machines = [] 
+export function ProductEditModal({
+  product, onClose, onSave, warehouses, routes,
+  allProducts = [], machines = []
 }: ProductEditModalProps) {
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState<any>({ 
+  const [formData, setFormData] = useState<any>({
     ...product,
     measurements: product.measurements || { width: 0, height: 0, depth: 0, density: 0, weight: 0 },
     defaultComponents: product.defaultComponents || [],
@@ -33,6 +33,17 @@ export function ProductEditModal({
   });
   const [activeTab, setActiveTab] = useState<'basic' | 'route' | 'measurements' | 'components' | 'machines' | 'advanced'>('basic');
   const [componentLots, setComponentLots] = useState<Record<string, any[]>>({});
+
+  // Fetch initial lots for existing components
+  useEffect(() => {
+    if (formData.defaultComponents?.length > 0) {
+      formData.defaultComponents.forEach((comp: any, idx: number) => {
+        if (comp.componentProductId && comp.warehouseId) {
+          fetchLots(idx, comp.componentProductId, comp.warehouseId);
+        }
+      });
+    }
+  }, []);
 
   // Tab Navigation items
   const tabs = [
@@ -104,10 +115,10 @@ export function ProductEditModal({
       // Clean up temp IDs before saving
       const cleanData = {
         ...formData,
-        defaultComponents: formData.defaultComponents.map(({ id, ...rest }: any) => 
+        defaultComponents: formData.defaultComponents.map(({ id, ...rest }: any) =>
           id.startsWith('temp-') ? rest : { id, ...rest }
         ),
-        defaultMachines: formData.defaultMachines.map(({ id, ...rest }: any) => 
+        defaultMachines: formData.defaultMachines.map(({ id, ...rest }: any) =>
           id.startsWith('temp-') ? rest : { id, ...rest }
         )
       };
@@ -122,8 +133,8 @@ export function ProductEditModal({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-theme-main/60 backdrop-blur-xl animate-in fade-in duration-300">
-      <div className="w-full max-w-5xl bg-theme-surface border border-theme rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-theme-main/60 backdrop-blur-xs animate-in fade-in duration-300">
+      <div className="w-full max-w-6xl bg-theme-surface border border-theme rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="p-3 border-b border-theme bg-theme-base/10 flex justify-between items-center">
           <div className="flex items-center gap-2">
@@ -166,16 +177,16 @@ export function ProductEditModal({
                   <h4 className="text-[10px] font-black text-theme-primary uppercase tracking-widest">Temel Boyutlar</h4>
                   <div className="space-y-3">
                     <div className="space-y-2">
-                       <label className="text-[10px] font-bold text-theme-muted uppercase">Genişlik (mm)</label>
-                       <input type="number" value={formData.measurements?.width || 0} className="form-input" onChange={e => setFormData({ ...formData, measurements: { ...formData.measurements, width: Number(e.target.value) } })} />
+                      <label className="text-[10px] font-bold text-theme-muted uppercase">Genişlik (mm)</label>
+                      <input type="number" value={formData.measurements?.width || 0} className="form-input" onChange={e => setFormData({ ...formData, measurements: { ...formData.measurements, width: Number(e.target.value) } })} />
                     </div>
                     <div className="space-y-2">
-                       <label className="text-[10px] font-bold text-theme-muted uppercase">Boy (mm)</label>
-                       <input type="number" value={formData.measurements?.height || 0} className="form-input" onChange={e => setFormData({ ...formData, measurements: { ...formData.measurements, height: Number(e.target.value) } })} />
+                      <label className="text-[10px] font-bold text-theme-muted uppercase">Boy (mm)</label>
+                      <input type="number" value={formData.measurements?.height || 0} className="form-input" onChange={e => setFormData({ ...formData, measurements: { ...formData.measurements, height: Number(e.target.value) } })} />
                     </div>
                     <div className="space-y-2">
-                       <label className="text-[10px] font-bold text-theme-muted uppercase">Derinlik/Kalınlık (mm)</label>
-                       <input type="number" value={formData.measurements?.depth || 0} className="form-input" onChange={e => setFormData({ ...formData, measurements: { ...formData.measurements, depth: Number(e.target.value) } })} />
+                      <label className="text-[10px] font-bold text-theme-muted uppercase">Derinlik/Kalınlık (mm)</label>
+                      <input type="number" value={formData.measurements?.depth || 0} className="form-input" onChange={e => setFormData({ ...formData, measurements: { ...formData.measurements, depth: Number(e.target.value) } })} />
                     </div>
                   </div>
                 </div>
@@ -184,12 +195,12 @@ export function ProductEditModal({
                   <h4 className="text-[10px] font-black text-theme-primary uppercase tracking-widest">Fiziksel Özellikler</h4>
                   <div className="space-y-3">
                     <div className="space-y-2">
-                       <label className="text-[10px] font-bold text-theme-muted uppercase">Yoğunluk (g/cm³)</label>
-                       <input type="number" value={formData.measurements?.density || 0} className="form-input" onChange={e => setFormData({ ...formData, measurements: { ...formData.measurements, density: Number(e.target.value) } })} />
+                      <label className="text-[10px] font-bold text-theme-muted uppercase">Yoğunluk (g/cm³)</label>
+                      <input type="number" value={formData.measurements?.density || 0} className="form-input" onChange={e => setFormData({ ...formData, measurements: { ...formData.measurements, density: Number(e.target.value) } })} />
                     </div>
                     <div className="space-y-2">
-                       <label className="text-[10px] font-bold text-theme-muted uppercase">Birim Ağırlık (g)</label>
-                       <input type="number" value={formData.measurements?.weight || 0} className="form-input" onChange={e => setFormData({ ...formData, measurements: { ...formData.measurements, weight: Number(e.target.value) } })} />
+                      <label className="text-[10px] font-bold text-theme-muted uppercase">Birim Ağırlık (g)</label>
+                      <input type="number" value={formData.measurements?.weight || 0} className="form-input" onChange={e => setFormData({ ...formData, measurements: { ...formData.measurements, weight: Number(e.target.value) } })} />
                     </div>
                   </div>
                 </div>
@@ -210,21 +221,22 @@ export function ProductEditModal({
                   </button>
                 </div>
 
-                <div className="border border-theme rounded-xl overflow-hidden">
-                  <table className="w-full text-left">
+                <div className="border border-theme rounded-xl overflow-x-auto">
+                  <table className="w-full text-left min-w-[750px] max-w-[1200px]">
                     <thead className="bg-theme-base/10 border-b border-theme">
-                      <tr className="text-[9px] font-black text-theme-muted uppercase tracking-widest">
-                        <th className="px-4 py-3">Bileşen Ürün</th>
-                        <th className="px-4 py-3">Depo / Lot</th>
-                        <th className="px-4 py-3">Tip</th>
-                        <th className="px-4 py-3 w-32">Miktar / Birim</th>
-                        <th className="px-4 py-3 w-12 text-center"></th>
+                      <tr className="text-[9px] font-black text-theme-muted">
+                        <th className="px-4 py-3 w-[15%]">Bileşen Ürün</th>
+                        <th className="px-4 py-3 w-[15%]">Depo</th>
+                        <th className="px-4 py-3 w-[15%]">Lot No</th>
+                        <th className="px-4 py-3 w-[10%]">Tip</th>
+                        <th className="px-4 py-3 w-[20%]">Miktar / Birim</th>
+                        <th className="px-4 py-3 text-center w-[15%]">Sil</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-theme">
                       {formData.defaultComponents.map((comp: any, idx: number) => (
                         <tr key={comp.id} className="text-xs group hover:bg-theme-base/5">
-                          <td className="px-4 py-3">
+                          <td className="px-4 py-3 w-[15%]">
                             <CustomSelect
                               options={allProducts.map(p => ({ id: p.id, label: p.productName, subLabel: p.productCode }))}
                               value={comp.componentProductId}
@@ -237,32 +249,34 @@ export function ProductEditModal({
                               placeholder="Ürün Seçin..."
                             />
                           </td>
-                          <td className="px-4 py-3 space-y-2">
+                          <td className="px-4 py-3 w-[15%]">
                             <CustomSelect
                               options={warehouses.map(w => ({ id: w.id, label: w.name }))}
                               value={comp.warehouseId}
                               onChange={(val) => {
                                 const newComponents = [...formData.defaultComponents];
                                 newComponents[idx].warehouseId = val;
+                                newComponents[idx].lotNumber = ''; // Depo değişince lot sıfırlanmalı
                                 setFormData({ ...formData, defaultComponents: newComponents });
                                 if (comp.componentProductId) fetchLots(idx, comp.componentProductId, val);
                               }}
                               placeholder="Depo..."
                             />
-                            {comp.warehouseId && (
-                              <CustomSelect
-                                options={(componentLots[idx] || []).map(l => ({ id: l.lotNumber, label: l.lotNumber, subLabel: `Stok: ${l.quantity}` }))}
-                                value={comp.lotNumber}
-                                onChange={(val) => {
-                                  const newComponents = [...formData.defaultComponents];
-                                  newComponents[idx].lotNumber = val;
-                                  setFormData({ ...formData, defaultComponents: newComponents });
-                                }}
-                                placeholder="Lot Seçin..."
-                              />
-                            )}
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-4 py-3 w-[15%]">
+                            <CustomSelect
+                              disabled={!comp.warehouseId}
+                              options={(componentLots[idx] || []).map(l => ({ id: l.lotNumber, label: l.lotNumber, subLabel: `Stok: ${l.quantity}` }))}
+                              value={comp.lotNumber}
+                              onChange={(val) => {
+                                const newComponents = [...formData.defaultComponents];
+                                newComponents[idx].lotNumber = val;
+                                setFormData({ ...formData, defaultComponents: newComponents });
+                              }}
+                              placeholder={comp.warehouseId ? "Lot Seçin..." : "Depo Seçilmeli"}
+                            />
+                          </td>
+                          <td className="px-4 py-3 w-[10%]">
                             <CustomSelect
                               options={[
                                 { id: 'UNIT', label: 'Birim Miktar' },
@@ -277,13 +291,13 @@ export function ProductEditModal({
                               }}
                             />
                           </td>
-                          <td className="px-4 py-3 space-y-2">
+                          <td className="px-4 py-3 w-[20%] space-y-2">
                             <div className="flex gap-2">
-                              <input 
-                                type="number" 
+                              <input
+                                type="number"
                                 disabled={comp.consumptionType === 'UNIT_CONSUMPTION'}
-                                value={comp.quantity} 
-                                className="form-input text-center h-9 disabled:bg-theme-base/10" 
+                                value={comp.quantity}
+                                className="form-input text-center h-10 w-20 disabled:bg-theme-base/10"
                                 onChange={e => {
                                   const newComponents = [...formData.defaultComponents];
                                   newComponents[idx].quantity = Number(e.target.value);
@@ -304,7 +318,7 @@ export function ProductEditModal({
                               <p className="text-[9px] text-theme-primary font-bold uppercase italic">* Ölçümlere göre otomatik hesaplanır</p>
                             )}
                           </td>
-                          <td className="px-4 py-3 text-center">
+                          <td className="px-4 py-3 w-[5%] text-center">
                             <button type="button" onClick={() => handleRemoveComponent(comp.id)} className="p-2 text-theme-danger hover:bg-theme-danger/10 rounded-lg transition-all">
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -313,7 +327,7 @@ export function ProductEditModal({
                       ))}
                       {formData.defaultComponents.length === 0 && (
                         <tr>
-                          <td colSpan={5} className="py-12 text-center text-theme-muted text-xs font-bold uppercase tracking-widest opacity-30">Bileşen tanımlanmamış</td>
+                          <td colSpan={6} className="py-12 text-center text-theme-muted text-xs font-bold uppercase tracking-widest opacity-30">Bileşen tanımlanmamış</td>
                         </tr>
                       )}
                     </tbody>
@@ -356,10 +370,10 @@ export function ProductEditModal({
                             />
                           </td>
                           <td className="px-4 py-3">
-                            <input 
-                              type="number" 
-                              value={m.unitTimeSeconds} 
-                              className="form-input text-center h-9 font-mono" 
+                            <input
+                              type="number"
+                              value={m.unitTimeSeconds}
+                              className="form-input text-center h-9 font-mono"
                               onChange={e => {
                                 const newMachines = [...formData.defaultMachines];
                                 newMachines[idx].unitTimeSeconds = Number(e.target.value);

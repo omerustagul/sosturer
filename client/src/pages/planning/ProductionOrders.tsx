@@ -166,6 +166,39 @@ export function ProductionOrders() {
     fetchData();
   }, []);
 
+  const filteredOrders = orders.filter(o => {
+    if (showStarredOnly && !o.isStarred) return false;
+
+    const matchesSearch = o.lotNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      o.product.productCode.toLowerCase().includes(searchTerm.toLowerCase());
+    if (!matchesSearch) return false;
+
+    if (filters.status !== 'all' && o.status !== filters.status) return false;
+    if (filters.productId !== 'all' && o.productId !== filters.productId) return false;
+    if (filters.categoryId !== 'all' && o.product?.category !== filters.categoryId) return false;
+    if (filters.productGroupId !== 'all' && o.product?.productGroup !== filters.productGroupId) return false;
+    if (filters.type !== 'all' && o.type !== filters.type) return false;
+    if (filters.targetWarehouseId !== 'all' && o.targetWarehouseId !== filters.targetWarehouseId) return false;
+    if (filters.machineId !== 'all') {
+      const hasMachine = o.machines?.some((m: any) => m.machineId === filters.machineId);
+      if (!hasMachine) return false;
+    }
+
+    if (filters.dateStart) {
+      const orderDate = new Date(o.createdAt).getTime();
+      const startDate = new Date(filters.dateStart).getTime();
+      if (orderDate < startDate) return false;
+    }
+
+    if (filters.dateEnd) {
+      const orderDate = new Date(o.createdAt).getTime();
+      const endDate = new Date(filters.dateEnd).getTime() + 86400000;
+      if (orderDate >= endDate) return false;
+    }
+
+    return true;
+  });
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -443,38 +476,7 @@ export function ProductionOrders() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-theme">
-                {orders.filter(o => {
-                  if (showStarredOnly && !o.isStarred) return false;
-
-                  const matchesSearch = o.lotNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    o.product.productCode.toLowerCase().includes(searchTerm.toLowerCase());
-                  if (!matchesSearch) return false;
-
-                  if (filters.status !== 'all' && o.status !== filters.status) return false;
-                  if (filters.productId !== 'all' && o.productId !== filters.productId) return false;
-                  if (filters.categoryId !== 'all' && o.product?.category !== filters.categoryId) return false;
-                  if (filters.productGroupId !== 'all' && o.product?.productGroup !== filters.productGroupId) return false;
-                  if (filters.type !== 'all' && o.type !== filters.type) return false;
-                  if (filters.targetWarehouseId !== 'all' && o.targetWarehouseId !== filters.targetWarehouseId) return false;
-                  if (filters.machineId !== 'all') {
-                    const hasMachine = o.machines?.some((m: any) => m.machineId === filters.machineId);
-                    if (!hasMachine) return false;
-                  }
-
-                  if (filters.dateStart) {
-                    const orderDate = new Date(o.createdAt).getTime();
-                    const startDate = new Date(filters.dateStart).getTime();
-                    if (orderDate < startDate) return false;
-                  }
-
-                  if (filters.dateEnd) {
-                    const orderDate = new Date(o.createdAt).getTime();
-                    const endDate = new Date(filters.dateEnd).getTime() + 86400000;
-                    if (orderDate >= endDate) return false;
-                  }
-
-                  return true;
-                }).map((order) => {
+                {filteredOrders.map((order) => {
                   const currentStep = order.steps.find((s: any) => s.status !== 'completed') || order.steps[order.steps.length - 1];
                   const progress = (order.steps.filter((s: any) => s.status === 'completed').length / order.steps.length) * 100;
                   const acceptedQuantity = currentStep?.approvedQty || 0;
@@ -589,11 +591,14 @@ export function ProductionOrders() {
                     </tr>
                   );
                 })}
-                {orders.length === 0 && (
+                {filteredOrders.length === 0 && (
                   <tr>
-                    <td colSpan={11} className="px-6 py-32 text-center opacity-20">
-                      <Package className="w-10 h-10 mx-auto mb-4" />
-                      <p className="font-black text-md">Henüz bir üretim emri verilmemiş.</p>
+                    <td colSpan={11} className="px-6 py-40 text-center opacity-20">
+                      <div className="flex flex-col items-center justify-center">
+                        <Package className="w-12 h-12 mb-4 text-theme-muted" />
+                        <p className="font-black text-lg tracking-tight">Henüz bir üretim emri verilmemiş.</p>
+                        <p className="text-xs font-bold mt-2">Arama kriterlerinize uygun sonuç bulunamadı veya liste boş.</p>
+                      </div>
                     </td>
                   </tr>
                 )}

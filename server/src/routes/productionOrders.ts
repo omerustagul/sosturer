@@ -227,6 +227,7 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res) => {
           productId,
           lotNumber,
           quantity: Number(quantity),
+          status: req.body.status || undefined,
           startDate: startDate ? new Date(startDate) : null,
           endDate: endDate ? new Date(endDate) : null,
           type: type || 'Asıl',
@@ -266,18 +267,75 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res) => {
         });
       }
 
-      // 4. Update Steps (mainly approvedQty)
+      // 4. Update Steps (Operational details)
       if (req.body.steps && Array.isArray(req.body.steps)) {
         for (const step of req.body.steps) {
           if (step.id) {
             await tx.productionOrderStep.update({
               where: { id: step.id },
               data: {
-                approvedQty: Number(step.approvedQty) || 0,
-                // optionally update status if passed
+                status: step.status || 'pending',
+                operatorId: (step.operatorId && step.operatorId !== '') ? step.operatorId : null,
+                machineId: (step.machineId && step.machineId !== '') ? step.machineId : null,
+                shiftId: (step.shiftId && step.shiftId !== '') ? step.shiftId : null,
+                workType: step.workType || 'İşlem',
+                approvedQty: Number(step.approvedQty || 0),
+                rejectedQty: Number(step.rejectedQty || 0),
+                reworkQty: Number(step.reworkQty || 0),
+                sampleQty: Number(step.sampleQty || 0),
+                conditionalQty: Number(step.conditionalQty || 0),
+                startTime: step.startTime ? new Date(step.startTime) : null,
+                endTime: step.endTime ? new Date(step.endTime) : null,
+              }
+            });
+          } else {
+            // Fallback for steps without ID or if ID-based update failed (as updateMany)
+            await tx.productionOrderStep.updateMany({
+              where: { 
+                productionOrderId: id,
+                sequence: step.sequence
+              },
+              data: {
+                status: step.status || 'pending',
+                operatorId: (step.operatorId && step.operatorId !== '') ? step.operatorId : null,
+                machineId: (step.machineId && step.machineId !== '') ? step.machineId : null,
+                shiftId: (step.shiftId && step.shiftId !== '') ? step.shiftId : null,
+                workType: step.workType || 'İşlem',
+                approvedQty: Number(step.approvedQty || 0),
+                rejectedQty: Number(step.rejectedQty || 0),
+                reworkQty: Number(step.reworkQty || 0),
+                sampleQty: Number(step.sampleQty || 0),
+                conditionalQty: Number(step.conditionalQty || 0),
+                startTime: step.startTime ? new Date(step.startTime) : null,
+                endTime: step.endTime ? new Date(step.endTime) : null,
               }
             });
           }
+        }
+      }
+
+      // 5. Update Events (Sync events)
+      if (req.body.events && Array.isArray(req.body.events)) {
+        // Remove existing events and re-create to ensure synchronization with buffered state
+        await tx.productionOrderEvent.deleteMany({ where: { productionOrderId: id } });
+        
+        // Filter out any invalid events and prepare for creation
+        const validEvents = req.body.events.filter((e: any) => e.type && (e.quantity !== undefined));
+        
+        if (validEvents.length > 0) {
+          await tx.productionOrderEvent.createMany({
+            data: validEvents.map((e: any) => ({
+              productionOrderId: id,
+              stepId: e.stepId || null,
+              type: e.type,
+              quantity: e.quantity ? Number(e.quantity) : 0,
+              operatorId: e.operatorId || null,
+              reasonId: e.reasonId || null,
+              warehouseId: e.warehouseId || null,
+              description: e.description || '',
+              createdAt: e.createdAt ? new Date(e.createdAt) : new Date()
+            }))
+          });
         }
       }
     });

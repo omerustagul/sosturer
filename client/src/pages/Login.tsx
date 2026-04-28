@@ -13,6 +13,8 @@ export function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showRecovery, setShowRecovery] = useState(false);
+  const [twoFactorToken, setTwoFactorToken] = useState('');
+  const [twoFactorCode, setTwoFactorCode] = useState('');
 
   const navigate = useNavigate();
   const login = useAuthStore((state) => state.login);
@@ -43,7 +45,16 @@ export function Login() {
     setError('');
 
     try {
-      const res = await api.post('/auth/login', { email, password });
+      const res = twoFactorToken
+        ? await api.post('/auth/login/verify-2fa', { twoFactorToken, code: twoFactorCode })
+        : await api.post('/auth/login', { email, password });
+
+      if (res.twoFactorRequired) {
+        setTwoFactorToken(res.twoFactorToken);
+        setTwoFactorCode('');
+        setError('');
+        return;
+      }
 
       if (rememberMe) {
         localStorage.setItem('rememberedEmail', email);
@@ -53,7 +64,7 @@ export function Login() {
         localStorage.removeItem('rememberedPass');
       }
 
-      login(res.token, res.user);
+      login(res.token, res.user, res.company);
       navigate('/');
     } catch (err: any) {
       setError(err.message || 'Giriş yapılamadı. Lütfen bilgilerinizi kontrol edin.');
@@ -94,7 +105,7 @@ export function Login() {
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
-                className="mb-6 p-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm text-center flex items-center justify-center gap-2"
+                className="mb-6 p-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm text-start flex items-center justify-center gap-2"
               >
                 <ShieldCheck className="w-4 h-4" />
                 {error}
@@ -103,6 +114,11 @@ export function Login() {
           </AnimatePresence>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {twoFactorToken && (
+              <div className="p-3 rounded-xl bg-theme-primary/10 border border-theme-primary/20 text-theme-primary text-xs font-bold">
+                İki faktörlü doğrulama aktif. E-posta adresinize gelen 6 haneli kodu girin.
+              </div>
+            )}
             <div className="space-y-2">
               <label className="text-sm font-medium text-theme-muted flex items-center gap-2 px-1">
                 <Mail className="w-4 h-4" /> E-posta Adresi
@@ -111,6 +127,7 @@ export function Login() {
                 type="email"
                 required
                 value={email}
+                disabled={!!twoFactorToken}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full h-12 bg-theme-form/40 border-2 border-theme hover:border-theme-primary/30 focus:border-theme-primary/50 focus:ring-4 focus:ring-theme-primary/10 rounded-xl py-2 px-4 text-theme-main placeholder-theme-dim transition-all duration-300 outline-none"
                 placeholder="is@sirketiniz.com"
@@ -127,11 +144,30 @@ export function Login() {
                 type="password"
                 required
                 value={password}
+                disabled={!!twoFactorToken}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full h-12 bg-theme-form/40 border-2 border-theme hover:border-theme-primary/30 focus:border-theme-primary/50 focus:ring-4 focus:ring-theme-primary/10 rounded-xl py-2 px-4 text-theme-main placeholder-theme-dim transition-all duration-300 outline-none"
                 placeholder="••••••••"
               />
             </div>
+
+            {twoFactorToken && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-theme-muted flex items-center gap-2 px-1">
+                  <ShieldCheck className="w-4 h-4" /> Doğrulama Kodu
+                </label>
+                <input
+                  type="text"
+                  required
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={twoFactorCode}
+                  onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  className="w-full h-12 bg-theme-form/40 border-2 border-theme hover:border-theme-primary/30 focus:border-theme-primary/50 focus:ring-4 focus:ring-theme-primary/10 rounded-xl py-2 px-4 text-xl text-theme-main placeholder-theme-dim transition-all duration-300 outline-none tracking-[0.4em] font-black text-center"
+                  placeholder="000000"
+                />
+              </div>
+            )}
 
             <div className="flex items-center justify-between px-1">
               <label className="relative flex items-center gap-3 cursor-pointer group">
@@ -163,30 +199,30 @@ export function Login() {
               {loading ? (
                 <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
-                <>Giriş Yap</>
+                <>{twoFactorToken ? 'Doğrula ve Giriş Yap' : 'Giriş Yap'}</>
               )}
             </button>
-      </form>
+          </form>
 
-      <div className="mt-10 pt-4 border-t border-theme text-center">
-        <p className="text-theme-dim text-sm">
-          Sisteme henüz üye değil misiniz?
-        </p>
-        <button
-          onClick={() => navigate('/register')}
-          className="text-theme-primary font-bold rotate-0 hover:rotate-2 hover:underline hover:scale-105 tracking-tight transition-all duration-300"
-        >
-          Hemen Kayıt Olun
-        </button>
-      </div>
-    </div>
+          <div className="mt-10 pt-4 border-t border-theme text-center">
+            <p className="text-theme-dim text-sm">
+              Sisteme henüz üye değil misiniz?
+            </p>
+            <button
+              onClick={() => navigate('/register')}
+              className="text-theme-primary font-bold rotate-0 hover:rotate-2 hover:underline hover:scale-105 tracking-tight transition-all duration-300"
+            >
+              Hemen Kayıt Olun
+            </button>
+          </div>
+        </div>
       </motion.div >
 
-    <AnimatePresence>
-      {showRecovery && (
-        <PasswordRecovery onClose={() => setShowRecovery(false)} />
-      )}
-    </AnimatePresence>
+      <AnimatePresence>
+        {showRecovery && (
+          <PasswordRecovery onClose={() => setShowRecovery(false)} />
+        )}
+      </AnimatePresence>
     </div >
   );
 }

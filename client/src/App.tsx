@@ -40,6 +40,8 @@ const ProductionOrderForm = lazy(() => import('./pages/planning/ProductionOrderF
 
 const InventoryDashboard = lazy(() => import('./pages/inventory/InventoryDashboard').then((m) => ({ default: m.InventoryDashboard })));
 const StockMovements = lazy(() => import('./pages/inventory/StockMovements').then((m) => ({ default: m.StockMovements })));
+const StockVouchers = lazy(() => import('./pages/inventory/StockVouchers').then((m) => ({ default: m.StockVouchers })));
+const StockVoucherForm = lazy(() => import('./pages/inventory/StockVoucherForm').then((m) => ({ default: m.StockVoucherForm })));
 const OrdersList = lazy(() => import('./pages/sales/OrdersList').then((m) => ({ default: m.OrdersList })));
 const CustomersList = lazy(() => import('./pages/sales/CustomersList').then((m) => ({ default: m.CustomersList })));
 
@@ -51,9 +53,10 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { useInactivityTimeout } from './hooks/useInactivityTimeout';
+import { MotionConfig } from 'framer-motion';
 
 function App() {
-  const { fetchSettings } = useSettingsStore();
+  const { fetchSettings, settings } = useSettingsStore();
   const { isAuthenticated, refreshUser } = useAuthStore();
   
   // Security: Auto-logout after 30 mins of inactivity
@@ -67,56 +70,61 @@ function App() {
 
   return (
     <ErrorBoundary>
-      <BrowserRouter>
-        <Suspense fallback={<Loading size="lg" />}>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/" element={
-              <ProtectedRoute>
-                <Layout />
-              </ProtectedRoute>
-            }>
-              <Route index element={<Dashboard />} />
-              <Route path="records" element={<RecordsList />} />
-              <Route path="records/new" element={<RecordForm />} />
-              <Route path="records/bulk" element={<BulkRecordEntry />} />
-              <Route path="records/edit/:id" element={<RecordForm />} />
-              <Route path="reports" element={<ReportsList />} />
-              <Route path="reports/machines" element={<ReportsMachines />} />
-              <Route path="reports/products" element={<ReportsProducts />} />
-              <Route path="reports/operators" element={<ReportsOperators />} />
-              <Route path="reports/general" element={<ReportsGeneral />} />
-              <Route path="analytics" element={<Analytics />} />
-              <Route path="definitions" element={<Definitions />} />
-              <Route path="definitions/:tab" element={<Definitions />} />
-              <Route path="settings" element={<AppSettings />} />
-              <Route path="profile" element={<Profile />} />
-              <Route path="users" element={<CompanyUsers />} />
-              <Route path="superadmin" element={<SuperAdmin />} />
-              <Route path="company" element={<CompanyManagement />} />
-              <Route path="overtime/create" element={<OvertimeCreate />} />
-              <Route path="overtime/edit/:id" element={<OvertimeCreate />} />
-              <Route path="overtime/list" element={<OvertimeList />} />
-              <Route path="overtime/reports" element={<OvertimeReports />} />
-              
-              <Route path="inventory/dashboard" element={<InventoryDashboard />} />
-              <Route path="inventory/movements" element={<StockMovements />} />
-              <Route path="sales/orders" element={<OrdersList />} />
-              <Route path="sales/customers" element={<CustomersList />} />
+      <MotionConfig reducedMotion={settings.animationsEnabled ? 'never' : 'always'}>
+        <BrowserRouter>
+          <Suspense fallback={<Loading size="lg" />}>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/" element={
+                <ProtectedRoute>
+                  <Layout />
+                </ProtectedRoute>
+              }>
+                <Route index element={<Dashboard />} />
+                <Route path="records" element={<RecordsList />} />
+                <Route path="records/new" element={<RecordForm />} />
+                <Route path="records/bulk" element={<BulkRecordEntry />} />
+                <Route path="records/edit/:id" element={<RecordForm />} />
+                <Route path="reports" element={<ReportsList />} />
+                <Route path="reports/machines" element={<ReportsMachines />} />
+                <Route path="reports/products" element={<ReportsProducts />} />
+                <Route path="reports/operators" element={<ReportsOperators />} />
+                <Route path="reports/general" element={<ReportsGeneral />} />
+                <Route path="analytics" element={<Analytics />} />
+                <Route path="definitions" element={<Definitions />} />
+                <Route path="definitions/:tab" element={<Definitions />} />
+                <Route path="settings" element={<AppSettings />} />
+                <Route path="profile" element={<Profile />} />
+                <Route path="users" element={<CompanyUsers />} />
+                <Route path="superadmin" element={<SuperAdmin />} />
+                <Route path="company" element={<CompanyManagement />} />
+                <Route path="overtime/create" element={<OvertimeCreate />} />
+                <Route path="overtime/edit/:id" element={<OvertimeCreate />} />
+                <Route path="overtime/list" element={<OvertimeList />} />
+                <Route path="overtime/reports" element={<OvertimeReports />} />
 
-              <Route path="planning/production" element={<ProductionPlanning />} />
-              <Route path="planning/work-plans" element={<WorkPlanList />} />
-              <Route path="planning/work-plans/new" element={<WorkPlanForm />} />
-              <Route path="planning/work-plans/edit/:id" element={<WorkPlanForm />} />
-              <Route path="production-orders" element={<ProductionOrders />} />
-              <Route path="production-orders/new" element={<ProductionOrderForm />} />
-              <Route path="production-orders/:lotNumber" element={<ProductionOrderForm />} />
-              <Route path="planning/definitions" element={<ProductionDefinitions />} />
-            </Route>
-          </Routes>
-        </Suspense>
-      </BrowserRouter>
+                <Route path="inventory/dashboard" element={<InventoryDashboard />} />
+                <Route path="inventory/movements" element={<StockMovements />} />
+                <Route path="inventory/stock-vouchers" element={<StockVouchers />} />
+                <Route path="inventory/stock-vouchers/new" element={<StockVoucherForm />} />
+                <Route path="inventory/stock-vouchers/:id" element={<StockVoucherForm />} />
+                <Route path="sales/orders" element={<OrdersList />} />
+                <Route path="sales/customers" element={<CustomersList />} />
+
+                <Route path="planning/production" element={<ProductionPlanning />} />
+                <Route path="planning/work-plans" element={<WorkPlanList />} />
+                <Route path="planning/work-plans/new" element={<WorkPlanForm />} />
+                <Route path="planning/work-plans/edit/:id" element={<WorkPlanForm />} />
+                <Route path="production-orders" element={<ProductionOrders />} />
+                <Route path="production-orders/new" element={<ProductionOrderForm />} />
+                <Route path="production-orders/:lotNumber" element={<ProductionOrderForm />} />
+                <Route path="planning/definitions" element={<ProductionDefinitions />} />
+              </Route>
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
+      </MotionConfig>
     </ErrorBoundary>
   );
 }

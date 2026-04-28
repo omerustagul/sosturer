@@ -71,7 +71,7 @@ export function ConfirmModal({
     }
   };
 
-  const style = colorStyles[type];
+  const style = colorStyles[type as keyof typeof colorStyles] || colorStyles.info;
 
   const isMatchValid = !requireMatch || inputValue === requireMatch;
 

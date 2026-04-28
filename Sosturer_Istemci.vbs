@@ -1,15 +1,11 @@
 Set sh  = CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
 
-' --- AYARLAR ---
-' Buraya sunucu bilgisayarın IP adresini yazın (Örn: 192.168.1.10)
+' LAN client launcher. Update serverIp if this computer gets a new static IP.
 serverIp = "10.3.5.55"
-port     = "3001"
-' ---------------
+port     = "3005"
+appUrl   = "http://" & serverIp & ":" & port
 
-appUrl = "http://" & serverIp & ":" & port
-
-' Chrome'u uygula modunda açmak için konumları kontrol et
 Dim chromePaths(4)
 chromePaths(0) = "C:\Program Files\Google\Chrome\Application\chrome.exe"
 chromePaths(1) = "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"
@@ -27,7 +23,6 @@ For j = 0 To 4
     End If
 Next
 
-' Chrome bulunamazsa varsayılan tarayıcıda aç
 If Not chromeLaunched Then
     sh.Run appUrl
 End If
