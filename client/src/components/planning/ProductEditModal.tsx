@@ -136,7 +136,7 @@ export function ProductEditModal({
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-theme-main/60 backdrop-blur-xs animate-in fade-in duration-300">
       <div className="w-full max-w-6xl bg-theme-surface border border-theme rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="p-3 border-b border-theme bg-theme-base/10 flex justify-between items-center">
+        <div className="p-3 border-b border-theme bg-theme-base/10 flex justify-between items-center shrink-0">
           <div className="flex items-center gap-2">
             <div className="w-10 h-10 rounded-xl bg-theme-primary/10 flex items-center justify-center">
               <Package className="w-5 h-5 text-theme-primary" />
@@ -152,7 +152,7 @@ export function ProductEditModal({
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex border-b border-theme bg-theme-base/5 px-6 gap-6 overflow-x-auto no-scrollbar">
+        <div className="flex border-b border-theme bg-theme-base/5 px-6 gap-6 overflow-x-auto no-scrollbar shrink-0">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -181,8 +181,12 @@ export function ProductEditModal({
                       <input type="number" value={formData.measurements?.width || 0} className="form-input" onChange={e => setFormData({ ...formData, measurements: { ...formData.measurements, width: Number(e.target.value) } })} />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-theme-muted uppercase">Boy (mm)</label>
+                      <label className="text-[10px] font-bold text-theme-muted uppercase">Boy / Uzunluk (mm)</label>
                       <input type="number" value={formData.measurements?.height || 0} className="form-input" onChange={e => setFormData({ ...formData, measurements: { ...formData.measurements, height: Number(e.target.value) } })} />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-theme-muted uppercase">Çap (mm)</label>
+                      <input type="number" value={formData.measurements?.diameter || 0} className="form-input" onChange={e => setFormData({ ...formData, measurements: { ...formData.measurements, diameter: Number(e.target.value) } })} />
                     </div>
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-theme-muted uppercase">Derinlik/Kalınlık (mm)</label>
@@ -339,7 +343,7 @@ export function ProductEditModal({
             {activeTab === 'machines' && (
               <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-300">
                 <div className="flex justify-between items-center">
-                  <h4 className="text-[10px] font-black text-theme-muted uppercase tracking-widest">Atanmış Makineler</h4>
+                  <h4 className="text-[10px] font-black text-theme-muted">Atanmış Makineler</h4>
                   <button type="button" onClick={handleAddMachine} className="btn-secondary py-1 px-3 text-[9px] font-black flex items-center gap-2">
                     <Plus className="w-3 h-3" /> MAKİNE EKLE
                   </button>
@@ -348,7 +352,7 @@ export function ProductEditModal({
                 <div className="border border-theme rounded-xl overflow-hidden">
                   <table className="w-full text-left">
                     <thead className="bg-theme-base/10 border-b border-theme">
-                      <tr className="text-[9px] font-black text-theme-muted uppercase tracking-widest">
+                      <tr className="text-[9px] font-black text-theme-muted">
                         <th className="px-4 py-3">Makine / Tezgah</th>
                         <th className="px-4 py-3 w-48 text-center">Birim Süre (Saniye)</th>
                         <th className="px-4 py-3 w-12 text-center"></th>
@@ -436,11 +440,11 @@ export function ProductEditModal({
                   </div>
 
                   <div className="pt-4">
-                    <label className="text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 block">STANDART REÇETE</label>
+                    <label className="text-[10px] font-black text-theme-muted mb-2 block">STANDART REÇETE</label>
                     <CustomSelect
-                      options={routes.map(r => ({
+                      options={[...routes].sort((a, b) => (a.code || '').localeCompare(b.code || '')).map(r => ({
                         id: r.id,
-                        label: r.name,
+                        label: `${r.code} — ${r.name}`,
                         subLabel: `${r.steps?.length || 0} Operasyon`
                       }))}
                       value={formData.routeId || ''}
@@ -452,16 +456,16 @@ export function ProductEditModal({
 
                 {formData.routeId && (
                   <div className="space-y-4">
-                    <p className="text-[10px] font-black text-theme-muted uppercase tracking-widest flex items-center gap-2">
+                    <p className="text-[10px] font-black text-theme-muted flex items-center gap-2">
                       <Workflow className="w-4 h-4" /> REÇETE ÖNİZLEME
                     </p>
                     <div className="border border-theme rounded-2xl overflow-hidden">
                       <table className="w-full text-left">
                         <thead className="bg-theme-base/10 border-b border-theme">
-                          <tr className="text-[9px] font-black text-theme-muted uppercase tracking-widest">
-                            <th className="px-4 py-3">SIRA</th>
-                            <th className="px-4 py-3">OPERASYON</th>
-                            <th className="px-4 py-3">BİRİM</th>
+                          <tr className="text-[9px] font-black text-theme-muted">
+                            <th className="px-4 py-3">Sıra</th>
+                            <th className="px-4 py-3">Operasyon</th>
+                            <th className="px-4 py-3">Birim</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-theme">
@@ -529,7 +533,7 @@ export function ProductEditModal({
         </div>
 
         {/* Footer */}
-        <div className="p-3 border-t border-theme bg-theme-base/20 flex justify-end gap-3">
+        <div className="p-3 border-t border-theme bg-theme-base/20 flex justify-end gap-3 shrink-0">
           <button onClick={onClose} className="px-8 py-3 text-xs font-black text-theme-dim hover:text-theme-main transition-all uppercase tracking-widest">İPTAL</button>
           <button
             type="submit"

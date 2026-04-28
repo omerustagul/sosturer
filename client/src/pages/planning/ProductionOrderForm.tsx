@@ -59,6 +59,8 @@ export function ProductionOrderForm() {
   const [assignedMachines, setAssignedMachines] = useState<any[]>([]);
   const [operators, setOperators] = useState<any[]>([]);
   const [shifts, setShifts] = useState<any[]>([]);
+  const [errors, setErrors] = useState<Record<string, boolean>>({});
+  const [showValidation, setShowValidation] = useState(false);
 
   // Sign Modal State
   const [showSignModal, setShowSignModal] = useState(false);
@@ -466,20 +468,61 @@ export function ProductionOrderForm() {
         })));
       }
 
-      // Auto-populate machines from defaults
-      if (product.defaultMachines?.length > 0) {
-        setAssignedMachines(product.defaultMachines.map((m: any) => ({
-          machineId: m.machineId,
-          unitTimeSeconds: m.unitTimeSeconds
-        })));
-      }
+      // Initialize machine as empty (User must select manually)
+      setAssignedMachines([{ machineId: '', unitTimeSeconds: 0 }]);
     }
   };
 
   const handleSave = async () => {
-    if (!formData.productId || !formData.quantity) {
-      alert('Lütfen ürün ve adet bilgilerini doldurun.');
+    setShowValidation(true);
+    setErrors({});
+    const newErrors: Record<string, boolean> = {};
+
+    if (!formData.productId) newErrors.productId = true;
+    if (!formData.quantity || Number(formData.quantity) <= 0) newErrors.quantity = true;
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      showAlert('Lütfen ürün ve adet bilgilerini doldurun.', 'EKSİK BİLGİ', 'warning');
       return;
+    }
+
+    if (assignedMachines.length === 0 || !assignedMachines[0].machineId) {
+      setErrors({ machineId: true });
+      showAlert('Lütfen üretim yapılacak bir makine seçin!', 'EKSİK MAKİNE', 'danger');
+      setActiveTab('machines');
+      return;
+    }
+
+    // Component Stock Validation
+    for (let i = 0; i < components.length; i++) {
+      const c = components[i];
+      if (!c.componentProductId) continue;
+
+      const cProduct = products.find(p => p.id === c.componentProductId);
+      const cName = cProduct?.productName || c.componentProduct?.name || 'Bileşen';
+
+      if (!c.lotNumber) {
+        setErrors({ [`component_lot_${i}`]: true });
+        showAlert(`"${cName}" için lot seçilmemiş!`, 'EKSİK LOT', 'warning');
+        setActiveTab('components');
+        return;
+      }
+
+      const lot = (rowLots[i] || []).find((l: any) => l.id === c.lotNumber);
+      const available = lot?.availableQty || 0;
+      const required = Number(c.quantity || 0);
+
+      if (required > available) {
+        setErrors({ [`component_qty_${i}`]: true });
+        showAlert(
+          `"${cName}" için stok yetersiz! \n\nSeçilen Lot: ${c.lotNumber}\nİhtiyaç: ${required.toFixed(3)}\nMevcut: ${available.toFixed(3)}`,
+          'STOK YETERSİZ',
+          'danger'
+        );
+        setActiveTab('components');
+        return;
+      }
     }
     setSaving(true);
     try {
@@ -516,29 +559,39 @@ export function ProductionOrderForm() {
   useEffect(() => {
     if (!formData.quantity || isEditing || !formData.productId) return;
 
-    const product = products.find(p => p.id === formData.productId);
-    if (!product) return;
+    const mainProduct = products.find(p => p.id === formData.productId);
+    if (!mainProduct) return;
 
     setComponents(prev => prev.map(c => {
       // UNIT: default_qty * order_qty
       if (c.consumptionType === 'UNIT') {
-        const def = product.defaultComponents?.find((dc: any) => dc.componentProductId === c.componentProductId);
+        const def = mainProduct.defaultComponents?.find((dc: any) => dc.componentProductId === c.componentProductId);
         if (def) return { ...c, quantity: Number(def.quantity) * Number(formData.quantity) };
       }
 
-      // UNIT_CONSUMPTION: (measurements) * order_qty
+      // UNIT_CONSUMPTION: Professional formula (PI * r^2 * (L+f) * rho)
       if (c.consumptionType === 'UNIT_CONSUMPTION') {
-        const { width = 0, height = 0, depth = 0, density = 0 } = product.measurements || {};
-        // Placeholder formula: Volume (cm3) * density (g/cm3) = grams. 
-        // 1cm3 = 1000mm3
-        const volumeCm3 = (width * height * depth) / 1000;
-        const weightGrams = volumeCm3 * density;
-        const calculatedQty = weightGrams > 0 ? weightGrams : 1;
-        return { ...c, quantity: calculatedQty * Number(formData.quantity) };
-      }
+        const compProduct = products.find(p => p.id === c.componentProductId);
+        if (compProduct) {
+          const L = Number(mainProduct.measurements?.height || 0); // mm
+          const D = Number(compProduct.measurements?.diameter || 0); // mm
+          const rho = Number(compProduct.measurements?.density || 0); // g/cm3
+          const f = 0.07; // Default cut/waste margin in mm (from user's formula)
 
+          if (L > 0 && D > 0 && rho > 0) {
+            // Formula: PI * (D/20)^2 * ((L+f)/10) * rho
+            const weightPerUnit = Math.PI * Math.pow(D / 20, 2) * ((L + f) / 10) * rho;
+            return {
+              ...c,
+              quantity: Number((weightPerUnit * Number(formData.quantity)).toFixed(4)),
+              unit: 'GR' // Force Grams for this calculation
+            };
+          }
+        }
+      }
+      return c;
     }));
-  }, [formData.quantity, formData.productId]);
+  }, [formData.quantity, formData.productId, products]);
 
   useEffect(() => {
     if (components.length > 0 && products.length > 0 && warehouses.length > 0) {
@@ -625,7 +678,7 @@ export function ProductionOrderForm() {
               disabled={saving}
               className="h-10 px-4 py-2 bg-theme-primary text-white rounded-xl font-black text-xs shadow-xl shadow-theme-primary/20 hover:bg-theme-primary-hover transition-all flex items-center gap-3 active:scale-95 disabled:opacity-50"
             >
-              {saving ? <Loading size="sm" /> : <><Save className="w-4 h-4" />KAYDET</>}
+              {saving ? <Loading size="sm" /> : <>{isEditing ? <Save className="w-4 h-4" /> : <Plus className="w-4 h-4" />}{isEditing ? 'GÜNCELLE' : 'OLUŞTUR'}</>}
             </button>
           )}
         </div>
@@ -678,6 +731,7 @@ export function ProductionOrderForm() {
                       onChange={handleProductChange}
                       placeholder="Ürün Seçin"
                       disabled={isEditing}
+                      className={showValidation && errors.productId ? 'border-theme-danger' : ''}
                     />
                   </div>
 
@@ -689,7 +743,7 @@ export function ProductionOrderForm() {
                         value={formData.quantity}
                         disabled={isCompleted}
                         onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                        className={`form-input h-10 text-xs ${isCompleted ? 'bg-theme-base/20' : ''}`}
+                        className={`form-input h-10 text-xs ${isCompleted ? 'bg-theme-base/20' : ''} ${showValidation && errors.quantity ? 'border-theme-danger shadow-sm shadow-theme-danger/20' : ''}`}
                       />
                     </div>
                     <div className="space-y-2">
@@ -860,7 +914,7 @@ export function ProductionOrderForm() {
                             className={`transition-all duration-300 border-b border-theme/50 ${isCurrent ? 'bg-theme-primary/[0.03] shadow-inner' : ''}`}
                           >
                             <td className={`px-2 py-4 font-black text-center ${rowOpacity}`}>
-                              <div className={`w-4.5 h-4.5 rounded-full flex items-center justify-center mx-auto text-[10px] ${isStepCompleted ? 'bg-theme-success text-white' : isCurrent ? 'bg-theme-primary text-white animate-pulse' : 'bg-theme-base border border-theme text-theme-muted'}`}>
+                              <div className={`w-5 h-5 rounded-md flex items-center justify-center mx-auto text-[10px] ${isStepCompleted ? 'bg-theme-success text-white' : isCurrent ? 'bg-theme-primary text-white animate-pulse' : 'bg-theme-base border border-theme text-theme-muted'}`}>
                                 {isStepCompleted ? <Check className="w-2.5 h-2.5" /> : step.sequence}
                               </div>
                             </td>
@@ -1043,6 +1097,7 @@ export function ProductionOrderForm() {
                                 }}
                                 placeholder={!c.componentProductId || !c.warehouseId ? "Ürün/Depo seçin" : "Lot Seçin"}
                                 disabled={isCompleted || !c.componentProductId || !c.warehouseId}
+                                className={showValidation && errors[`component_lot_${i}`] ? 'border-theme-danger shadow-sm shadow-theme-danger/20' : ''}
                               />
                             </td>
                             <td className="px-2 py-3">
@@ -1086,7 +1141,7 @@ export function ProductionOrderForm() {
                                     <span className="text-[10px] text-theme-muted">x</span>
                                   </div>
                                 )}
-                                <div className="relative">
+                                <div className="flex flex-col items-center min-w-[64px]">
                                   <input
                                     type="number"
                                     value={c.quantity}
@@ -1104,9 +1159,16 @@ export function ProductionOrderForm() {
                                       nc[i].quantity = val;
                                       setComponents(nc);
                                     }}
-                                    className={`form-input text-xs text-right w-16 ${(isCompleted || c.consumptionType === 'UNIT_CONSUMPTION' || !c.lotNumber) ? 'bg-theme-base/5 opacity-50 cursor-not-allowed' : ''} ${c.consumptionType === 'UNIT' ? 'font-bold text-theme-primary bg-theme-primary/5' : ''}`}
+                                    className={`form-input text-xs text-right w-20 ${(isCompleted || c.consumptionType === 'UNIT_CONSUMPTION' || !c.lotNumber) ? 'bg-theme-base/5 opacity-50 cursor-not-allowed' : ''} ${c.consumptionType === 'UNIT' ? 'font-bold text-theme-primary bg-theme-primary/5' : ''} ${showValidation && errors[`component_qty_${i}`] ? 'border-theme-danger shadow-sm shadow-theme-danger/20' : ''}`}
                                   />
-                                  {!c.lotNumber && !isCompleted && (
+                                  {c.consumptionType === 'UNIT_CONSUMPTION' && (
+                                    <div className="mt-1 whitespace-nowrap">
+                                      <span className="text-[8px] font-black text-theme-primary bg-theme-primary/10 px-1.5 py-0.5 rounded-md border border-theme-primary/20 shadow-sm">
+                                        {(c.quantity / (formData.quantity || 1)).toFixed(3)} g/adet
+                                      </span>
+                                    </div>
+                                  )}
+                                  {showValidation && !c.lotNumber && !isCompleted && (
                                     <div className="absolute inset-0 flex items-center justify-center bg-theme-danger/5 backdrop-blur-[1px] pointer-events-none rounded-lg border border-theme-danger/20">
                                       <span className="text-[10px] font-black text-theme-danger animate-pulse tracking-tighter">LOT SEÇİN</span>
                                     </div>
@@ -1169,14 +1231,9 @@ export function ProductionOrderForm() {
                 <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
                   <div className="flex justify-between items-center mb-4">
                     <p className="text-[10px] font-black text-theme-muted uppercase">ATANMIŞ MAKİNE VE TEZGAH BİLGİSİ</p>
-                    {!isCompleted && (
-                      <button onClick={addMachine} className="btn-secondary h-10 px-4 py-2 flex items-center gap-2 text-[9px] font-black bg-theme-primary/10 rounded-xl text-theme-primary border border-theme-primary/20 shadow-lg shadow-theme-primary/10 hover:scale-103">
-                        <Plus className="w-3.5 h-3.5" /> MAKİNE EKLE
-                      </button>
-                    )}
                   </div>
                   <div className="grid grid-cols-1 gap-4">
-                    {assignedMachines.map((m, i) => {
+                    {(assignedMachines.length > 0 ? assignedMachines : [{ machineId: '', unitTimeSeconds: 60 }]).slice(0, 1).map((m, i) => {
                       const product = products.find(p => p.id === formData.productId);
                       const machineOptions = product?.defaultMachines?.map((dm: any) => ({
                         id: dm.machineId,
@@ -1186,56 +1243,53 @@ export function ProductionOrderForm() {
                       })) || [];
 
                       return (
-                        <div key={i} className="flex items-center gap-4 p-3 border border-theme rounded-2xl bg-theme-base/5 hover:bg-theme-main/5 transition-all group">
-                          <div className="w-10 h-10 rounded-xl bg-theme-primary/10 flex items-center justify-center shrink-0 shadow-inner">
-                            <Cpu className="w-5 h-5 text-theme-primary" />
+                        <div key={i} className="flex items-center gap-4 p-4 border border-theme rounded-2xl bg-theme-base/5 hover:bg-theme-main/5 transition-all group shadow-sm">
+                          <div className="w-12 h-12 rounded-xl bg-theme-primary/10 flex items-center justify-center shrink-0 shadow-inner">
+                            <Cpu className="w-6 h-6 text-theme-primary" />
                           </div>
 
-                          <div className="flex-1 grid grid-cols-12 gap-4 items-center">
-                            <div className="col-span-12 lg:col-span-3">
+                          <div className="flex-1 grid grid-cols-12 gap-6 items-center">
+                            <div className="col-span-12 lg:col-span-2">
+                              <label className="text-[11px] font-black text-theme-muted mb-1.5 block">Makine Seçimi</label>
                               <CustomSelect
                                 options={machineOptions}
                                 value={m.machineId}
                                 disabled={isCompleted || !formData.productId}
                                 onChange={(v) => {
                                   const nm = [...assignedMachines];
-                                  nm[i].machineId = v;
+                                  if (nm.length === 0) nm.push({ machineId: '', unitTimeSeconds: 60 });
+                                  nm[0].machineId = v;
                                   // Auto-fill unit time from the selected default machine
                                   const dm = machineOptions.find((o: any) => o.id === v);
-                                  if (dm) nm[i].unitTimeSeconds = dm.defaultTime;
+                                  if (dm) nm[0].unitTimeSeconds = dm.defaultTime;
                                   setAssignedMachines(nm);
                                 }}
                                 placeholder={!formData.productId ? "Önce Ürün Seçin" : "Makine Seçin..."}
+                                className={showValidation && errors.machineId ? 'border-theme-danger shadow-sm shadow-theme-danger/20' : ''}
                               />
                             </div>
 
-                            <div className="col-span-12 lg:col-span-5 w-56 flex items-center justify-between gap-4 bg-theme-base/30 h-10 px-4 py-2 rounded-xl border border-theme/50">
-                              <div className="flex items-center gap-2 shrink-0">
-                                <Clock className="w-4 h-4 text-theme-primary/60" />
-                                <span className="text-[10px] font-black text-theme-muted uppercase tracking-tighter">BİRİM SÜRE (SN)</span>
+                            <div className="col-span-12 lg:col-span-2">
+                              <label className="text-[11px] font-black text-theme-muted mb-1.5 block">Birim Süre (sn)</label>
+                              <div className="flex items-center justify-between gap-4 bg-theme-base/30 h-10 px-4 py-2 rounded-xl border border-theme/50">
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <Clock className="w-4 h-4 text-theme-primary/60" />
+                                </div>
+                                <input
+                                  type="number"
+                                  value={m.unitTimeSeconds}
+                                  disabled={isCompleted}
+                                  onChange={(e) => {
+                                    const nm = [...assignedMachines];
+                                    if (nm.length === 0) nm.push({ machineId: '', unitTimeSeconds: 60 });
+                                    nm[0].unitTimeSeconds = e.target.value;
+                                    setAssignedMachines(nm);
+                                  }}
+                                  className={`form-input h-8 text-xs text-right font-black w-24 bg-transparent border-none focus:ring-0 p-0 ${isCompleted ? 'opacity-50' : ''}`}
+                                />
                               </div>
-                              <input
-                                type="number"
-                                value={m.unitTimeSeconds}
-                                disabled={isCompleted}
-                                onChange={(e) => {
-                                  const nm = [...assignedMachines];
-                                  nm[i].unitTimeSeconds = e.target.value;
-                                  setAssignedMachines(nm);
-                                }}
-                                className={`form-input h-8 text-xs text-right font-bold w-16 bg-transparent border-none focus:ring-0 p-0 ${isCompleted ? 'opacity-50' : ''}`}
-                              />
                             </div>
                           </div>
-
-                          {!isCompleted && (
-                            <button
-                              onClick={() => setAssignedMachines(assignedMachines.filter((_, idx) => idx !== i))}
-                              className="p-3 text-theme-muted hover:text-theme-danger hover:bg-theme-danger/10 rounded-xl transition-all shrink-0 active:scale-90"
-                            >
-                              <Trash2 className="w-5 h-5" />
-                            </button>
-                          )}
                         </div>
                       );
                     })}

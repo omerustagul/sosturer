@@ -267,10 +267,10 @@ export function NotificationPanel({ isOpen, onClose, anchorRef }: { isOpen: bool
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -10, scale: 0.98 }}
           transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
-          className="fixed z-[1001] mt-2 w-80 bg-theme-surface backdrop-blur-[6px] rounded-2xl p-0 border border-theme shadow-lg shadow-theme-main/20 overflow-hidden ring-1 ring-white/10 flex flex-col pointer-events-auto"
+          className="fixed z-[1001] mt-2 w-[calc(100vw-24px)] sm:w-80 bg-theme-surface backdrop-blur-[6px] rounded-2xl p-0 border border-theme shadow-lg shadow-theme-main/20 overflow-hidden ring-1 ring-white/10 flex flex-col pointer-events-auto"
           style={{
             top: `${coords.top}px`,
-            right: `${coords.right}px`,
+            right: window.innerWidth < 640 ? '12px' : `${coords.right}px`,
             maxHeight: 'calc(100vh - 100px)'
           }}
         >

@@ -657,7 +657,7 @@ export function Definitions() {
 
   return (
     <div className="h-[calc(100vh-64px)] p-4 lg:p-6 w-full flex flex-col gap-4 animate-in fade-in duration-500 overflow-hidden">
-      <div className="shrink-0 flex items-center justify-between">
+      <div className="shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-black text-theme-main flex items-center gap-2">
             <Database className="w-5 h-5 text-theme-primary" /> SİSTEM TANIMLARI
@@ -690,8 +690,9 @@ export function Definitions() {
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col lg:flex-row gap-4 min-h-0">
-        <div className="w-50 flex flex-col gap-0.5 overflow-y-auto pr-3 no-scrollbar shrink-0">
+      <div className="flex-1 flex flex-col lg:flex-row gap-4 min-h-0 overflow-hidden">
+        {/* Sidebar - Desktop: Vertical, Mobile: Horizontal Scroll */}
+        <div className="w-full lg:w-48 flex lg:flex-col flex-row gap-1 lg:gap-0.5 overflow-x-auto lg:overflow-y-auto pb-2 lg:pb-0 pr-0 lg:pr-3 no-scrollbar shrink-0 border-b lg:border-b-0 lg:border-r border-theme/30 lg:h-full">
           {tabs.map((tab, idx) => {
             if ((tab as any).isGroupHeader) {
               const isOpen = openGroups.has(tab.id);
@@ -699,7 +700,7 @@ export function Definitions() {
                 <button
                   key={tab.id}
                   onClick={() => toggleGroup(tab.id)}
-                  className="flex items-center justify-between w-full pt-4 pb-2 px-1 group transition-all"
+                  className="hidden lg:flex items-center justify-between w-full pt-4 pb-2 px-1 group transition-all shrink-0"
                 >
                   <span className="text-[9px] font-black text-theme-dim uppercase group-hover:text-theme-primary">{tab.label}</span>
                   <ChevronLeft className={`w-2.5 h-2.5 text-theme-dim/60 group-hover:text-theme-primary transition-transform duration-300 ${isOpen ? '-rotate-90' : ''}`} />
@@ -715,26 +716,30 @@ export function Definitions() {
                 break;
               }
             }
-            if (parentGroupId && !openGroups.has(parentGroupId)) return null;
+
+            // On mobile, we show all tabs regardless of group state to allow selection
+            // On desktop, we respect the openGroups state
+            const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 1024;
+            if (parentGroupId && !openGroups.has(parentGroupId) && isDesktop) return null;
 
             const isActive = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
                 onClick={() => navigate(`/definitions/${tab.id}`)}
-                className={`w-full flex items-center gap-2 p-2.5 rounded-xl transition-all font-bold text-[10.5px] border-2 group ${isActive ? 'bg-theme-primary/10 border-theme-primary text-theme-primary shadow-xl shadow-theme-primary/10'
+                className={`flex items-center gap-2 p-2 lg:p-2.5 rounded-xl transition-all font-bold text-[10px] lg:text-[10.5px] border-2 shrink-0 whitespace-nowrap group ${isActive ? 'bg-theme-primary/10 border-theme-primary text-theme-primary shadow-xl shadow-theme-primary/10'
                   : 'text-theme-dim border-transparent hover:bg-theme-main/5 hover:text-theme-main'
                   }`}
               >
-                <tab.icon className={`w-4 h-4 transition-transform group-hover:scale-110 ${isActive ? 'text-theme-primary' : 'text-theme-dim'}`} />
+                <tab.icon className={`w-3.5 h-3.5 lg:w-4 lg:h-4 transition-transform group-hover:scale-110 ${isActive ? 'text-theme-primary' : 'text-theme-dim'}`} />
                 <span className="uppercase">{toTRUpper(tab.label)}</span>
-                {isActive && <div className="ml-auto w-1 h-1 rounded-full bg-theme-primary shadow-[0_0_8px_var(--primary-glow)]" />}
+                {isActive && <div className="ml-auto w-1 h-1 rounded-full bg-theme-primary shadow-[0_0_8px_var(--primary-glow)] hidden lg:block" />}
               </button>
             )
           })}
         </div>
 
-        <div className="flex-1 flex flex-col min-h-0 modern-glass-card p-0 overflow-hidden relative border border-theme/50 bg-theme-surface/30 backdrop-blur-xl shadow-xl">
+        <div className="flex-1 flex flex-col min-h-0 modern-glass-card p-0 overflow-hidden relative border border-theme/50 bg-theme-surface/30 backdrop-blur-xl shadow-xl h-full lg:h-auto">
           {activeTab === 'import' ? (
             <div className="space-y-4 overflow-y-auto">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 p-4 border-b border-theme">
@@ -857,10 +862,10 @@ export function Definitions() {
           ) : ((activeTab === 'warehouses' || activeTab === 'work-centers' || activeTab === 'stations') && viewMode === 'grid') ? (
             // ─── GROUPED GRID VIEW ──────────────────────
             <>
-              <div className="p-4 border-b border-theme flex justify-between items-center bg-theme-base/20 gap-4">
+              <div className="p-4 border-b border-theme flex flex-col sm:flex-row justify-between items-start sm:items-center bg-theme-base/20 gap-4 shrink-0">
                 <div>
-                  <h3 className="text-lg font-bold text-theme-main">{activeTab === 'warehouses' ? 'DEPOLAR' : 'İŞ MERKEZLERİ'}</h3>
-                  <p className="text-[10px] font-bold text-theme-muted mt-0">
+                  <h3 className="text-lg font-bold text-theme-main leading-tight">{activeTab === 'warehouses' ? 'DEPOLAR' : 'İŞ MERKEZLERİ'}</h3>
+                  <p className="text-[10px] font-bold text-theme-muted mt-0.5">
                     {activeTab === 'warehouses'
                       ? 'Şirket lokasyonlarındaki depo birimlerini buradan tanımlayın ve yönetin.'
                       : activeTab === 'work-centers'
@@ -868,34 +873,34 @@ export function Definitions() {
                         : 'İş merkezlerine bağlı alt operasyon istasyonları.'}
                   </p>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="flex bg-theme-base/50 p-1 rounded-xl border border-theme">
+                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                  <div className="flex bg-theme-base/50 p-1 rounded-xl border border-theme shrink-0">
                     <button
                       onClick={() => setViewMode('grid')}
                       className={`p-1.5 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-theme-primary text-white shadow-lg shadow-theme-primary/20' : 'text-theme-dim hover:text-theme-main'}`}
                     >
-                      <LayoutGrid size={16} />
+                      <LayoutGrid size={14} />
                     </button>
                     <button
                       onClick={() => setViewMode('table')}
                       className={`p-1.5 rounded-lg transition-all ${(viewMode as string) === 'table' ? 'bg-theme-primary text-white shadow-lg shadow-theme-primary/20' : 'text-theme-dim hover:text-theme-main'}`}
                     >
-                      <List size={16} />
+                      <List size={14} />
                     </button>
                   </div>
-                  <div className="h-6 w-px bg-theme mx-1" />
-                  <div className="relative group">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-theme-muted group-focus-within:text-theme-primary transition-colors" />
+                  <div className="hidden sm:block h-6 w-px bg-theme mx-1" />
+                  <div className="relative group flex-1 sm:flex-none sm:w-48 lg:w-64">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-theme-muted group-focus-within:text-theme-primary transition-colors" />
                     <input
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       placeholder="Ara..."
-                      className="w-64 h-10 bg-theme-surface border-2 border-theme rounded-xl pl-8 pr-4 py-2 text-sm text-theme-main focus:outline-none focus:border-theme-primary/50 transition-all font-bold"
+                      className="w-full h-10 bg-theme-surface border-2 border-theme rounded-xl pl-8 pr-4 py-2 text-xs text-theme-main focus:outline-none focus:border-theme-primary/50 transition-all font-bold"
                     />
                   </div>
                   <button
                     onClick={handleAddNew}
-                    className="bg-theme-primary hover:bg-theme-primary-hover h-10 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-xl shadow-theme-primary/20 flex items-center gap-2 group hover:scale-95"
+                    className="bg-theme-primary hover:bg-theme-primary-hover h-10 text-white px-4 py-2 rounded-xl text-xs font-black transition-all shadow-xl shadow-theme-primary/20 flex items-center gap-2 group active:scale-95 whitespace-nowrap"
                   >
                     <Plus className="w-4 h-4" /> Yeni Ekle
                   </button>
@@ -1117,45 +1122,49 @@ export function Definitions() {
             </>
           ) : (
             <>
-              <div className="p-4 border-b border-theme flex justify-between items-center bg-theme-base/20 gap-4">
-                <h3 className="text-lg font-bold text-theme-main">
-                  {tabLabel()}
-                  <p className="text-[10px] font-bold text-theme-muted mt-0">
-                    Sistem tanımlamalarınızı, referans verilerinizi ve daha fazlasını buradan yönetin.
+              <div className="p-4 border-b border-theme flex flex-col sm:flex-row justify-between items-start sm:items-center bg-theme-base/20 gap-4 shrink-0">
+                <div className="min-w-0">
+                  <h3 className="text-lg font-bold text-theme-main leading-tight truncate">
+                    {tabLabel()}
+                  </h3>
+                  <p className="text-[10px] font-bold text-theme-muted mt-0.5 truncate">
+                    Sistem tanımlamalarınızı buradan yönetin.
                   </p>
-                </h3>
-                <div className="flex items-center gap-3">
+                </div>
+                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                   {['warehouses', 'work-centers', 'stations'].includes(activeTab) && (
-                    <div className="flex bg-theme-base/50 p-1 rounded-xl border border-theme">
+                    <div className="flex bg-theme-base/50 p-1 rounded-xl border border-theme shrink-0">
                       <button
                         onClick={() => setViewMode('grid')}
                         className={`p-1.5 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-theme-primary text-white shadow-lg shadow-theme-primary/20' : 'text-theme-dim hover:text-theme-main'}`}
                       >
-                        <LayoutGrid size={16} />
+                        <LayoutGrid size={14} />
                       </button>
                       <button
                         onClick={() => setViewMode('table')}
                         className={`p-1.5 rounded-lg transition-all ${viewMode === 'table' ? 'bg-theme-primary text-white shadow-lg shadow-theme-primary/20' : 'text-theme-dim hover:text-theme-main'}`}
                       >
-                        <List size={16} />
+                        <List size={14} />
                       </button>
                     </div>
                   )}
-                  <div className="relative group">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-theme-muted group-focus-within:text-theme-primary transition-colors" />
+                  <div className="relative group flex-1 sm:flex-none sm:w-48 lg:w-64">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-theme-muted group-focus-within:text-theme-primary transition-colors" />
                     <input
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       placeholder="Ara..."
-                      className="w-64 h-10 bg-theme-surface border-2 border-theme rounded-xl pl-8 pr-4 py-2 text-sm text-theme-main focus:outline-none focus:border-theme-primary/50 transition-all font-bold"
+                      className="w-full h-10 bg-theme-surface border-2 border-theme rounded-xl pl-8 pr-4 py-2 text-xs text-theme-main focus:outline-none focus:border-theme-primary/50 transition-all font-bold"
                     />
                   </div>
-                  <button
-                    onClick={handleAddNew}
-                    className="bg-theme-primary hover:bg-theme-primary-hover h-10 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-xl shadow-theme-primary/20 flex items-center gap-2 group hover:scale-95"
-                  >
-                    <Plus className="w-4 h-4" /> Yeni Ekle
-                  </button>
+                  {(activeTab !== 'import' && activeTab !== 'department-roles' && activeTab !== 'event-reasons' && activeTab !== 'event-groups') && (
+                    <button
+                      onClick={handleAddNew}
+                      className="bg-theme-primary hover:bg-theme-primary-hover h-10 text-white px-4 py-2 rounded-xl text-xs font-black transition-all shadow-xl shadow-theme-primary/20 flex items-center gap-2 group active:scale-95 whitespace-nowrap"
+                    >
+                      <Plus className="w-4 h-4" /> Yeni Ekle
+                    </button>
+                  )}
                 </div>
               </div>
 
