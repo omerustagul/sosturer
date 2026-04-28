@@ -229,12 +229,12 @@ export function Layout() {
       path: '/planning',
       isDropdown: true,
       children: [
-        { icon: Logs, label: 'İş Listeleri (Birim Bazlı)', path: '/planning/work-plans' },
-        { icon: GanttChart, label: 'Üretim Planlama', path: '/planning/production' },
-        { icon: User, label: 'Personel Planlama', path: '/planning/personnel' },
+        { icon: Logs, label: 'Çalışma Planı', path: '/planning/work-plans' },
+        { icon: GanttChart, label: 'Üretim Planı', path: '/planning/production' },
+        { icon: User, label: 'Personel Planı', path: '/planning/personnel' },
         { icon: Settings, label: 'Üretim Tanımları', path: '/planning/definitions' },
-        { icon: Boxes, label: 'Malzeme Planlama (MRP)', path: '/planning/mrp' },
-        { icon: Wrench, label: 'Bakım Planlama', path: '/planning/maintenance' },
+        { icon: Boxes, label: 'Malzeme Planı (MRP)', path: '/planning/mrp' },
+        { icon: Wrench, label: 'Bakım Planı', path: '/planning/maintenance' },
       ]
     },
     {
@@ -378,7 +378,7 @@ export function Layout() {
 
         <div
           className="absolute top-1/2 -translate-y-1/2 z-[100] transition-all duration-500 pointer-events-none"
-          style={{ left: isCollapsed ? '52.5px' : '205px' }}
+          style={{ left: isCollapsed ? '52.5px' : '190px' }}
         >
           <button
             onClick={toggleSidebar}
@@ -394,7 +394,7 @@ export function Layout() {
         </div>
 
         <aside
-          className={`relative z-40 border-r border-theme bg-theme-surface/40 backdrop-blur-3xl flex flex-col transition-all duration-300 ease-in-out hidden md:flex shrink-0 overflow-x-hidden ${isCollapsed ? 'w-15' : 'w-56'}`}
+          className={`relative z-40 border-r border-theme bg-theme-surface/40 backdrop-blur-3xl flex flex-col transition-all duration-300 ease-in-out hidden md:flex shrink-0 overflow-x-hidden ${isCollapsed ? 'w-15' : 'w-50'}`}
         >
 
 

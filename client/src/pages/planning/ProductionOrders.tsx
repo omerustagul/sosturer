@@ -62,16 +62,16 @@ export function ProductionOrders() {
     setSearchTerm('');
   };
 
-  const isFiltered = filters.status !== 'all' || 
-                     filters.productId !== 'all' || 
-                     filters.categoryId !== 'all' || 
-                     filters.productGroupId !== 'all' || 
-                     filters.machineId !== 'all' || 
-                     filters.type !== 'all' || 
-                     filters.targetWarehouseId !== 'all' || 
-                     filters.dateStart !== '' || 
-                     filters.dateEnd !== '' ||
-                     searchTerm !== '';
+  const isFiltered = filters.status !== 'all' ||
+    filters.productId !== 'all' ||
+    filters.categoryId !== 'all' ||
+    filters.productGroupId !== 'all' ||
+    filters.machineId !== 'all' ||
+    filters.type !== 'all' ||
+    filters.targetWarehouseId !== 'all' ||
+    filters.dateStart !== '' ||
+    filters.dateEnd !== '' ||
+    searchTerm !== '';
 
   const toggleStar = async (id: string, currentStatus: boolean) => {
     setOrders(prev => prev.map(o => o.id === id ? { ...o, isStarred: !currentStatus } : o));
@@ -109,7 +109,7 @@ export function ProductionOrders() {
 
   const executeBulkDuplicate = async () => {
     try {
-      await api.post('/production-orders/duplicate', { 
+      await api.post('/production-orders/duplicate', {
         ids: selectedRows,
         count: duplicateCount
       });
@@ -454,25 +454,25 @@ export function ProductionOrders() {
           ) : (
             <table className="w-full text-left">
               <thead>
-                <tr className="bg-theme-base/10 border-b border-theme text-[10px] font-black text-theme-muted uppercase tracking-widest">
+                <tr className="bg-theme-base/10 border-b border-theme text-[10px] font-black text-theme-muted">
                   <th className="pl-6 px-3 py-4 w-10">
-                    <div 
+                    <div
                       onClick={() => setSelectedRows(selectedRows.length === orders.length ? [] : orders.map(o => o.id))}
                       className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center cursor-pointer transition-all ${selectedRows.length === orders.length && orders.length > 0 ? "bg-theme-success border-theme-success" : "border-theme-border/40 hover:border-theme-success"}`}
                     >
                       {selectedRows.length === orders.length && orders.length > 0 && <Check className="w-3.5 h-3.5 text-white" />}
                     </div>
                   </th>
-                  <th className="px-3 py-4 text-center">NO</th>
-                  <th className="px-3 py-4">TARİH</th>
-                  <th className="px-3 py-4">LOT NUMARASI</th>
-                  <th className="px-3 py-4">TİP</th>
-                  <th className="px-3 py-4">DURUM</th>
-                  <th className="px-3 py-4">ÜRÜN</th>
-                  <th className="px-3 py-4">GÜNCEL PROSES</th>
-                  <th className="px-3 py-4 text-center">PLANLANAN</th>
-                  <th className="px-3 py-4 text-center">KABUL ADETİ</th>
-                  <th className="pr-6 px-3 py-4 text-right">DETAY</th>
+                  <th className="px-3 py-4 text-center">No</th>
+                  <th className="px-3 py-4">Tarih</th>
+                  <th className="px-3 py-4">Lot Numarası</th>
+                  <th className="px-3 py-4">Tip</th>
+                  <th className="px-3 py-4">Durum</th>
+                  <th className="px-3 py-4">Ürün</th>
+                  <th className="px-3 py-4">Güncel Proses</th>
+                  <th className="px-3 py-4 text-center">Planlanan</th>
+                  <th className="px-3 py-4 text-center">Kabul Adeti</th>
+                  <th className="px-3 py-4 text-center">Detay</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-theme">
@@ -489,7 +489,7 @@ export function ProductionOrders() {
                       onClick={() => handleRowSelect(order.id)}
                     >
                       <td className="pl-6 px-3 py-4 w-10" onClick={(e) => e.stopPropagation()}>
-                        <div 
+                        <div
                           onClick={() => handleRowSelect(order.id)}
                           className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center cursor-pointer transition-all ${isSelected ? "bg-theme-success border-theme-success" : "border-theme-border/40 hover:border-theme-success"}`}
                         >
@@ -508,7 +508,7 @@ export function ProductionOrders() {
                         </div>
                       </td>
                       <td className="px-3 py-4 whitespace-nowrap">
-                        <span className="text-sm font-black text-theme-main tracking-widest uppercase">{order.lotNumber}</span>
+                        <span className="text-sm font-black text-theme-main">{order.lotNumber}</span>
                       </td>
                       <td className="px-3 py-4 whitespace-nowrap">
                         <span className="text-[10px] font-bold text-theme-muted uppercase bg-theme-base/50 px-2 py-1 rounded-md border border-theme">
@@ -563,7 +563,7 @@ export function ProductionOrders() {
                       <td className="px-3 py-4 text-center">
                         <span className="text-sm font-black text-theme-success">{acceptedQuantity || '-'}</span>
                       </td>
-                      <td className="pr-6 px-3 py-4 text-right" onClick={(e) => e.stopPropagation()}>
+                      <td className="px-3 py-4 text-center" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1">
                           <button
                             onClick={() => toggleStar(order.id, order.isStarred)}
@@ -631,7 +631,7 @@ export function ProductionOrders() {
                 Seçili {selectedRows.length} emri kaçar adet çoğaltmak istersiniz?
               </p>
               <div className="flex items-center justify-center gap-4">
-                <button 
+                <button
                   onClick={() => setDuplicateCount(Math.max(1, duplicateCount - 1))}
                   className="w-10 h-10 rounded-xl bg-theme-base border border-theme flex items-center justify-center text-theme-main hover:bg-theme-main/5 transition-all text-theme-dim hover:text-theme-main"
                 >
@@ -643,7 +643,7 @@ export function ProductionOrders() {
                   onChange={(e) => setDuplicateCount(Math.max(1, parseInt(e.target.value) || 1))}
                   className="w-20 h-12 bg-theme-base border border-theme rounded-xl text-center font-black text-xl text-theme-primary outline-none focus:border-theme-primary transition-all shadow-inner"
                 />
-                <button 
+                <button
                   onClick={() => setDuplicateCount(Math.min(50, duplicateCount + 1))}
                   className="w-10 h-10 rounded-xl bg-theme-base border border-theme flex items-center justify-center text-theme-main hover:bg-theme-main/5 transition-all text-theme-dim hover:text-theme-main"
                 >

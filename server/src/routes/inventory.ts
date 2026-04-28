@@ -8,6 +8,18 @@ import fs from 'fs';
 
 const router = Router();
 
+router.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    const log = `[${new Date().toISOString()}] ${req.method} ${req.originalUrl} - Status: ${res.statusCode} - ${duration}ms\n`;
+    try {
+      fs.appendFileSync('c:\\dev\\Sosturer\\server\\api_debug.log', log);
+    } catch (e) { }
+  });
+  next();
+});
+
 const getCompanyId = (req: AuthRequest) => req.user?.companyId;
 
 // Get available lots for a product in a warehouse
@@ -95,7 +107,7 @@ const getNextVoucherNo = async (tx: any, companyId: string) => {
   });
 
   const lastNumber = latest?.voucherNo?.match(/^SF(\d{6})$/)?.[1];
-  const nextNumber = lastNumber ? Number(lastNumber) + 1 : 0;
+  const nextNumber = lastNumber ? Number(lastNumber) + 1 : 1;
   return `SF${String(nextNumber).padStart(6, '0')}`;
 };
 
@@ -155,10 +167,26 @@ router.get('/stock-vouchers', authenticateToken, async (req: AuthRequest, res) =
 router.get('/stock-vouchers/:id', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const companyId = getCompanyId(req);
-    const { id } = req.params;
+    const id = String(req.params.id);
+
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    const isPureNumber = /^\d+$/.test(id);
+
+    // Diagnostic logging
+    try {
+      const log = `GET Voucher - ID: ${id}, isUUID: ${isUUID}, isPureNumber: ${isPureNumber}, companyId: ${companyId}\n`;
+      fs.appendFileSync(path.join(__dirname, '../../../scratch/api_debug.log'), log);
+    } catch (e) { }
 
     const voucher = await (prisma as any).stockVoucher.findFirst({
-      where: { id, companyId },
+      where: {
+        companyId,
+        OR: [
+          ...(isUUID ? [{ id }] : []),
+          { voucherNo: { equals: id, mode: 'insensitive' } },
+          ...(isPureNumber ? [{ voucherNo: `SF${id.padStart(6, '0')}` }] : [])
+        ]
+      },
       include: voucherInclude
     });
 
@@ -238,76 +266,78 @@ router.post('/stock-vouchers', authenticateToken, async (req: AuthRequest, res) 
       const voucherNo = await getNextVoucherNo(tx as any, companyId);
       const transactionDate = new Date();
 
-      for (const item of items) {
-        const product = await tx.product.findFirst({
-          where: { id: item.productId, companyId },
-          select: { id: true, unitOfMeasure: true }
-        });
-        if (!product) throw new Error('Fiş satırında seçilen ürün bulunamadı');
-
-        const lotNumber = item.lotNumber || '';
-        const shouldDecrease = typeMeta.direction === -1 || voucherType === 'TRANSFER';
-
-        if (shouldDecrease) {
-          const currentLevel = await tx.stockLevel.findUnique({
-            where: {
-              productId_warehouseId_lotNumber: {
-                productId: item.productId,
-                warehouseId,
-                lotNumber
-              }
-            }
+      if (controlStatus === 'accepted') {
+        for (const item of items) {
+          const product = await tx.product.findFirst({
+            where: { id: item.productId, companyId },
+            select: { id: true, unitOfMeasure: true }
           });
+          if (!product) throw new Error('Fiş satırında seçilen ürün bulunamadı');
 
-          if (!currentLevel || currentLevel.quantity < item.quantity) {
-            throw new Error(`Yetersiz stok: ${lotNumber || 'Lotsuz'} lot için çıkış miktarı mevcut stoktan fazla`);
+          const lotNumber = item.lotNumber || '';
+          const shouldDecrease = typeMeta.direction === -1 || voucherType === 'TRANSFER';
+
+          if (shouldDecrease) {
+            const currentLevel = await tx.stockLevel.findUnique({
+              where: {
+                productId_warehouseId_lotNumber: {
+                  productId: item.productId,
+                  warehouseId,
+                  lotNumber
+                }
+              }
+            });
+
+            if (!currentLevel || currentLevel.quantity < item.quantity) {
+              throw new Error(`Yetersiz stok: ${lotNumber || 'Lotsuz'} lot için çıkış miktarı mevcut stoktan fazla`);
+            }
+
+            await tx.stockLevel.update({
+              where: {
+                productId_warehouseId_lotNumber: {
+                  productId: item.productId,
+                  warehouseId,
+                  lotNumber
+                }
+              },
+              data: { quantity: { decrement: item.quantity } }
+            });
           }
 
-          await tx.stockLevel.update({
-            where: {
-              productId_warehouseId_lotNumber: {
-                productId: item.productId,
-                warehouseId,
-                lotNumber
-              }
-            },
-            data: { quantity: { decrement: item.quantity } }
-          });
-        }
-
-        if (typeMeta.direction === 1 || voucherType === 'TRANSFER') {
-          await tx.stockLevel.upsert({
-            where: {
-              productId_warehouseId_lotNumber: {
+          if (typeMeta.direction === 1 || voucherType === 'TRANSFER') {
+            await tx.stockLevel.upsert({
+              where: {
+                productId_warehouseId_lotNumber: {
+                  productId: item.productId,
+                  warehouseId: voucherType === 'TRANSFER' ? targetWarehouseId as string : warehouseId,
+                  lotNumber
+                }
+              },
+              update: { quantity: { increment: item.quantity } },
+              create: {
+                companyId,
                 productId: item.productId,
                 warehouseId: voucherType === 'TRANSFER' ? targetWarehouseId as string : warehouseId,
-                lotNumber
+                lotNumber,
+                quantity: item.quantity
               }
-            },
-            update: { quantity: { increment: item.quantity } },
-            create: {
+            });
+          }
+
+          await tx.stockMovement.create({
+            data: {
               companyId,
               productId: item.productId,
-              warehouseId: voucherType === 'TRANSFER' ? targetWarehouseId as string : warehouseId,
+              fromWarehouseId: typeMeta.direction === -1 || voucherType === 'TRANSFER' ? warehouseId : null,
+              toWarehouseId: typeMeta.direction === 1 ? warehouseId : voucherType === 'TRANSFER' ? targetWarehouseId : null,
               lotNumber,
-              quantity: item.quantity
+              quantity: item.quantity,
+              type: typeMeta.movementType,
+              referenceId: voucherNo,
+              description: `${typeMeta.label} stok fişi`
             }
           });
         }
-
-        await tx.stockMovement.create({
-          data: {
-            companyId,
-            productId: item.productId,
-            fromWarehouseId: typeMeta.direction === -1 || voucherType === 'TRANSFER' ? warehouseId : null,
-            toWarehouseId: typeMeta.direction === 1 ? warehouseId : voucherType === 'TRANSFER' ? targetWarehouseId : null,
-            lotNumber,
-            quantity: item.quantity,
-            type: typeMeta.movementType,
-            referenceId: voucherNo,
-            description: `${typeMeta.label} stok fişi`
-          }
-        });
       }
 
       const voucher = await (tx as any).stockVoucher.create({
@@ -352,19 +382,37 @@ router.post('/stock-vouchers', authenticateToken, async (req: AuthRequest, res) 
 router.put('/stock-vouchers/:id', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const companyId = getCompanyId(req);
-    const { id } = req.params;
-    const { firmId, controlStatus, documentNo, documentUrl, documentName, notes, items: newItems } = req.body;
+    const id = req.params.id as string;
+    const { voucherNo, firmId, controlStatus, documentNo, documentUrl, documentName, notes, items: newItems } = req.body;
 
     const result = await prisma.$transaction(async (tx) => {
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+      const isPureNumber = /^\d+$/.test(id);
+
+      // Diagnostic logging
+      try {
+        const log = `PUT Voucher - ID: ${id}, isUUID: ${isUUID}, isPureNumber: ${isPureNumber}, companyId: ${companyId}\n`;
+        fs.appendFileSync(path.join(__dirname, '../../../scratch/api_debug.log'), log);
+      } catch (e) { }
+
       // 1. Get old voucher with items to reverse
       const oldVoucher = await (tx as any).stockVoucher.findFirst({
-        where: { id, companyId },
+        where: {
+          companyId,
+          OR: [
+            ...(isUUID ? [{ id }] : []),
+            { voucherNo: { equals: id, mode: 'insensitive' } },
+            ...(isPureNumber ? [{ voucherNo: `SF${id.padStart(6, '0')}` }] : [])
+          ]
+        },
         include: { items: true }
       });
 
       if (!oldVoucher) throw new Error('Fiş bulunamadı');
 
+      const finalVoucherNo = voucherNo || oldVoucher.voucherNo;
       const typeMeta = STOCK_VOUCHER_TYPES[oldVoucher.voucherType];
+      const newControlStatus = controlStatus || oldVoucher.controlStatus;
 
       // 2. Handle items and stock changes
       if (newItems && Array.isArray(newItems)) {
@@ -388,80 +436,83 @@ router.put('/stock-vouchers/:id', authenticateToken, async (req: AuthRequest, re
           }
         }
 
-        // B. Reverse old stock changes
-        for (const item of oldVoucher.items) {
-          const direction = oldVoucher.direction;
-          const warehouseId = oldVoucher.warehouseId;
-          const targetWarehouseId = oldVoucher.targetWarehouseId;
+        // B. Reverse old stock changes (Only if it was previously accepted)
+        if (oldVoucher.controlStatus === 'accepted') {
+          for (const item of oldVoucher.items) {
+            const direction = oldVoucher.direction;
+            const warehouseId = oldVoucher.warehouseId;
+            const targetWarehouseId = oldVoucher.targetWarehouseId;
 
-          if (oldVoucher.voucherType === 'TRANSFER') {
-            await tx.stockLevel.update({
-              where: { productId_warehouseId_lotNumber: { productId: item.productId, warehouseId, lotNumber: item.lotNumber } },
-              data: { quantity: { increment: item.quantity } }
-            });
-            await tx.stockLevel.update({
-              where: { productId_warehouseId_lotNumber: { productId: item.productId, warehouseId: targetWarehouseId as string, lotNumber: item.lotNumber } },
-              data: { quantity: { decrement: item.quantity } }
-            });
-          } else {
-            await tx.stockLevel.update({
-              where: { productId_warehouseId_lotNumber: { productId: item.productId, warehouseId, lotNumber: item.lotNumber } },
-              data: { quantity: { [direction === 1 ? 'decrement' : 'increment']: item.quantity } }
-            });
+            if (oldVoucher.voucherType === 'TRANSFER') {
+              await tx.stockLevel.update({
+                where: { productId_warehouseId_lotNumber: { productId: item.productId, warehouseId, lotNumber: item.lotNumber } },
+                data: { quantity: { increment: item.quantity } }
+              });
+              await tx.stockLevel.update({
+                where: { productId_warehouseId_lotNumber: { productId: item.productId, warehouseId: targetWarehouseId as string, lotNumber: item.lotNumber } },
+                data: { quantity: { decrement: item.quantity } }
+              });
+            } else {
+              await tx.stockLevel.update({
+                where: { productId_warehouseId_lotNumber: { productId: item.productId, warehouseId, lotNumber: item.lotNumber } },
+                data: { quantity: { [direction === 1 ? 'decrement' : 'increment']: item.quantity } }
+              });
+            }
           }
+          // Delete old movements
+          await tx.stockMovement.deleteMany({ where: { referenceId: oldVoucher.voucherNo, companyId } });
         }
 
-        // C. Delete old movements
-        await tx.stockMovement.deleteMany({ where: { referenceId: oldVoucher.voucherNo, companyId } });
-
         // D. Delete old items
-        await (tx as any).stockVoucherItem.deleteMany({ where: { voucherId: id } });
+        await (tx as any).stockVoucherItem.deleteMany({ where: { voucherId: oldVoucher.id } });
 
-        // E. Apply new items and movements
-        for (const item of normalizedItems) {
-          const lotNumber = item.lotNumber || '';
-          const shouldDecrease = typeMeta.direction === -1 || oldVoucher.voucherType === 'TRANSFER';
+        // E. Apply new items and movements (Only if new status is accepted)
+        if (newControlStatus === 'accepted') {
+          for (const item of normalizedItems) {
+            const lotNumber = item.lotNumber || '';
+            const shouldDecrease = typeMeta.direction === -1 || oldVoucher.voucherType === 'TRANSFER';
 
-          if (shouldDecrease) {
-            const currentLevel = await tx.stockLevel.findUnique({
-              where: { productId_warehouseId_lotNumber: { productId: item.productId, warehouseId: oldVoucher.warehouseId, lotNumber } }
-            });
-            if (!currentLevel || currentLevel.quantity < item.quantity) {
-              throw new Error(`Yetersiz stok: ${lotNumber || 'Lotsuz'} lot için çıkış miktarı mevcut stoktan fazla`);
+            if (shouldDecrease) {
+              const currentLevel = await tx.stockLevel.findUnique({
+                where: { productId_warehouseId_lotNumber: { productId: item.productId, warehouseId: oldVoucher.warehouseId, lotNumber } }
+              });
+              if (!currentLevel || currentLevel.quantity < item.quantity) {
+                throw new Error(`Yetersiz stok: ${lotNumber || 'Lotsuz'} lot için çıkış miktarı mevcut stoktan fazla`);
+              }
+              await tx.stockLevel.update({
+                where: { productId_warehouseId_lotNumber: { productId: item.productId, warehouseId: oldVoucher.warehouseId, lotNumber } },
+                data: { quantity: { decrement: item.quantity } }
+              });
             }
-            await tx.stockLevel.update({
-              where: { productId_warehouseId_lotNumber: { productId: item.productId, warehouseId: oldVoucher.warehouseId, lotNumber } },
-              data: { quantity: { decrement: item.quantity } }
+
+            if (typeMeta.direction === 1 || oldVoucher.voucherType === 'TRANSFER') {
+              await tx.stockLevel.upsert({
+                where: { productId_warehouseId_lotNumber: { productId: item.productId, warehouseId: oldVoucher.voucherType === 'TRANSFER' ? oldVoucher.targetWarehouseId as string : oldVoucher.warehouseId, lotNumber } },
+                update: { quantity: { increment: item.quantity } },
+                create: { companyId, productId: item.productId, warehouseId: oldVoucher.voucherType === 'TRANSFER' ? oldVoucher.targetWarehouseId as string : oldVoucher.warehouseId, lotNumber, quantity: item.quantity }
+              });
+            }
+
+            await tx.stockMovement.create({
+              data: {
+                companyId,
+                productId: item.productId,
+                fromWarehouseId: shouldDecrease ? oldVoucher.warehouseId : null,
+                toWarehouseId: typeMeta.direction === 1 ? oldVoucher.warehouseId : oldVoucher.voucherType === 'TRANSFER' ? oldVoucher.targetWarehouseId : null,
+                lotNumber,
+                quantity: item.quantity,
+                type: typeMeta.movementType,
+                referenceId: finalVoucherNo,
+                description: `${typeMeta.label} stok fişi (Güncellendi)`
+              }
             });
           }
-
-          if (typeMeta.direction === 1 || oldVoucher.voucherType === 'TRANSFER') {
-            await tx.stockLevel.upsert({
-              where: { productId_warehouseId_lotNumber: { productId: item.productId, warehouseId: oldVoucher.voucherType === 'TRANSFER' ? oldVoucher.targetWarehouseId as string : oldVoucher.warehouseId, lotNumber } },
-              update: { quantity: { increment: item.quantity } },
-              create: { companyId, productId: item.productId, warehouseId: oldVoucher.voucherType === 'TRANSFER' ? oldVoucher.targetWarehouseId as string : oldVoucher.warehouseId, lotNumber, quantity: item.quantity }
-            });
-          }
-
-          await tx.stockMovement.create({
-            data: {
-              companyId,
-              productId: item.productId,
-              fromWarehouseId: shouldDecrease ? oldVoucher.warehouseId : null,
-              toWarehouseId: typeMeta.direction === 1 ? oldVoucher.warehouseId : oldVoucher.voucherType === 'TRANSFER' ? oldVoucher.targetWarehouseId : null,
-              lotNumber,
-              quantity: item.quantity,
-              type: typeMeta.movementType,
-              referenceId: oldVoucher.voucherNo,
-              description: `${typeMeta.label} stok fişi (Güncellendi)`
-            }
-          });
         }
 
         // F. Create new voucher items
         await (tx as any).stockVoucherItem.createMany({
           data: normalizedItems.map(item => ({
-            voucherId: id,
+            voucherId: oldVoucher.id,
             productId: item.productId,
             lotNumber: item.lotNumber || '',
             quantity: item.quantity,
@@ -469,12 +520,89 @@ router.put('/stock-vouchers/:id', authenticateToken, async (req: AuthRequest, re
             notes: item.notes || null
           }))
         });
+      } else if (controlStatus && controlStatus !== oldVoucher.controlStatus) {
+        // If items haven't changed but status HAS changed
+        if (oldVoucher.controlStatus === 'accepted' && newControlStatus !== 'accepted') {
+          // Reverse stock
+          for (const item of oldVoucher.items) {
+            const direction = oldVoucher.direction;
+            const warehouseId = oldVoucher.warehouseId;
+            const targetWarehouseId = oldVoucher.targetWarehouseId;
+
+            if (oldVoucher.voucherType === 'TRANSFER') {
+              await tx.stockLevel.update({
+                where: { productId_warehouseId_lotNumber: { productId: item.productId, warehouseId, lotNumber: item.lotNumber } },
+                data: { quantity: { increment: item.quantity } }
+              });
+              await tx.stockLevel.update({
+                where: { productId_warehouseId_lotNumber: { productId: item.productId, warehouseId: targetWarehouseId as string, lotNumber: item.lotNumber } },
+                data: { quantity: { decrement: item.quantity } }
+              });
+            } else {
+              await tx.stockLevel.update({
+                where: { productId_warehouseId_lotNumber: { productId: item.productId, warehouseId, lotNumber: item.lotNumber } },
+                data: { quantity: { [direction === 1 ? 'decrement' : 'increment']: item.quantity } }
+              });
+            }
+          }
+          await tx.stockMovement.deleteMany({ where: { referenceId: oldVoucher.voucherNo, companyId } });
+        } else if (oldVoucher.controlStatus !== 'accepted' && newControlStatus === 'accepted') {
+          // Apply stock
+          for (const item of oldVoucher.items) {
+            const lotNumber = item.lotNumber || '';
+            const shouldDecrease = typeMeta.direction === -1 || oldVoucher.voucherType === 'TRANSFER';
+
+            if (shouldDecrease) {
+              const currentLevel = await tx.stockLevel.findUnique({
+                where: { productId_warehouseId_lotNumber: { productId: item.productId, warehouseId: oldVoucher.warehouseId, lotNumber } }
+              });
+              if (!currentLevel || currentLevel.quantity < item.quantity) {
+                throw new Error(`Yetersiz stok: ${lotNumber || 'Lotsuz'} lot için çıkış miktarı mevcut stoktan fazla`);
+              }
+              await tx.stockLevel.update({
+                where: { productId_warehouseId_lotNumber: { productId: item.productId, warehouseId: oldVoucher.warehouseId, lotNumber } },
+                data: { quantity: { decrement: item.quantity } }
+              });
+            }
+
+            if (typeMeta.direction === 1 || oldVoucher.voucherType === 'TRANSFER') {
+              await tx.stockLevel.upsert({
+                where: { productId_warehouseId_lotNumber: { productId: item.productId, warehouseId: oldVoucher.voucherType === 'TRANSFER' ? oldVoucher.targetWarehouseId as string : oldVoucher.warehouseId, lotNumber } },
+                update: { quantity: { increment: item.quantity } },
+                create: { companyId, productId: item.productId, warehouseId: oldVoucher.voucherType === 'TRANSFER' ? oldVoucher.targetWarehouseId as string : oldVoucher.warehouseId, lotNumber, quantity: item.quantity }
+              });
+            }
+
+            await tx.stockMovement.create({
+              data: {
+                companyId,
+                productId: item.productId,
+                fromWarehouseId: shouldDecrease ? oldVoucher.warehouseId : null,
+                toWarehouseId: typeMeta.direction === 1 ? oldVoucher.warehouseId : oldVoucher.voucherType === 'TRANSFER' ? oldVoucher.targetWarehouseId : null,
+                lotNumber,
+                quantity: item.quantity,
+                type: typeMeta.movementType,
+                referenceId: finalVoucherNo,
+                description: `${typeMeta.label} stok fişi (Onaylandı)`
+              }
+            });
+          }
+        }
+      } else if (voucherNo && voucherNo !== oldVoucher.voucherNo) {
+        // If ONLY voucherNo changed and status is accepted, update referenceId in movements
+        if (oldVoucher.controlStatus === 'accepted') {
+          await tx.stockMovement.updateMany({
+            where: { referenceId: oldVoucher.voucherNo, companyId },
+            data: { referenceId: voucherNo }
+          });
+        }
       }
 
       // 3. Update voucher header
       return await (tx as any).stockVoucher.update({
-        where: { id, companyId },
+        where: { id: oldVoucher.id, companyId },
         data: {
+          voucherNo: voucherNo || undefined,
           firmId: firmId || null,
           controlStatus: controlStatus || undefined,
           documentNo: documentNo || null,
@@ -489,68 +617,136 @@ router.put('/stock-vouchers/:id', authenticateToken, async (req: AuthRequest, re
     res.json(result);
   } catch (error: any) {
     console.error('Stock voucher update error:', error);
-    res.status(400).json({ error: error.message || 'Fiş güncellenemedi' });
+    res.status(400).json({
+      error: error.message || 'Fiş güncellenemedi',
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 
 router.delete('/stock-vouchers/:id', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const companyId = getCompanyId(req);
-    const { id } = req.params;
+    const id = String(req.params.id);
+
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    const isPureNumber = /^\d+$/.test(id);
 
     const voucher = await (prisma as any).stockVoucher.findFirst({
-      where: { id, companyId },
+      where: {
+        companyId,
+        OR: [
+          ...(isUUID ? [{ id }] : []),
+          { voucherNo: { equals: id, mode: 'insensitive' } },
+          ...(isPureNumber ? [{ voucherNo: `SF${id.padStart(6, '0')}` }] : [])
+        ]
+      },
       include: { items: true }
     });
 
-    if (!voucher) return res.status(404).json({ error: 'Fış bulunamadı' });
+    if (!voucher) return res.status(404).json({ error: 'Fiş bulunamadı' });
 
     await prisma.$transaction(async (tx) => {
-      // Reverse stock levels
-      for (const item of voucher.items) {
-        const direction = voucher.direction; // 1 for entry, -1 for exit
-        const warehouseId = voucher.warehouseId;
-        const targetWarehouseId = voucher.targetWarehouseId;
+      // Reverse stock levels (Only if it was accepted)
+      if (voucher.controlStatus === 'accepted') {
+        for (const item of voucher.items) {
+          const direction = voucher.direction; // 1 for entry, -1 for exit
+          const warehouseId = voucher.warehouseId;
+          const targetWarehouseId = voucher.targetWarehouseId;
+          const lotNumber = item.lotNumber || '';
 
-        if (voucher.voucherType === 'TRANSFER') {
-          // Increase source, decrease target
-          await tx.stockLevel.update({
-            where: { productId_warehouseId_lotNumber: { productId: item.productId, warehouseId, lotNumber: item.lotNumber } },
-            data: { quantity: { increment: item.quantity } }
-          });
-          await tx.stockLevel.update({
-            where: { productId_warehouseId_lotNumber: { productId: item.productId, warehouseId: targetWarehouseId as string, lotNumber: item.lotNumber } },
-            data: { quantity: { decrement: item.quantity } }
-          });
-        } else {
-          // Entry: decrement, Exit: increment
-          await tx.stockLevel.update({
-            where: { productId_warehouseId_lotNumber: { productId: item.productId, warehouseId, lotNumber: item.lotNumber } },
-            data: { quantity: { [direction === 1 ? 'decrement' : 'increment']: item.quantity } }
-          });
+          if (voucher.voucherType === 'TRANSFER') {
+            // 1. Revert Source: Increase source warehouse stock
+            const sourceLevel = await tx.stockLevel.findFirst({
+              where: { productId: item.productId, warehouseId, lotNumber }
+            });
+
+            if (sourceLevel) {
+              await tx.stockLevel.updateMany({
+                where: { id: sourceLevel.id },
+                data: { quantity: { increment: item.quantity } }
+              });
+            } else {
+              await tx.stockLevel.create({
+                data: { companyId, productId: item.productId, warehouseId, lotNumber, quantity: item.quantity }
+              });
+            }
+
+            // 2. Revert Target: Decrease target warehouse stock
+            if (targetWarehouseId) {
+              const targetLevel = await tx.stockLevel.findFirst({
+                where: { productId: item.productId, warehouseId: targetWarehouseId, lotNumber }
+              });
+              if (targetLevel) {
+                await tx.stockLevel.updateMany({
+                  where: { id: targetLevel.id },
+                  data: { quantity: { decrement: Math.min(item.quantity, targetLevel.quantity) } }
+                });
+              }
+            }
+          } else {
+            // Entry: decrement, Exit: increment
+            const currentLevel = await tx.stockLevel.findFirst({
+              where: { productId: item.productId, warehouseId, lotNumber }
+            });
+
+            if (direction === 1) { // Entry reversal = decrement
+              if (currentLevel) {
+                await tx.stockLevel.updateMany({
+                  where: { id: currentLevel.id },
+                  data: { quantity: { decrement: Math.min(item.quantity, currentLevel.quantity) } }
+                });
+              }
+            } else { // Exit reversal = increment
+              if (currentLevel) {
+                await tx.stockLevel.updateMany({
+                  where: { id: currentLevel.id },
+                  data: { quantity: { increment: item.quantity } }
+                });
+              } else {
+                await tx.stockLevel.create({
+                  data: { companyId, productId: item.productId, warehouseId, lotNumber, quantity: item.quantity }
+                });
+              }
+            }
+          }
         }
-      }
 
-      // Delete movements associated with this voucher (referenceId = voucherNo)
-      await tx.stockMovement.deleteMany({
-        where: { referenceId: voucher.voucherNo, companyId }
-      });
+        // Delete movements associated with this voucher (referenceId = voucherNo)
+        await tx.stockMovement.deleteMany({
+          where: { referenceId: voucher.voucherNo, companyId }
+        });
+      }
 
       // Delete voucher items
       await (tx as any).stockVoucherItem.deleteMany({
-        where: { voucherId: id }
+        where: { voucherId: voucher.id }
       });
 
       // Delete voucher
-      await (tx as any).stockVoucher.delete({
-        where: { id }
+      await (tx as any).stockVoucher.deleteMany({
+        where: { id: voucher.id }
       });
     });
 
-    res.json({ success: true, message: 'Fış ve bağlı hareketler silindi' });
-  } catch (error) {
-    console.error('Stock voucher delete error:', error);
-    res.status(400).json({ error: 'Fış silinemedi' });
+    res.json({ success: true, message: 'Fiş ve bağlı hareketler silindi' });
+  } catch (error: any) {
+    console.error('CRITICAL DELETE ERROR:', error);
+    
+    // Minimal error data to avoid circular refs
+    const errorData = {
+      message: String(error.message || error),
+      code: error.code,
+      meta: error.meta,
+      voucherId: id,
+      companyId: companyId
+    };
+
+    res.status(400).json({ 
+      error: errorData.message,
+      details: errorData,
+      stack: process.env.NODE_ENV === 'development' ? String(error.stack) : undefined
+    });
   }
 });
 
@@ -558,14 +754,14 @@ router.delete('/stock-vouchers/:id', authenticateToken, async (req: AuthRequest,
 router.get('/warehouses', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const companyId = getCompanyId(req);
-    if (!companyId) return res.status(400).json({ error: 'Company ID is missing' });
+    if (!companyId) return res.status(400).json({ error: 'Şirket ID eksik' });
 
     const warehouses = await prisma.warehouse.findMany({
       where: { companyId },
       include: {
         _count: { select: { stockLevels: true } }
       },
-      orderBy: { displayOrder: 'asc' }
+      orderBy: { code: 'asc' }
     });
     res.json(warehouses);
   } catch (error) {
@@ -576,16 +772,16 @@ router.get('/warehouses', authenticateToken, async (req: AuthRequest, res) => {
 router.post('/warehouses', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const companyId = getCompanyId(req);
-    if (!companyId) return res.status(400).json({ error: 'Company ID is missing' });
+    if (!companyId) return res.status(400).json({ error: 'Şirket ID eksik' });
 
     const { name, code, type, status, unitId, locationId } = req.body;
     const warehouse = await (prisma as any).warehouse.create({
-      data: { 
-        companyId, 
-        name, 
+      data: {
+        companyId,
+        name,
         code: code || null,
-        type: type || 'general', 
-        status: status || 'active', 
+        type: type || 'general',
+        status: status || 'active',
         unitId: unitId || null,
         locationId: locationId || null
       }
@@ -599,7 +795,7 @@ router.post('/warehouses', authenticateToken, async (req: AuthRequest, res) => {
 router.put('/warehouses/:id', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const companyId = getCompanyId(req);
-    if (!companyId) return res.status(400).json({ error: 'Company ID is missing' });
+    if (!companyId) return res.status(400).json({ error: 'Şirket ID eksik' });
 
     const { id } = req.params;
     const { name, code, type, status, unitId, locationId } = req.body;
@@ -634,7 +830,7 @@ router.delete('/warehouses/:id', authenticateToken, async (req: AuthRequest, res
 router.get('/levels', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const companyId = getCompanyId(req);
-    if (!companyId) return res.status(400).json({ error: 'Company ID is missing' });
+    if (!companyId) return res.status(400).json({ error: 'Şirket ID eksik' });
 
     const levels = await prisma.stockLevel.findMany({
       where: { companyId },
@@ -653,7 +849,7 @@ router.get('/levels', authenticateToken, async (req: AuthRequest, res) => {
 router.get('/levels/export', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const companyId = getCompanyId(req);
-    if (!companyId) return res.status(400).json({ error: 'Company ID is missing' });
+    if (!companyId) return res.status(400).json({ error: 'Şirket ID eksik' });
 
     const { warehouseId, search, product, lotNumber, stockStatus } = req.query;
     const where: any = { companyId };
@@ -763,7 +959,7 @@ router.get('/levels/export', authenticateToken, async (req: AuthRequest, res) =>
 router.get('/movements', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const companyId = getCompanyId(req);
-    if (!companyId) return res.status(400).json({ error: 'Company ID is missing' });
+    if (!companyId) return res.status(400).json({ error: 'Şirket ID eksik' });
 
     const {
       search,
@@ -854,7 +1050,7 @@ router.get('/movements', authenticateToken, async (req: AuthRequest, res) => {
 router.post('/movements', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const companyId = getCompanyId(req);
-    if (!companyId) return res.status(400).json({ error: 'Company ID is missing' });
+    if (!companyId) return res.status(400).json({ error: 'Şirket ID eksik' });
 
     const { productId, fromWarehouseId, toWarehouseId, quantity, type, description, referenceId } = req.body;
 
@@ -906,7 +1102,7 @@ router.post('/warehouses/bulk-update', authenticateToken, async (req: AuthReques
   try {
     const companyId = getCompanyId(req);
     const { updates } = req.body;
-    
+
     await prisma.$transaction(
       updates.map((u: any) => {
         const { id, data: originalData } = u;
@@ -917,7 +1113,7 @@ router.post('/warehouses/bulk-update', authenticateToken, async (req: AuthReques
         });
       })
     );
-    
+
     res.json({ success: true });
   } catch (error) {
     res.status(400).json({ error: 'Toplu güncelleme başarısız oldu' });
@@ -977,7 +1173,7 @@ router.get('/lots', authenticateToken, async (req: AuthRequest, res) => {
     const { productId, warehouseId } = req.query;
 
     const levels = await prisma.stockLevel.findMany({
-      where: { 
+      where: {
         companyId: companyId as string,
         productId: productId as string,
         warehouseId: warehouseId as string,

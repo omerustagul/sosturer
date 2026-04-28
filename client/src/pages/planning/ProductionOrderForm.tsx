@@ -579,9 +579,9 @@ export function ProductionOrderForm() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {isEditing && (
-            <div className="flex items-center gap-2 mr-4">
+            <div className="flex items-center gap-2">
               {formData.status === 'planned' && (
                 <button
                   onClick={() => handleStatusChange('active')}

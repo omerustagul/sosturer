@@ -108,7 +108,7 @@ function App() {
                 <Route path="inventory/movements" element={<StockMovements />} />
                 <Route path="inventory/stock-vouchers" element={<StockVouchers />} />
                 <Route path="inventory/stock-vouchers/new" element={<StockVoucherForm />} />
-                <Route path="inventory/stock-vouchers/:id" element={<StockVoucherForm />} />
+                <Route path="inventory/stock-vouchers/:voucherNo" element={<StockVoucherForm />} />
                 <Route path="sales/orders" element={<OrdersList />} />
                 <Route path="sales/customers" element={<CustomersList />} />
 

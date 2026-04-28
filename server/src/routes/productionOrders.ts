@@ -507,55 +507,74 @@ router.patch('/:id/status', authenticateToken, async (req: AuthRequest, res) => 
 
     if (!order) return res.status(404).json({ error: 'Üretim emri bulunamadı' });
 
-    if (status === 'completed') {
-      // 1. Check all steps completed
-      const allCompleted = order.steps.every(s => s.status === 'completed');
-      if (!allCompleted) {
-        return res.status(400).json({ error: 'Tüm operasyonlar tamamlanmadan üretim emri bitirilemez.' });
-      }
+    if (status === order.status) return res.json(order);
 
-      // 2. Transaction for status and stock entry
-      await prisma.$transaction(async (tx) => {
-        // Update main order status
-        await tx.productionOrder.update({
-          where: { id },
-          data: { status, endDate: new Date() }
-        });
-
-        // Determine final quantity (use last step's approved quantity or planned quantity)
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. If moving AWAY from completed, reverse stock
+      if (order.status === 'completed' && status !== 'completed') {
         const sortedSteps = [...order.steps].sort((a, b) => b.sequence - a.sequence);
         const finalQty = sortedSteps[0]?.approvedQty || order.quantity;
 
         if (order.targetWarehouseId) {
-          // UPSERT stock level
-          const existingLevel = await tx.stockLevel.findUnique({
+          // Decrement stock level
+          await tx.stockLevel.update({
             where: {
               productId_warehouseId_lotNumber: {
                 productId: order.productId,
                 warehouseId: order.targetWarehouseId,
                 lotNumber: order.lotNumber
               }
+            },
+            data: { quantity: { decrement: finalQty } }
+          });
+
+          // Delete stock movement
+          await tx.stockMovement.deleteMany({
+            where: {
+              companyId,
+              referenceId: order.id,
+              type: 'PRODUCTION'
+            }
+          });
+        }
+      }
+
+      // 2. If moving TO completed, apply stock
+      if (status === 'completed' && order.status !== 'completed') {
+        // Check all steps completed
+        const allCompleted = order.steps.every(s => s.status === 'completed');
+        if (!allCompleted) {
+          throw new Error('Tüm operasyonlar tamamlanmadan üretim emri bitirilemez.');
+        }
+
+        const sortedSteps = [...order.steps].sort((a, b) => b.sequence - a.sequence);
+        const finalQty = sortedSteps[0]?.approvedQty || order.quantity;
+
+        if (order.targetWarehouseId) {
+          // UPSERT stock level
+          await tx.stockLevel.upsert({
+            where: {
+              productId_warehouseId_lotNumber: {
+                productId: order.productId,
+                warehouseId: order.targetWarehouseId,
+                lotNumber: order.lotNumber
+              }
+            },
+            update: { quantity: { increment: finalQty } },
+            create: {
+              companyId: companyId!,
+              productId: order.productId,
+              warehouseId: order.targetWarehouseId,
+              lotNumber: order.lotNumber,
+              quantity: finalQty
             }
           });
 
-          if (existingLevel) {
-            await tx.stockLevel.update({
-              where: { id: existingLevel.id },
-              data: { quantity: { increment: finalQty } }
-            });
-          } else {
-            await tx.stockLevel.create({
-              data: {
-                companyId: companyId!,
-                productId: order.productId,
-                warehouseId: order.targetWarehouseId,
-                lotNumber: order.lotNumber,
-                quantity: finalQty
-              }
-            });
-          }
+          // Log stock movement (Ensuring no duplicates by using update if exists? No, deleteMany first is safer if we want to be sure)
+          await tx.stockMovement.deleteMany({
+            where: { referenceId: order.id, type: 'PRODUCTION', companyId }
+          });
 
-          // Log stock movement
           await tx.stockMovement.create({
             data: {
               companyId: companyId!,
@@ -569,18 +588,19 @@ router.patch('/:id/status', authenticateToken, async (req: AuthRequest, res) => 
             }
           });
         }
+      }
+
+      // 3. Update main order status
+      return await tx.productionOrder.update({
+        where: { id, companyId },
+        data: { 
+          status, 
+          endDate: status === 'completed' ? new Date() : (status === 'planned' ? null : undefined) 
+        }
       });
-
-      return res.json({ success: true, message: 'Üretim emri tamamlandı ve stok girişi yapıldı.' });
-    }
-
-    // Normal status update
-    const updated = await prisma.productionOrder.update({
-      where: { id: id as string, companyId },
-      data: { status }
     });
 
-    res.json(updated);
+    res.json(result);
   } catch (error: any) {
     console.error('Update status error:', error);
     res.status(400).json({ error: error.message || 'Durum güncellenemedi' });

@@ -308,7 +308,7 @@ export function InventoryDashboard() {
         <div className="p-4 border-t border-theme bg-theme-base/20 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-6 order-2 md:order-1">
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-black text-theme-dim whitespace-nowrap uppercase tracking-widest">SAYFADA:</span>
+              <span className="text-[11px] font-black text-theme-dim whitespace-nowrap">Sayfada Görüntülenen:</span>
               <div className="w-24">
                 <CustomSelect
                   options={[
@@ -386,8 +386,8 @@ function WarehouseButton({ active, name, type, count, onClick }: any) {
     <button
       onClick={onClick}
       className={`min-w-[180px] max-w-[220px] shrink-0 px-4 py-3 rounded-xl border text-left transition-all ${active
-          ? 'bg-theme-primary text-white border-theme-primary shadow-lg shadow-theme-primary/20'
-          : 'bg-theme-base/50 border-theme text-theme-muted hover:text-theme-main hover:border-theme-primary/30'
+        ? 'bg-theme-primary text-white border-theme-primary shadow-lg shadow-theme-primary/20'
+        : 'bg-theme-base/50 border-theme text-theme-muted hover:text-theme-main hover:border-theme-primary/30'
         }`}
     >
       <div className="flex items-center justify-between gap-3">

@@ -148,7 +148,7 @@ export function StockVouchers() {
               <ArrowRightLeft className="w-5 h-5 text-theme-success" />
             </div>
             <div>
-              <h3 className="text-lg font-black text-theme-main leading-none">FİŞ GEÇMİŞİ</h3>
+              <h3 className="text-lg font-black text-theme-main uppercase leading-none">Stok Fişleri</h3>
               <p className="text-[10px] text-theme-dim font-black uppercase tracking-widest mt-1 opacity-60">
                 {filteredVouchers.length.toLocaleString('tr-TR')} kayıt
               </p>
@@ -200,14 +200,25 @@ export function StockVouchers() {
                     </td>
                     <td className="px-6 py-5 text-xs font-bold text-theme-muted whitespace-nowrap">{voucher.firm?.name || '-'}</td>
                     <td className="px-6 py-5">
-                      <div className="flex items-center gap-2 text-xs font-bold text-theme-muted whitespace-nowrap">
-                        <span>{voucher.warehouse?.name || '-'}</span>
-                        {voucher.targetWarehouse && (
-                          <>
-                            <ArrowRightLeft size={12} className="text-theme-dim opacity-50" />
-                            <span className="text-theme-main font-black">{voucher.targetWarehouse.name}</span>
-                          </>
-                        )}
+                      <div className="flex flex-col gap-0.5 whitespace-nowrap">
+                        <div className="flex items-center gap-2 text-xs font-black text-theme-main">
+                          <span>{voucher.warehouse?.name || '-'}</span>
+                          {voucher.targetWarehouse && (
+                            <>
+                              <ArrowRightLeft size={12} className="text-theme-dim opacity-50" />
+                              <span className="text-theme-primary">{voucher.targetWarehouse.name}</span>
+                            </>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 text-[10px] font-bold text-theme-muted opacity-60 uppercase tracking-tighter">
+                          <span>{voucher.warehouse?.code || '-'}</span>
+                          {voucher.targetWarehouse && (
+                            <>
+                              <div className="w-1 h-1 rounded-full bg-theme-dim" />
+                              <span>{voucher.targetWarehouse.code || '-'}</span>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-5">
@@ -231,7 +242,7 @@ export function StockVouchers() {
                     <td className="px-6 py-5">
                       <div className="flex items-center justify-center gap-2">
                         <button
-                          onClick={() => navigate(`/inventory/stock-vouchers/${voucher.id}`)}
+                          onClick={() => navigate(`/inventory/stock-vouchers/${voucher.voucherNo}`)}
                           className="p-2 rounded-lg bg-theme-primary/10 text-theme-primary hover:bg-theme-primary/20 transition-all"
                           title="Düzenle"
                         >
@@ -273,7 +284,7 @@ export function StockVouchers() {
         <div className="p-4 border-t border-theme bg-theme-base/20 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-6 order-2 md:order-1">
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-black text-theme-dim whitespace-nowrap uppercase tracking-widest">SAYFADA:</span>
+              <span className="text-[11px] font-black text-theme-dim whitespace-nowrap">Sayfada Görüntülenen:</span>
               <div className="w-24">
                 <CustomSelect
                   options={[
@@ -374,11 +385,11 @@ function StatCard({ icon: Icon, label, value, color }: any) {
   return (
     <div className="modern-glass-card p-5 border-theme-primary/10 hover:border-theme-primary/30 transition-all duration-300 group">
       <div className="flex justify-between items-start mb-4">
-        <div className={`p-3 rounded-2xl ${color.replace('text', 'bg')}/10 group-hover:scale-110 transition-transform`}>
-          <Icon className={`${color} w-5 h-5`} />
+        <div className={`p-2 rounded-xl ${color.replace('text', 'bg')}/10 group-hover:scale-110 transition-transform`}>
+          <Icon className={`${color} w-4 h-4`} />
         </div>
       </div>
-      <p className="text-[10px] font-black text-theme-dim uppercase tracking-[0.2em] mb-2 opacity-60">{label}</p>
+      <p className="text-[12px] font-black text-theme-dim mb-2 opacity-60">{label}</p>
       <p className="text-xl font-black text-theme-main tracking-tight leading-none truncate">{value}</p>
     </div>
   );

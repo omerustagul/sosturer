@@ -82,8 +82,8 @@ const createLine = (): VoucherLine => ({
 
 export function StockVoucherForm() {
   const navigate = useNavigate();
-  const { id } = useParams();
-  const isEditing = Boolean(id);
+  const { voucherNo } = useParams();
+  const isEditing = Boolean(voucherNo);
 
   const [products, setProducts] = useState<any[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
@@ -117,7 +117,7 @@ export function StockVoucherForm() {
         setWarehouses(Array.isArray(warehouseRes) ? warehouseRes : []);
         setFirms(Array.isArray(firmRes) ? firmRes : []);
         setStockLevels(Array.isArray(levelRes) ? levelRes : []);
-        
+
         if (!isEditing) {
           setNextVoucherNo(nextRes?.voucherNo || 'SF000000');
           setForm((prev) => ({
@@ -125,7 +125,7 @@ export function StockVoucherForm() {
             warehouseId: prev.warehouseId || warehouseRes?.[0]?.id || ''
           }));
         } else {
-          const voucher = await api.get(`/inventory/stock-vouchers/${id}`);
+          const voucher = await api.get(`/inventory/stock-vouchers/${voucherNo}`);
           setForm({
             voucherType: voucher.voucherType,
             firmId: voucher.firmId || '',
@@ -148,15 +148,16 @@ export function StockVoucherForm() {
             notes: item.notes || ''
           })));
         }
-      } catch (error) {
-        notify.error('Veri Alınamadı', 'Stok fişi ekranı için gerekli bilgiler yüklenemedi.');
+      } catch (error: any) {
+        const message = error.response?.data?.error || 'Stok fişi ekranı için gerekli bilgiler yüklenemedi.';
+        notify.error('Hata', message);
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [id, isEditing]);
+  }, [voucherNo, isEditing]);
 
   const productOptions = useMemo(() => {
     return products.map((product) => ({
@@ -178,7 +179,21 @@ export function StockVoucherForm() {
   const warehouseOptions = useMemo(() => {
     return warehouses
       .filter((warehouse) => warehouse.status !== 'passive')
-      .map((warehouse) => ({ id: warehouse.id, label: warehouse.name, subLabel: warehouse.code || warehouse.type }));
+      .map((warehouse) => {
+        let typeLabel = warehouse.type;
+        if (warehouse.type === 'finished') typeLabel = 'Mamul';
+        if (warehouse.type === 'semifinished') typeLabel = 'Yarımamul';
+        if (warehouse.type === 'raw') typeLabel = 'Hammadde';
+        if (warehouse.type === 'scrap') typeLabel = 'Hurda';
+        if (warehouse.type === 'consumable') typeLabel = 'Sarf Malzeme';
+
+        return {
+          id: warehouse.id,
+          label: warehouse.name,
+          subLabel: warehouse.code || typeLabel
+        };
+      })
+      .sort((a, b) => (a.subLabel || '').localeCompare(b.subLabel || ''));
   }, [warehouses]);
 
   const updateLine = (clientId: string, patch: Partial<VoucherLine>) => {
@@ -276,7 +291,7 @@ export function StockVoucherForm() {
     setSaving(true);
     try {
       if (isEditing) {
-        await api.put(`/inventory/stock-vouchers/${id}`, {
+        await api.put(`/inventory/stock-vouchers/${voucherNo}`, {
           ...form,
           firmId: form.firmId || null,
           targetWarehouseId: isTransfer ? form.targetWarehouseId : null,
@@ -320,7 +335,7 @@ export function StockVoucherForm() {
           </button>
           <div>
             <h2 className="text-xl font-black text-theme-main uppercase flex items-center gap-2">
-              <FileText className="w-5 h-5 text-theme-primary" /> 
+              <FileText className="w-5 h-5 text-theme-primary" />
               {isEditing ? `STOK FİŞİ: ${nextVoucherNo}` : 'YENİ STOK FİŞİ'}
             </h2>
             <p className="text-theme-main/80 text-[11px] mt-0.5 font-bold opacity-60">
@@ -329,7 +344,7 @@ export function StockVoucherForm() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-           <button
+          <button
             type="button"
             onClick={handleSave}
             disabled={saving || uploading}
@@ -460,12 +475,12 @@ export function StockVoucherForm() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-theme-surface/60">
-                  <th className="px-4 py-3 text-[10px] font-black text-theme-dim uppercase min-w-[260px]">Ürün</th>
-                  <th className="px-4 py-3 text-[10px] font-black text-theme-dim uppercase min-w-[160px]">Lot Numarası</th>
-                  <th className="px-4 py-3 text-[10px] font-black text-theme-dim uppercase text-right min-w-[110px]">Mevcut</th>
-                  <th className="px-4 py-3 text-[10px] font-black text-theme-dim uppercase min-w-[140px]">Miktar</th>
-                  <th className="px-4 py-3 text-[10px] font-black text-theme-dim uppercase min-w-[180px]">Açıklama</th>
-                  <th className="px-4 py-3 text-center text-[10px] font-black uppercase tracking-widest text-theme-dim w-16">İŞLEM</th>
+                  <th className="px-4 py-3 text-[10px] font-black text-theme-dim min-w-[260px]">Ürün</th>
+                  <th className="px-4 py-3 text-[10px] font-black text-theme-dim min-w-[160px]">Lot Numarası</th>
+                  <th className="px-4 py-3 text-[10px] font-black text-theme-dim text-right min-w-[110px]">Mevcut</th>
+                  <th className="px-4 py-3 text-[10px] font-black text-theme-dim min-w-[140px]">Miktar</th>
+                  <th className="px-4 py-3 text-[10px] font-black text-theme-dim min-w-[180px]">Açıklama</th>
+                  <th className="px-4 py-3 text-center text-[10px] font-black text-theme-dim w-16">İşlem</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-theme/20">
@@ -492,13 +507,13 @@ export function StockVoucherForm() {
                           className="w-full h-10 bg-theme-base border border-theme rounded-xl px-3 text-xs font-black text-theme-main outline-none focus:border-theme-primary transition-all uppercase"
                           placeholder={isOutbound ? 'Lot seçin' : 'Lot girin'}
                         />
-                          <datalist id={datalistId}>
-                            {lotOptions.map((lot) => (
-                              <option key={`${line.clientId}-${lot.lotNumber}`} value={lot.lotNumber}>
-                                {lot.quantity.toLocaleString('tr-TR')}
-                              </option>
-                            ))}
-                          </datalist>
+                        <datalist id={datalistId}>
+                          {lotOptions.map((lot) => (
+                            <option key={`${line.clientId}-${lot.lotNumber}`} value={lot.lotNumber}>
+                              {lot.quantity.toLocaleString('tr-TR')}
+                            </option>
+                          ))}
+                        </datalist>
                       </td>
                       <td className="px-4 py-3 align-top text-right">
                         <span className={`inline-flex h-10 items-center font-mono text-xs font-black ${isOutbound ? 'text-theme-warning' : 'text-theme-dim'}`}>
@@ -525,16 +540,16 @@ export function StockVoucherForm() {
                           className="w-full h-10 bg-theme-base border border-theme rounded-xl px-3 text-xs font-bold text-theme-main outline-none focus:border-theme-primary transition-all"
                         />
                       </td>
-                        <td className="px-4 py-3 align-top text-center">
-                          <button
-                            type="button"
-                            onClick={() => removeLine(line.clientId)}
-                            className="h-10 w-10 rounded-xl bg-theme-main/5 text-theme-dim hover:text-theme-danger hover:bg-theme-danger/10 transition-all inline-flex items-center justify-center"
-                            aria-label={`${index + 1}. satırı sil`}
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </td>
+                      <td className="px-4 py-3 align-top text-center">
+                        <button
+                          type="button"
+                          onClick={() => removeLine(line.clientId)}
+                          className="h-10 w-10 rounded-xl bg-theme-main/5 text-theme-dim hover:text-theme-danger hover:bg-theme-danger/10 transition-all inline-flex items-center justify-center"
+                          aria-label={`${index + 1}. satırı sil`}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </td>
                     </tr>
                   );
                 })}
@@ -543,13 +558,13 @@ export function StockVoucherForm() {
           </div>
 
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-              <button
-                type="button"
-                onClick={() => setLines((prev) => [...prev, createLine()])}
-                className="h-10 px-4 rounded-xl bg-theme-base border border-theme text-theme-main hover:border-theme-primary/40 transition-all flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest"
-              >
-                <Plus size={16} /> Satır Ekle
-              </button>
+            <button
+              type="button"
+              onClick={() => setLines((prev) => [...prev, createLine()])}
+              className="h-10 px-4 rounded-xl bg-theme-base border border-theme text-theme-main hover:border-theme-primary/40 transition-all flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest"
+            >
+              <Plus size={16} /> Satır Ekle
+            </button>
             <div className="flex-1" />
             <button
               type="button"
@@ -588,7 +603,7 @@ function ReadOnlyField({ label, value }: { label: string; value: string }) {
 
 function StatCard({ icon: Icon, label, value, color }: any) {
   return (
-    <div className="modern-glass-card p-5 border-theme-primary/10 hover:border-theme-primary/30 transition-all duration-300 group">
+    <div className="modern-glass-card p-3 border-theme-primary/10 hover:border-theme-primary/30 transition-all duration-300 group">
       <div className="flex justify-between items-start mb-4">
         <div className={`p-3 rounded-2xl ${color.replace('text', 'bg')}/10 group-hover:scale-110 transition-transform`}>
           <Icon className={`${color} w-5 h-5`} />

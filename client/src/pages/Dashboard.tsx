@@ -271,7 +271,7 @@ function Dashboard() {
             <div className="modern-glass-card border-dashed border-2 border-theme-primary/30 bg-theme-primary/[0.02] p-8 relative overflow-hidden group/m">
               {/* Background Glow */}
               <div className="absolute top-0 right-0 w-96 h-96 bg-theme-primary/5 rounded-full blur-[100px] -mr-48 -mt-48 pointer-events-none" />
-              
+
               <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8 relative z-10">
                 <div className="flex flex-col gap-6 max-w-md">
                   <div className="flex items-center gap-3">
@@ -279,7 +279,7 @@ function Dashboard() {
                       <LayoutIcon className="w-5 h-5 animate-pulse" />
                     </div>
                     <div>
-                      <h2 className="text-sm font-black text-theme-main tracking-widest uppercase flex items-center gap-2">MODÜL YÖNETİMİ <Activity className="w-4 h-4 text-theme-primary" /></h2>
+                      <h2 className="text-sm font-black text-theme-main flex items-center gap-2">MODÜL YÖNETİMİ <Activity className="w-4 h-4 text-theme-primary" /></h2>
                       <p className="text-[10px] font-bold text-theme-muted opacity-60 uppercase tracking-tighter">
                         Görünmesini istediğiniz bileşenleri seçip sürükleyerek sıralayın
                       </p>

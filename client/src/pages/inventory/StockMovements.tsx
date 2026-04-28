@@ -21,9 +21,14 @@ const movementTypes = [
   { id: 'all', label: 'TÜM TİPLER' },
   { id: 'PRODUCTION', label: 'ÜRETİM GİRİŞİ' },
   { id: 'SALE', label: 'SATIŞ ÇIKIŞI' },
-  { id: 'ADJUSTMENT', label: 'SAYIM / DÜZELTME' },
+  { id: 'STOCK_VOUCHER_ENTRY', label: 'STOK GİRİŞİ' },
+  { id: 'STOCK_VOUCHER_EXIT', label: 'STOK ÇIKIŞI' },
   { id: 'TRANSFER', label: 'TRANSFER' },
-  { id: 'INTERNAL', label: 'İÇ HAREKET' }
+  { id: 'STOCK_COUNT_SURPLUS', label: 'SAYIM FAZLASI' },
+  { id: 'STOCK_COUNT_SHORTAGE', label: 'SAYIM EKSİĞİ' },
+  { id: 'SCRAP', label: 'FİRE / HURDA' },
+  { id: 'RESERVE', label: 'REZERVE' },
+  { id: 'CONSUMPTION_EXIT', label: 'TÜKETİM ÇIKIŞI' }
 ];
 
 const normalize = (value: any) => String(value || '').toLocaleLowerCase('tr-TR');
@@ -230,7 +235,7 @@ export function StockMovements() {
               <tr className="bg-theme-surface/50">
                 <th className="px-8 py-5 text-[11px] font-black text-theme-dim">Tarih</th>
                 <th className="px-8 py-5 text-[11px] font-black text-theme-dim">Ürün</th>
-                <th className="px-8 py-5 text-[11px] font-black text-theme-dim ">Lot</th>
+                <th className="px-8 py-5 text-[11px] font-black text-theme-dim ">Giriş No</th>
                 <th className="px-8 py-5 text-[11px] font-black text-theme-dim ">Tip</th>
                 <th className="px-8 py-5 text-[11px] font-black text-theme-dim ">Nereden / Nereye</th>
                 <th className="px-8 py-5 text-[11px] font-black text-theme-dim ">Referans</th>
@@ -264,9 +269,9 @@ export function StockMovements() {
                   </td>
                   <td className="px-8 py-5">
                     <div className="flex items-center gap-3">
-                      <span className="text-xs font-bold text-theme-muted">{move.fromWarehouse?.name || '---'}</span>
-                      <ArrowRightLeft size={12} className="text-theme-dim opacity-30" />
-                      <span className="text-xs font-black text-theme-main">{move.toWarehouse?.name || '---'}</span>
+                      <span className="text-xs font-bold text-theme-main">{move.fromWarehouse?.name || '---'}</span>
+                      <ArrowRightLeft size={12} className="text-theme-dim opacity-90" />
+                      <span className="text-xs font-bold text-theme-main">{move.toWarehouse?.name || '---'}</span>
                     </div>
                   </td>
                   <td className="px-8 py-5">
@@ -278,7 +283,7 @@ export function StockMovements() {
                     </div>
                   </td>
                   <td className="px-8 py-5 text-right">
-                    <span className={`text-sm font-black italic ${move.toWarehouseId ? 'text-theme-success' : 'text-theme-danger'}`}>
+                    <span className={`text-sm font-black ${move.toWarehouseId ? 'text-theme-success' : 'text-theme-danger'}`}>
                       {move.toWarehouseId ? '+' : '-'}{move.quantity.toLocaleString()}
                     </span>
                   </td>
@@ -301,7 +306,7 @@ export function StockMovements() {
         <div className="p-4 border-t border-theme bg-theme-base/20 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-6 order-2 md:order-1">
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-black text-theme-dim whitespace-nowrap uppercase tracking-widest">SAYFADA:</span>
+              <span className="text-[11px] font-black text-theme-dim whitespace-nowrap">Sayfada Görüntülenen:</span>
               <div className="w-24">
                 <CustomSelect
                   options={[
@@ -379,20 +384,31 @@ function FilterInput({ icon: Icon, label, value, onChange, placeholder = '', typ
 }
 
 function MovementTypeBadge({ type }: { type: string }) {
-  const isProduction = type === 'PRODUCTION';
-  const isSale = type === 'SALE';
+  const typeMap: Record<string, { label: string; color: string; bg: string; border: string; icon: any }> = {
+    PRODUCTION: { label: 'ÜRETİM GİRİŞİ', color: 'text-theme-success', bg: 'bg-theme-success/10', border: 'border-theme-success/20', icon: TrendingUp },
+    SALE: { label: 'SATIŞ ÇIKIŞI', color: 'text-theme-danger', bg: 'bg-theme-danger/10', border: 'border-theme-danger/20', icon: TrendingDown },
+    STOCK_VOUCHER_ENTRY: { label: 'STOK GİRİŞİ', color: 'text-theme-success', bg: 'bg-theme-success/10', border: 'border-theme-success/20', icon: Package },
+    STOCK_VOUCHER_EXIT: { label: 'STOK ÇIKIŞI', color: 'text-theme-danger', bg: 'bg-theme-danger/10', border: 'border-theme-danger/20', icon: Package },
+    TRANSFER: { label: 'TRANSFER', color: 'text-theme-primary', bg: 'bg-theme-primary/10', border: 'border-theme-primary/20', icon: ArrowRightLeft },
+    STOCK_COUNT_SURPLUS: { label: 'SAYIM FAZLASI', color: 'text-theme-danger', bg: 'bg-theme-danger/10', border: 'border-theme-danger/20', icon: TrendingUp },
+    STOCK_COUNT_SHORTAGE: { label: 'SAYIM EKSİĞİ', color: 'text-theme-success', bg: 'bg-theme-success/10', border: 'border-theme-success/20', icon: TrendingDown },
+    SCRAP: { label: 'FİRE / HURDA', color: 'text-theme-danger', bg: 'bg-theme-danger/10', border: 'border-theme-danger/20', icon: X },
+    RESERVE: { label: 'REZERVE', color: 'text-theme-warning', bg: 'bg-theme-warning/10', border: 'border-theme-warning/20', icon: Package },
+    IMPORT_ENTRY: { label: 'İTHALAT GİRİŞİ', color: 'text-theme-success', bg: 'bg-theme-success/10', border: 'border-theme-success/20', icon: Package },
+    EXPORT_EXIT: { label: 'İHRACAT ÇIKIŞI', color: 'text-theme-danger', bg: 'bg-theme-danger/10', border: 'border-theme-danger/20', icon: Package },
+    CONSIGNMENT_ENTRY: { label: 'KONSİNYE GİRİŞİ', color: 'text-theme-success', bg: 'bg-theme-success/10', border: 'border-theme-success/20', icon: Package },
+    CONSIGNMENT_EXIT: { label: 'KONSİNYE ÇIKIŞI', color: 'text-theme-danger', bg: 'bg-theme-danger/10', border: 'border-theme-danger/20', icon: Package },
+    CONSUMPTION_EXIT: { label: 'TÜKETİM ÇIKIŞI', color: 'text-theme-danger', bg: 'bg-theme-danger/10', border: 'border-theme-danger/20', icon: Package },
+    ADJUSTMENT: { label: 'DÜZELTME', color: 'text-theme-primary', bg: 'bg-theme-primary/10', border: 'border-theme-primary/20', icon: Filter },
+  };
+
+  const config = typeMap[type] || { label: type, color: 'text-theme-dim', bg: 'bg-theme-dim/10', border: 'border-theme-dim/20', icon: History };
+  const Icon = config.icon;
 
   return (
-    <span className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border inline-flex items-center gap-2 ${isProduction
-      ? 'bg-theme-success/10 text-theme-success border-theme-success/20'
-      : isSale
-        ? 'bg-theme-danger/10 text-theme-danger border-theme-danger/20'
-        : 'bg-theme-primary/10 text-theme-primary border-theme-primary/20'
-      }`}>
-      {isProduction && <TrendingUp size={12} />}
-      {isSale && <TrendingDown size={12} />}
-      {!isProduction && !isSale && <ArrowRightLeft size={12} />}
-      {isProduction ? 'ÜRETİM GİRİŞİ' : isSale ? 'SATIŞ ÇIKIŞI' : type}
+    <span className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border inline-flex items-center gap-2 ${config.bg} ${config.color} ${config.border}`}>
+      <Icon size={12} />
+      {config.label}
     </span>
   );
 }

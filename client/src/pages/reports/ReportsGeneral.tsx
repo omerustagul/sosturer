@@ -32,7 +32,10 @@ import {
   Tooltip as RechartsTooltip,
   ResponsiveContainer,
   AreaChart,
-  Area
+  Area,
+  ComposedChart,
+  Line,
+  Legend
 } from 'recharts';
 import { Loading } from '../../components/common/Loading';
 import { Tooltip } from '../../components/common/Tooltip';
@@ -519,17 +522,19 @@ export function ReportsGeneral() {
               </h3>
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={machineComparison}>
+                  <ComposedChart data={machineComparison}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border-main)" vertical={false} />
                     <XAxis dataKey="name" stroke="var(--text-dim)" fontSize={10} tickLine={false} axisLine={false} />
-                    <YAxis stroke="var(--text-dim)" fontSize={10} tickLine={false} axisLine={false} />
+                    <YAxis yAxisId="left" stroke="var(--text-dim)" fontSize={10} tickLine={false} axisLine={false} />
+                    <YAxis yAxisId="right" orientation="right" stroke="var(--text-dim)" fontSize={10} tickLine={false} axisLine={false} domain={[0, 100]} />
                     <RechartsTooltip
                       contentStyle={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-main)', borderRadius: '12px' }}
                       itemStyle={{ color: 'var(--text-main)' }}
                     />
-                    <Bar dataKey="produced" fill="var(--primary)" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="oee" fill="var(--success)" radius={[4, 4, 0, 0]} name="OEE Oranı (%)" />
-                  </BarChart>
+                    <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px', fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase' }} />
+                    <Bar yAxisId="left" dataKey="produced" fill="var(--primary)" radius={[4, 4, 0, 0]} name="Üretilen Miktar" />
+                    <Line yAxisId="right" type="monotone" dataKey="oee" stroke="var(--success)" strokeWidth={3} dot={{ fill: 'var(--success)', r: 4 }} name="OEE Oranı (%)" />
+                  </ComposedChart>
                 </ResponsiveContainer>
               </div>
             </div>
@@ -690,7 +695,7 @@ export function ReportsGeneral() {
             <div className="p-4 border-t border-theme bg-theme-base/20 flex flex-col md:flex-row items-center justify-between gap-6">
               <div className="flex items-center gap-6 order-2 md:order-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-black text-theme-dim whitespace-nowrap uppercase tracking-widest">SAYFADA:</span>
+                  <span className="text-[11px] font-black text-theme-dim whitespace-nowrap">Sayfada Görüntülenen:</span>
                   <div className="w-24">
                     <CustomSelect
                       options={[

@@ -117,7 +117,7 @@ export function CustomersList() {
       <div className="modern-glass-card p-4 flex flex-col md:flex-row items-center justify-between gap-6">
         <div className="flex items-center gap-6 order-2 md:order-1">
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-black text-theme-dim whitespace-nowrap uppercase tracking-widest">SAYFADA:</span>
+            <span className="text-[11px] font-black text-theme-dim whitespace-nowrap">Sayfada Görüntülenen:</span>
             <div className="w-24">
               <CustomSelect
                 options={[
