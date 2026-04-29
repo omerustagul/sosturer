@@ -344,7 +344,6 @@ export function ProductionOrderForm() {
 
     if (bulkSigningSteps.length > 0) {
       // BULK SIGN
-      let currentApprovedQty = Number(signFormData.approvedQty || 0);
 
       for (const idx of bulkSigningSteps) {
         newSteps[idx] = {
@@ -425,7 +424,7 @@ export function ProductionOrderForm() {
     setOrderEvents(prev => prev.filter(e => e.id !== eventId && e.localId !== eventId));
   };
 
-  const handleStepRollback = (stepId: string, idx: number) => {
+  const handleStepRollback = (_stepId: string, idx: number) => {
     setSteps(prev => prev.map((s, i) => i === idx ? {
       ...s,
       status: 'pending',
@@ -641,7 +640,6 @@ export function ProductionOrderForm() {
     lotNumber: '',
     notes: ''
   }]);
-  const addMachine = () => setAssignedMachines([...assignedMachines, { machineId: '', unitTimeSeconds: 60 }]);
   // const addEvent = () => setOrderEvents([...orderEvents, { type: 'RED', quantity: 0, description: '', operatorId: '' }]);
 
   if (loading) return <div className="h-screen flex items-center justify-center"><Loading size="lg" /></div>;

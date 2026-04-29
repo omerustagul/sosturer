@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import {
-  Bolt, DiamondPlus, ListOrdered, Logs, ChartArea, FileChartPie, ScanBarcode, CalendarRange,
+  Bolt, DiamondPlus, ListOrdered, Logs, ChartArea, FileChartPie, CalendarRange,
   Settings, BarChart3, LogOut, TextAlignStart, Airplay,
   ChevronLeft, ChevronRight, ChevronUp, Package, FileUser, User, ShieldCheck, Factory,
   Bell, Building2, Warehouse, ShoppingCart, History, LayoutGrid, Boxes, GanttChart, Wrench, FileText,
@@ -17,7 +17,6 @@ import { useTranslation } from 'react-i18next';
 
 
 export function Layout() {
-  const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const { user, company, logout } = useAuthStore();

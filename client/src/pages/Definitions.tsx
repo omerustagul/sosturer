@@ -20,8 +20,6 @@ import { notify } from '../store/notificationStore';
 
 type TabType = 'machines' | 'operators' | 'shifts' | 'products' | 'firms' | 'work-centers' | 'stations' | 'warehouses' | 'department-roles' | 'import' | 'operations' | 'routes' | 'event-reasons' | 'event-groups' | 'plan-types';
 
-// Helper for Turkish characters in uppercase
-const toTRUpper = (str: string) => (str || '').toLocaleUpperCase('tr-TR');
 
 export function Definitions() {
   const location = useLocation();
@@ -97,28 +95,6 @@ export function Definitions() {
   const [deptFilter, setDeptFilter] = useState('');
   const [locFilter, setLocFilter] = useState('');
   const [groupFilter, setGroupFilter] = useState('');
-  const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
-    const initial = new Set(['_group_base']);
-    const currentTab = tab || (location.state as any)?.activeTab || 'machines';
-
-    const tabIndex = tabs.findIndex(t => t.id === currentTab);
-    if (tabIndex !== -1) {
-      for (let i = tabIndex; i >= 0; i--) {
-        if ((tabs[i] as any).isGroupHeader) {
-          initial.add(tabs[i].id);
-          break;
-        }
-      }
-    }
-    return initial;
-  });
-
-  const toggleGroup = (groupId: string) => {
-    const next = new Set(openGroups);
-    if (next.has(groupId)) next.delete(groupId);
-    else next.add(groupId);
-    setOpenGroups(next);
-  };
 
   // const routeSteps = setViewRecipeId;
 
@@ -217,16 +193,6 @@ export function Definitions() {
     if (tab && tab !== activeTab) {
       setActiveTab(tab as TabType);
 
-      // Find and open the parent group of the new tab
-      const tabIndex = tabs.findIndex(t => t.id === tab);
-      if (tabIndex !== -1) {
-        for (let i = tabIndex; i >= 0; i--) {
-          if ((tabs[i] as any).isGroupHeader) {
-            setOpenGroups(prev => new Set([...Array.from(prev), tabs[i].id]));
-            break;
-          }
-        }
-      }
     }
   }, [tab]);
 
@@ -687,7 +653,7 @@ export function Definitions() {
     if (activeTab === 'stations') return 'İSTASYONLAR';
     if (activeTab === 'warehouses') return 'DEPOLAR';
     const found = tabs.find(t => t.id === activeTab);
-    return toTRUpper(found?.label ?? '');
+    return (found?.label ?? '').toLocaleUpperCase('tr-TR');
   };
 
   return (
@@ -699,19 +665,19 @@ export function Definitions() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Hızlı Arama..."
-            className="w-full h-11 bg-theme-base/20 border border-theme rounded-2xl pl-10 pr-4 py-2 text-xs text-theme-main focus:outline-none focus:border-theme-primary/40 focus:bg-theme-surface transition-all font-bold placeholder:text-theme-dim/50"
+            className="w-full h-10 bg-theme-base/20 border border-theme rounded-xl pl-10 pr-4 py-2 text-xs text-theme-main focus:outline-none focus:border-theme-primary/40 focus:bg-theme-surface transition-all font-bold placeholder:text-theme-dim/50"
           />
         </div>
 
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className={`h-11 px-4 rounded-2xl border flex items-center gap-2 text-xs font-black transition-all uppercase tracking-wider ${showFilters ? 'bg-theme-primary text-white border-theme-primary shadow-theme-primary/20' : 'bg-theme-base/20 text-theme-dim border-theme hover:bg-theme-main/5 hover:text-theme-main'}`}
+          className={`h-10 px-4 rounded-xl border flex items-center gap-2 text-xs font-black transition-all uppercase tracking-wider ${showFilters ? 'bg-theme-primary text-white border-theme-primary shadow-theme-primary/20' : 'bg-theme-base/20 text-theme-dim border-theme hover:bg-theme-main/5 hover:text-theme-main'}`}
         >
           <Filter className="w-4 h-4" /> Filtreler
         </button>
 
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 bg-theme-base/20 p-1 rounded-2xl border border-theme h-11 px-3">
+          <div className="flex items-center gap-2 bg-theme-base/20 p-1 rounded-xl border border-theme h-10 px-3">
             <span className="text-[10px] font-black text-theme-dim uppercase tracking-widest px-2">DURUM:</span>
             <div className="flex gap-1">
               {['all', 'active', 'passive'].map((s) => (
@@ -818,54 +784,7 @@ export function Definitions() {
         </div>
       )}
 
-      <div className="flex-1 flex flex-col lg:flex-row gap-4 min-h-0 overflow-hidden">
-        {/* Sidebar - Desktop: Vertical, Mobile: Horizontal Scroll */}
-        <div className="w-full lg:w-48 flex lg:flex-col flex-row gap-1 lg:gap-0.5 overflow-x-auto lg:overflow-y-auto pb-2 lg:pb-0 pr-0 lg:pr-3 no-scrollbar shrink-0 border-b lg:border-b-0 lg:border-r border-theme/30 lg:h-full">
-          {tabs.map((tab, idx) => {
-            if ((tab as any).isGroupHeader) {
-              const isOpen = openGroups.has(tab.id);
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => toggleGroup(tab.id)}
-                  className="hidden lg:flex items-center justify-between w-full pt-4 pb-2 px-1 group transition-all shrink-0"
-                >
-                  <span className="text-[9px] font-black text-theme-dim uppercase group-hover:text-theme-primary">{tab.label}</span>
-                  <ChevronLeft className={`w-2.5 h-2.5 text-theme-dim/60 group-hover:text-theme-primary transition-transform duration-300 ${isOpen ? '-rotate-90' : ''}`} />
-                </button>
-              );
-            }
-
-            // Find parent group to check if visible
-            let parentGroupId = '';
-            for (let i = idx; i >= 0; i--) {
-              if ((tabs[i] as any).isGroupHeader) {
-                parentGroupId = tabs[i].id;
-                break;
-              }
-            }
-
-            // On mobile, we show all tabs regardless of group state to allow selection
-            // On desktop, we respect the openGroups state
-            const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 1024;
-            if (parentGroupId && !openGroups.has(parentGroupId) && isDesktop) return null;
-
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => navigate(`/definitions/${tab.id}`)}
-                className={`flex items-center gap-2 p-2 lg:p-2.5 rounded-xl transition-all font-bold text-[10px] lg:text-[10.5px] border-2 shrink-0 whitespace-nowrap group ${isActive ? 'bg-theme-primary/10 border-theme-primary text-theme-primary shadow-xl shadow-theme-primary/10'
-                  : 'text-theme-dim border-transparent hover:bg-theme-main/5 hover:text-theme-main'
-                  }`}
-              >
-                <tab.icon className={`w-3.5 h-3.5 lg:w-4 lg:h-4 transition-transform group-hover:scale-110 ${isActive ? 'text-theme-primary' : 'text-theme-dim'}`} />
-                <span className="uppercase">{toTRUpper(tab.label)}</span>
-                {isActive && <div className="ml-auto w-1 h-1 rounded-full bg-theme-primary shadow-[0_0_8px_var(--primary-glow)] hidden lg:block" />}
-              </button>
-            )
-          })}
-        </div>
+      <div className="flex-1 flex flex-col gap-4 min-h-0 overflow-hidden">
 
         <div className="flex-1 flex flex-col min-h-0 modern-glass-card p-0 overflow-hidden relative border border-theme/50 bg-theme-surface/30 backdrop-blur-xl shadow-xl h-full lg:h-auto">
           {activeTab === 'import' ? (

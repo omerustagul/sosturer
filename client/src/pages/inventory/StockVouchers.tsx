@@ -331,26 +331,6 @@ export function StockVouchers() {
   );
 }
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="space-y-1 min-w-0">
-      <span className="text-[10px] font-black text-theme-dim uppercase tracking-widest">{label}</span>
-      {children}
-    </div>
-  );
-}
-
-function ReadOnlyField({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="space-y-1 min-w-0">
-      <span className="text-[10px] font-black text-theme-dim uppercase tracking-widest">{label}</span>
-      <div className="h-10 bg-theme-base border border-theme rounded-xl px-3 flex items-center text-sm font-black text-theme-main">
-        {value}
-      </div>
-    </div>
-  );
-}
-
 function TypeBadge({ direction, label }: { direction: number; label: string }) {
   const isPositive = direction === 1;
   return (
