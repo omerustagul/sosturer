@@ -7,7 +7,7 @@ import {
   AlertTriangle, Cpu, ShoppingBag, Link2,
   ClipboardList, Calendar, Trash2, Check, CheckCircle2,
   AlertCircle, History, Clock, UserCircle,
-  Play, RotateCcw,
+  Play, RotateCcw, Copy, CopyPlus, X,
   User as UserIcon, Type, Timer
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
@@ -68,6 +68,11 @@ export function ProductionOrderForm() {
   const [bulkSigningSteps, setBulkSigningSteps] = useState<any[]>([]);
   const [isBulkSignMode, setIsBulkSignMode] = useState(false);
   const [selectedStepIndices, setSelectedStepIndices] = useState<number[]>([]);
+
+  // Duplicate Modal State
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [duplicateCount, setDuplicateCount] = useState(1);
+  const [duplicating, setDuplicating] = useState(false);
   const [signFormData, setSignFormData] = useState<any>({
     operatorId: '',
     shiftId: '',
@@ -122,12 +127,13 @@ export function ProductionOrderForm() {
     }
     try {
       const res = await api.get(`/inventory/lots?productId=${pid}&warehouseId=${wid}`);
+      const unit = products.find(p => p.id === pid)?.unitOfMeasure || '';
       setRowLots(prev => ({
         ...prev,
         [index]: Array.isArray(res) ? res.map((l: any) => ({
           id: l.lotNumber,
           label: l.lotNumber,
-          subLabel: `Stok: ${l.quantity}`,
+          subLabel: `Stok: ${l.quantity}${unit ? ' ' + unit : ''}`,
           availableQty: Number(l.quantity || 0)
         })) : []
       }));
@@ -204,10 +210,14 @@ export function ProductionOrderForm() {
       for (let i = 0; i < components.length; i++) {
         const c = components[i];
         const lot = (rowLots[i] || []).find((l: any) => l.id === c.lotNumber);
-        if (lot && Number(c.quantity) > lot.availableQty) {
-          showAlert(`"${c.componentProduct?.name}" için yeterli stok yok! Seçilen: ${c.quantity}, Mevcut: ${lot.availableQty}`, 'STOK YETERSİZ', 'danger');
-          setActiveTab('components');
-          return;
+        if (lot) {
+          const stockUnit = products.find(p => p.id === c.componentProductId)?.unitOfMeasure || '';
+          const required = convertToStockUnit(Number(c.quantity), c.unit || '', stockUnit);
+          if (required > lot.availableQty) {
+            showAlert(`"${c.componentProduct?.name}" için yeterli stok yok! Seçilen: ${c.quantity} ${c.unit || ''}, Mevcut: ${lot.availableQty} ${stockUnit}`, 'STOK YETERSİZ', 'danger');
+            setActiveTab('components');
+            return;
+          }
         }
       }
 
@@ -473,6 +483,23 @@ export function ProductionOrderForm() {
     }
   };
 
+  // Unit conversion helper: converts 'requiredQty' in 'fromUnit' to the stock's 'stockUnit'
+  const convertToStockUnit = (qty: number, fromUnit: string, stockUnit: string): number => {
+    const from = (fromUnit || '').toUpperCase().trim();
+    const to = (stockUnit || '').toUpperCase().trim();
+    if (from === to) return qty;
+    // Gram → Kilogram
+    if ((from === 'GR' || from === 'G' || from === 'GRAM') && (to === 'KG' || to === 'KİLOGRAM' || to === 'KILOGRAM')) return qty / 1000;
+    // Kilogram → Gram
+    if ((from === 'KG' || from === 'KİLOGRAM' || from === 'KILOGRAM') && (to === 'GR' || to === 'G' || to === 'GRAM')) return qty * 1000;
+    // Milimetre → Metre
+    if ((from === 'MM' || from === 'MİLİMETRE') && (to === 'M' || to === 'METRE' || to === 'MT')) return qty / 1000;
+    // Metre → Milimetre
+    if ((from === 'M' || from === 'METRE' || from === 'MT') && (to === 'MM' || to === 'MİLİMETRE')) return qty * 1000;
+    // No conversion known – return as-is
+    return qty;
+  };
+
   const handleSave = async () => {
     setShowValidation(true);
     setErrors({});
@@ -511,12 +538,14 @@ export function ProductionOrderForm() {
 
       const lot = (rowLots[i] || []).find((l: any) => l.id === c.lotNumber);
       const available = lot?.availableQty || 0;
-      const required = Number(c.quantity || 0);
+      const stockUnit = cProduct?.unitOfMeasure || '';
+      const requiredRaw = Number(c.quantity || 0);
+      const required = convertToStockUnit(requiredRaw, c.unit || '', stockUnit);
 
       if (required > available) {
         setErrors({ [`component_qty_${i}`]: true });
         showAlert(
-          `"${cName}" için stok yetersiz! \n\nSeçilen Lot: ${c.lotNumber}\nİhtiyaç: ${required.toFixed(3)}\nMevcut: ${available.toFixed(3)}`,
+          `"${cName}" için stok yetersiz! \n\nSeçilen Lot: ${c.lotNumber}\nİhtiyaç: ${requiredRaw.toFixed(3)} ${c.unit || ''}\nMevcut: ${available.toFixed(3)} ${stockUnit}`,
           'STOK YETERSİZ',
           'danger'
         );
@@ -637,8 +666,17 @@ export function ProductionOrderForm() {
             <div className="flex items-center gap-2">
               {formData.status === 'planned' && (
                 <button
+                  onClick={() => setShowDuplicateModal(true)}
+                  className="h-10 px-4 py-2 bg-theme-surface border border-theme text-theme-muted hover:text-theme-primary hover:border-theme-primary/30 rounded-xl font-black text-[10px] uppercase transition-all flex items-center gap-2 active:scale-95"
+                  title="Üretim Emrini Çoğalt"
+                >
+                  <CopyPlus className="w-4 h-4" /> TOPLU ÇOĞALT
+                </button>
+              )}
+              {formData.status === 'planned' && (
+                <button
                   onClick={() => handleStatusChange('active')}
-                  className="h-10 px-6 py-2 bg-theme-primary text-white rounded-xl font-black text-[10px] uppercase shadow-xl shadow-theme-primary/20 hover:bg-theme-primary-hover transition-all flex items-center gap-2 active:scale-95"
+                  className="h-10 px-6 py-2 bg-theme-warning text-white rounded-xl font-black text-[10px] uppercase shadow-xl shadow-theme-warning/20 hover:bg-theme-warning-hover transition-all flex items-center gap-2 active:scale-95"
                 >
                   <Play className="w-4 h-4 fill-white" /> ÜRETİM EMRİNİ BAŞLAT
                 </button>
@@ -720,11 +758,11 @@ export function ProductionOrderForm() {
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 pb-2 border-b border-theme/50 mb-2">
                     <Package className="w-4 h-4 text-theme-primary" />
-                    <h3 className="text-xs font-black text-theme-main uppercase tracking-widest">Ürün ve Miktar</h3>
+                    <h3 className="text-sm font-black text-theme-main">Ürün ve Miktar</h3>
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-[9px] font-black text-theme-muted uppercase tracking-widest">STOK KARTI / ÜRÜN</label>
+                    <label className="text-[9px] font-black text-theme-muted">STOK KARTI / ÜRÜN</label>
                     <CustomSelect
                       options={products.map(p => ({ id: p.id, label: p.productCode, subLabel: p.productName }))}
                       value={formData.productId}
@@ -737,17 +775,17 @@ export function ProductionOrderForm() {
 
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-2">
-                      <label className="text-[9px] font-black text-theme-muted uppercase tracking-widest">ADET</label>
+                      <label className="text-[9px] font-black text-theme-muted">ADET</label>
                       <input
                         type="number"
                         value={formData.quantity}
                         disabled={isCompleted}
                         onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                        className={`form-input h-10 text-xs ${isCompleted ? 'bg-theme-base/20' : ''} ${showValidation && errors.quantity ? 'border-theme-danger shadow-sm shadow-theme-danger/20' : ''}`}
+                        className={`form-input h-10 text-xs ${isCompleted ? 'bg-theme-base/20' : ''} ${showValidation && errors.quantity ? 'border-theme-danger rounded-xl shadow-sm shadow-theme-danger/20' : ''}`}
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[9px] font-black text-theme-muted uppercase tracking-widest">LOT NO</label>
+                      <label className="text-[9px] font-black text-theme-muted">LOT NO</label>
                       <input
                         value={formData.lotNumber}
                         disabled
@@ -762,10 +800,10 @@ export function ProductionOrderForm() {
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 pb-2 border-b border-theme/50 mb-2">
                     <Layers className="w-4 h-4 text-theme-primary" />
-                    <h3 className="text-xs font-black text-theme-main uppercase tracking-widest">Klasifikasyon</h3>
+                    <h3 className="text-sm font-black text-theme-main">Klasifikasyon</h3>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[9px] font-black text-theme-muted uppercase tracking-widest">EMİR TİPİ</label>
+                    <label className="text-[9px] font-black text-theme-muted">EMİR TİPİ</label>
                     <CustomSelect
                       options={[
                         { id: 'Asıl', label: 'Asıl Üretim' },
@@ -781,7 +819,7 @@ export function ProductionOrderForm() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[9px] font-black text-theme-muted uppercase tracking-widest">HEDEF DEPO</label>
+                    <label className="text-[9px] font-black text-theme-muted">HEDEF DEPO</label>
                     <CustomSelect
                       options={warehouses.map(w => ({ id: w.id, label: w.name }))}
                       value={formData.targetWarehouseId}
@@ -798,10 +836,10 @@ export function ProductionOrderForm() {
                       <div className="p-2 bg-theme-primary/10 rounded-lg">
                         <AlertCircle className="w-5 h-5" />
                       </div>
-                      <span className="text-[10px] font-black uppercase tracking-widest">ÜRETİM TAKİBİ</span>
+                      <span className="text-[10px] font-black">ÜRETİM TAKİBİ</span>
                     </div>
                     <div className="space-y-1">
-                      <p className="text-[10px] text-theme-muted font-black uppercase tracking-widest">TAKİP TİPİ</p>
+                      <p className="text-[10px] text-theme-muted font-black">TAKİP TİPİ</p>
                       <p className="text-sm text-theme-main font-black tracking-widest bg-theme-surface/50 p-2 rounded-xl border border-theme/30 inline-block">
                         {products.find(p => p.id === formData.productId)?.trackingType || 'BELİRTİLMEMİŞ'}
                       </p>
@@ -818,7 +856,7 @@ export function ProductionOrderForm() {
           <div className="modern-glass-card overflow-hidden p-0 flex flex-col min-h-[450px]">
             {/* Tabs Header */}
             <div className="bg-theme-base/20 border-b border-theme px-6 overflow-x-auto">
-              <div className="flex justify-between items-center w-full gap-4 pt-6 py-4 px-12">
+              <div className="flex justify-between items-center w-full gap-4 pt-6 py-4 px-4">
                 {[
                   { id: 'operations', label: 'OPERASYONLAR', icon: Workflow },
                   { id: 'components', label: 'BİLEŞENLER', icon: Boxes },
@@ -847,7 +885,7 @@ export function ProductionOrderForm() {
               </div>
             </div>
 
-            <div className="flex-1 p-3">
+            <div className="flex-1 p-6">
               {activeTab === 'operations' && (
                 <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
                   <div className="flex justify-between items-center px-2">
@@ -893,7 +931,7 @@ export function ProductionOrderForm() {
                         <th className="px-2 py-3">Kabul Adeti</th>
                         <th className="px-2 py-3">Durum</th>
                         <th className="px-2 py-3">Onaylayan</th>
-                        <th className="px-2 py-3 text-center">#</th>
+                        <th className="px-2 py-3 text-center">İşlem</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-theme">
@@ -914,7 +952,7 @@ export function ProductionOrderForm() {
                             className={`transition-all duration-300 border-b border-theme/50 ${isCurrent ? 'bg-theme-primary/[0.03] shadow-inner' : ''}`}
                           >
                             <td className={`px-2 py-4 font-black text-center ${rowOpacity}`}>
-                              <div className={`w-5 h-5 rounded-md flex items-center justify-center mx-auto text-[10px] ${isStepCompleted ? 'bg-theme-success text-white' : isCurrent ? 'bg-theme-primary text-white animate-pulse' : 'bg-theme-base border border-theme text-theme-muted'}`}>
+                              <div className={`w-5 h-5 rounded-lg flex items-center justify-center mx-auto text-[10px] ${isStepCompleted ? 'bg-theme-success text-white' : isCurrent ? 'bg-theme-primary text-white animate-pulse' : 'bg-theme-base border border-theme text-theme-muted'}`}>
                                 {isStepCompleted ? <Check className="w-2.5 h-2.5" /> : step.sequence}
                               </div>
                             </td>
@@ -958,7 +996,7 @@ export function ProductionOrderForm() {
                               </div>
                             </td>
                             <td className={`px-2 py-4 ${rowOpacity}`}>
-                              <div className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider shadow-sm border
+                              <div className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider shadow-sm border
                                 ${isStepCompleted ? 'bg-theme-success/10 text-theme-success border-theme-success/20' :
                                   isCurrent ? 'bg-theme-primary/10 text-theme-primary border-theme-primary/20 animate-pulse' :
                                     'bg-theme-base/50 text-theme-muted border-theme/50'}`}>
@@ -968,7 +1006,7 @@ export function ProductionOrderForm() {
                             </td>
                             <td className={`px-2 py-4 ${rowOpacity}`}>
                               <div className="flex items-center gap-2 text-[10px] font-bold">
-                                <div className="w-8 h-8 rounded-full bg-theme-base border border-theme flex items-center justify-center shrink-0 shadow-sm">
+                                <div className="w-8 h-8 rounded-full bg-theme-base border-none flex items-center justify-center shrink-0">
                                   <UserCircle className={`w-5 h-5 ${isStepCompleted ? 'text-theme-primary' : 'opacity-20'}`} />
                                 </div>
                                 <div className="flex flex-col">
@@ -994,7 +1032,7 @@ export function ProductionOrderForm() {
                             </td>
                             <td className={`px-2 py-4 text-right ${rowOpacity}`}>
                               <div className="flex items-center justify-end gap-2">
-                                {isCurrent && !isCompleted && !isBulkSignMode && (
+                                {isCurrent && !isCompleted && !isBulkSignMode && formData.status === 'active' && (
                                   <button
                                     onClick={() => handleStepSign(step, idx)}
                                     className="h-10 px-4 bg-theme-primary text-white rounded-xl font-black text-[10px] uppercase shadow-lg shadow-theme-primary/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
@@ -1036,7 +1074,7 @@ export function ProductionOrderForm() {
                   <div className="flex justify-between items-center mb-4">
                     <p className="text-[10px] font-black text-theme-muted uppercase">HAMMADDE VE BİLEŞEN LİSTESİ</p>
                     {!isCompleted && (
-                      <button onClick={addComponent} className="btn-secondary h-10 px-4 py-2 flex items-center gap-2 text-[9px] font-black bg-theme-primary/10 rounded-xl text-theme-primary border border-theme-primary/20 shadow-lg shadow-theme-primary/10 hover:scale-103">
+                      <button onClick={addComponent} className="btn-secondary h-10 px-4 py-2 flex items-center gap-2 text-[10px] font-black bg-theme-primary/10 rounded-xl text-theme-primary border border-theme-primary/20 shadow-lg shadow-theme-primary/10 hover:scale-103">
                         <Plus className="w-3.5 h-3.5" /> BİLEŞEN EKLE
                       </button>
                     )}
@@ -1045,19 +1083,19 @@ export function ProductionOrderForm() {
                     <table className="w-full min-w-[1000px]">
                       <thead className="bg-theme-base/10">
                         <tr className="text-[9px] font-black text-theme-muted">
-                          <th className="px-2 py-3 w-12">Bileşen Ürün</th>
-                          <th className="px-2 py-3">Depo</th>
-                          <th className="px-2 py-3">Giriş Numarası</th>
-                          <th className="px-2 py-3">Tipi</th>
-                          <th className="px-2 py-3 w-32">Miktar</th>
-                          <th className="px-2 py-3 w-64">Notlar</th>
-                          <th className="px-2 py-3 w-20">Sil</th>
+                          <th className="px-1 py-3 w-12">Bileşen Ürün</th>
+                          <th className="px-1 py-3 w-12">Depo</th>
+                          <th className="px-1 py-3 w-12">Giriş Numarası</th>
+                          <th className="px-1 py-3 w-6">Tipi</th>
+                          <th className="px-1 py-3 w-24">Miktar</th>
+                          <th className="px-1 py-3 w-36">Notlar</th>
+                          <th className="px-1 py-3 w-20">Sil</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-theme">
                         {components.map((c, i) => (
                           <tr key={i}>
-                            <td className="px-2 py-3">
+                            <td className="px-1 py-3">
                               <CustomSelect
                                 options={products.map(p => ({ id: p.id, label: p.productCode, subLabel: p.productName }))}
                                 value={c.componentProductId}
@@ -1071,7 +1109,7 @@ export function ProductionOrderForm() {
                                 }}
                               />
                             </td>
-                            <td className="px-2 py-3 w-12">
+                            <td className="px-1 py-3 w-24">
                               <CustomSelect
                                 options={warehouses.map(w => ({ id: w.id, label: w.name }))}
                                 value={c.warehouseId}
@@ -1086,7 +1124,7 @@ export function ProductionOrderForm() {
                                 placeholder="Depo..."
                               />
                             </td>
-                            <td className="px-2 py-3">
+                            <td className="px-1 py-3 w-12">
                               <CustomSelect
                                 options={rowLots[i] || []}
                                 value={c.lotNumber}
@@ -1097,10 +1135,10 @@ export function ProductionOrderForm() {
                                 }}
                                 placeholder={!c.componentProductId || !c.warehouseId ? "Ürün/Depo seçin" : "Lot Seçin"}
                                 disabled={isCompleted || !c.componentProductId || !c.warehouseId}
-                                className={showValidation && errors[`component_lot_${i}`] ? 'border-theme-danger shadow-sm shadow-theme-danger/20' : ''}
+                                className={showValidation && errors[`component_lot_${i}`] ? 'border-theme-danger rounded-xl shadow-sm shadow-theme-danger/20' : ''}
                               />
                             </td>
-                            <td className="px-2 py-3">
+                            <td className="px-1 py-3 w-6">
                               <CustomSelect
                                 options={[
                                   { id: 'UNIT', label: 'Birim Miktar' },
@@ -1116,7 +1154,7 @@ export function ProductionOrderForm() {
                                 }}
                               />
                             </td>
-                            <td className="px-2 py-3">
+                            <td className="px-1 py-3 w-24">
                               <div className="flex gap-2 items-center">
                                 {c.consumptionType === 'UNIT' && (
                                   <div className="flex items-center gap-1">
@@ -1132,8 +1170,12 @@ export function ProductionOrderForm() {
                                         nc[i].quantity = val * (formData.quantity || 0);
                                         setComponents(nc);
                                         const lot = (rowLots[i] || []).find((l: any) => l.id === c.lotNumber);
-                                        if (lot && nc[i].quantity > lot.availableQty) {
-                                          showAlert(`"${c.componentProduct?.name}" için yeterli stok yok! Mevcut: ${lot.availableQty}`, 'STOK YETERSİZ', 'warning');
+                                        if (lot) {
+                                          const stockUnit = products.find(p => p.id === c.componentProductId)?.unitOfMeasure || '';
+                                          const reqConverted = convertToStockUnit(nc[i].quantity, c.unit || '', stockUnit);
+                                          if (reqConverted > lot.availableQty) {
+                                            showAlert(`"${c.componentProduct?.name}" için yeterli stok yok! Mevcut: ${lot.availableQty} ${stockUnit}`, 'STOK YETERSİZ', 'warning');
+                                          }
                                         }
                                       }}
                                       className={`form-input text-xs text-right w-14 border-theme-primary/30 bg-theme-primary/5 ${(!c.lotNumber || isCompleted) ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -1150,16 +1192,20 @@ export function ProductionOrderForm() {
                                     onChange={(e) => {
                                       let val = Number(e.target.value);
                                       const lot = (rowLots[i] || []).find((l: any) => l.id === c.lotNumber);
-                                      if (lot && val > lot.availableQty) {
-                                        val = lot.availableQty;
-                                        showAlert(`"${c.componentProduct?.name}" için maksimum stok ${lot.availableQty} adet seçilebilir.`, 'STOK SINIRI', 'warning');
+                                      if (lot) {
+                                        const stockUnit = products.find(p => p.id === c.componentProductId)?.unitOfMeasure || '';
+                                        const converted = convertToStockUnit(val, c.unit || '', stockUnit);
+                                        if (converted > lot.availableQty) {
+                                          val = lot.availableQty; // clamp to max available in same unit first — approximate
+                                          showAlert(`"${c.componentProduct?.name}" için maksimum stok ${lot.availableQty} ${stockUnit} seçilebilir.`, 'STOK SINIRI', 'warning');
+                                        }
                                       }
                                       if (val < 1) val = 1;
                                       const nc = [...components];
                                       nc[i].quantity = val;
                                       setComponents(nc);
                                     }}
-                                    className={`form-input text-xs text-right w-20 ${(isCompleted || c.consumptionType === 'UNIT_CONSUMPTION' || !c.lotNumber) ? 'bg-theme-base/5 opacity-50 cursor-not-allowed' : ''} ${c.consumptionType === 'UNIT' ? 'font-bold text-theme-primary bg-theme-primary/5' : ''} ${showValidation && errors[`component_qty_${i}`] ? 'border-theme-danger shadow-sm shadow-theme-danger/20' : ''}`}
+                                    className={`form-input text-xs text-right w-20 ${(isCompleted || c.consumptionType === 'UNIT_CONSUMPTION' || !c.lotNumber) ? 'bg-theme-base/5 opacity-50 cursor-not-allowed' : ''} ${c.consumptionType === 'UNIT' ? 'font-bold text-theme-primary bg-theme-primary/5' : ''} ${showValidation && errors[`component_qty_${i}`] ? 'border-theme-danger rounded-xl shadow-sm shadow-theme-danger/20' : ''}`}
                                   />
                                   {c.consumptionType === 'UNIT_CONSUMPTION' && (
                                     <div className="mt-1 whitespace-nowrap">
@@ -1200,7 +1246,7 @@ export function ProductionOrderForm() {
                                 </div>
                               </div>
                             </td>
-                            <td className="px-2 py-3 w-64">
+                            <td className="px-1 py-3 w-36">
                               <input
                                 value={c.notes}
                                 disabled={isCompleted}
@@ -1209,13 +1255,13 @@ export function ProductionOrderForm() {
                                   nc[i].notes = e.target.value;
                                   setComponents(nc);
                                 }}
-                                className={`form-input w-64 text-xs ${isCompleted ? 'bg-theme-base/20 opacity-50' : ''}`}
+                                className={`form-input w-36 text-xs ${isCompleted ? 'bg-theme-base/20 opacity-50' : ''}`}
                               />
                             </td>
-                            <td className="px-2 py-3 text-center">
+                            <td className="px-1 py-3 text-center">
                               {!isCompleted && (
-                                <button onClick={() => setComponents(components.filter((_, idx) => idx !== i))} className="p-3 text-theme-danger hover:bg-theme-danger/10 rounded-lg">
-                                  <Trash2 className="w-4 h-4" />
+                                <button onClick={() => setComponents(components.filter((_, idx) => idx !== i))} className="p-1.5 bg-theme-danger/5 border border-theme-danger/10 text-theme-danger hover:bg-theme-danger hover:text-theme-surface rounded-lg">
+                                  <Trash2 className="w-3.5 h-3.5" />
                                 </button>
                               )}
                             </td>
@@ -1265,7 +1311,7 @@ export function ProductionOrderForm() {
                                   setAssignedMachines(nm);
                                 }}
                                 placeholder={!formData.productId ? "Önce Ürün Seçin" : "Makine Seçin..."}
-                                className={showValidation && errors.machineId ? 'border-theme-danger shadow-sm shadow-theme-danger/20' : ''}
+                                className={showValidation && errors.machineId ? 'border-1 border-theme-danger rounded-[10px] shadow-sm shadow-theme-danger/20' : ''}
                               />
                             </div>
 
@@ -1299,13 +1345,13 @@ export function ProductionOrderForm() {
 
               {activeTab === 'notes' && (
                 <div className="space-y-6 animate-in slide-in-from-right-4 duration-300 h-full flex flex-col">
-                  <p className="text-[10px] font-black text-theme-muted uppercase tracking-widest">ÜRETİM EMRİ ÖZEL NOTLARI</p>
+                  <p className="text-[10px] font-black text-theme-muted">ÜRETİM EMRİ ÖZEL NOTLARI</p>
                   <textarea
                     value={formData.notes}
                     disabled={isCompleted}
                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    className={`form-input flex-1 min-h-[400px] py-6 px-6 text-sm leading-relaxed ${isCompleted ? 'bg-theme-base/20 opacity-50' : ''}`}
-                    placeholder="Üretim sırasında dikkat edilmesi gereken hususlar..."
+                    className={`form-input flex-1 min-h-[300px] py-6 px-6 text-sm leading-relaxed ${isCompleted ? 'bg-theme-base/20 opacity-50' : ''}`}
+                    placeholder="Üretim emri hakkında özel notlarınızı buraya yazabilirsiniz..."
                   />
                 </div>
               )}
@@ -1953,6 +1999,83 @@ export function ProductionOrderForm() {
         type={alertConfig.type}
         alertOnly={true}
       />
+
+      {/* Duplicate Modal */}
+      {showDuplicateModal && createPortal(
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-6 animate-in fade-in duration-200">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowDuplicateModal(false)} />
+          <div className="relative w-full max-w-sm bg-theme-card border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="px-6 py-4 bg-gradient-to-r from-theme-primary/10 to-transparent border-b border-theme flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-theme-primary/10 flex items-center justify-center border border-theme-primary/20">
+                  <Copy className="w-4 h-4 text-theme-primary" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-theme-main uppercase tracking-wide">Üretim Emrini Çoğalt</h3>
+                  <p className="text-[10px] text-theme-muted font-bold">Lot: {formData.lotNumber}</p>
+                </div>
+              </div>
+              <button onClick={() => setShowDuplicateModal(false)} className="p-1.5 rounded-lg hover:bg-theme-main/10 text-theme-muted transition-all">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 space-y-4">
+              <div className="p-4 bg-theme-primary/5 border border-theme-primary/10 rounded-xl">
+                <p className="text-[10px] font-black text-theme-muted uppercase tracking-widest mb-1">Aynı emrin kaç kopyası oluşturulsun?</p>
+                <p className="text-[11px] text-theme-dim">Her kopya yeni bir lot numarası alacak. Bileşenler, operasyonlar ve makine ataması kopyalanacak.</p>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-theme-muted uppercase tracking-widest">Çoğaltma Sayısı</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={50}
+                  value={duplicateCount}
+                  onChange={(e) => setDuplicateCount(Math.max(1, Math.min(50, Number(e.target.value))))}
+                  className="form-input w-full text-center text-xl font-black h-14"
+                  autoFocus
+                />
+                <p className="text-[10px] text-theme-muted text-center">Maksimum 50 kopya</p>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-theme flex gap-3 justify-end">
+              <button
+                onClick={() => setShowDuplicateModal(false)}
+                className="h-10 px-5 rounded-xl border border-theme text-theme-muted font-black text-[10px] uppercase hover:bg-theme-main/5 transition-all"
+              >
+                İPTAL
+              </button>
+              <button
+                disabled={duplicating}
+                onClick={async () => {
+                  setDuplicating(true);
+                  try {
+                    await api.post('/production-orders/duplicate', {
+                      ids: [formData.id],
+                      count: duplicateCount
+                    });
+                    setShowDuplicateModal(false);
+                    showAlert(`${duplicateCount} adet yeni üretim emri başarıyla oluşturuldu!`, 'ÇOĞALTMA BAŞARILI', 'info');
+                  } catch (e: any) {
+                    showAlert(e.message || 'Çoğaltma işlemi başarısız oldu.', 'HATA', 'danger');
+                  } finally {
+                    setDuplicating(false);
+                  }
+                }}
+                className="h-10 px-6 rounded-xl bg-theme-primary text-white font-black text-[10px] uppercase shadow-lg shadow-theme-primary/20 hover:bg-theme-primary-hover transition-all flex items-center gap-2 active:scale-95 disabled:opacity-50"
+              >
+                {duplicating ? <Loading size="sm" /> : <><Copy className="w-4 h-4" /> {duplicateCount} ADET ÇOĞALT</>}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

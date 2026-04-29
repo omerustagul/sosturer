@@ -2,10 +2,10 @@ import { useState, useEffect, useMemo } from 'react';
 import { useLocation, useParams, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import {
-  Database, Factory, Users, Clock, Package,
+  Factory, Users, Clock, Package,
   Plus, Trash2, Edit, FileUp, Download, UploadCloud,
   CheckCircle2, AlertCircle, List, ChevronLeft, ChevronRight, Search, Info, Settings, LayoutGrid,
-  Warehouse, Building2, Workflow, Map, Layers, Handshake
+  Warehouse, Building2, Workflow, Map, Layers, Handshake, Filter, RotateCcw, ClipboardList
 } from 'lucide-react';
 import { Loading } from '../components/common/Loading';
 import { CustomSelect } from '../components/common/CustomSelect';
@@ -18,7 +18,7 @@ import { RecipeModal } from '../components/planning/RecipeModal';
 import { RecipeDetailModal } from '../components/planning/RecipeDetailModal';
 import { notify } from '../store/notificationStore';
 
-type TabType = 'machines' | 'operators' | 'shifts' | 'products' | 'firms' | 'work-centers' | 'stations' | 'warehouses' | 'department-roles' | 'import' | 'operations' | 'routes' | 'event-reasons' | 'event-groups';
+type TabType = 'machines' | 'operators' | 'shifts' | 'products' | 'firms' | 'work-centers' | 'stations' | 'warehouses' | 'department-roles' | 'import' | 'operations' | 'routes' | 'event-reasons' | 'event-groups' | 'plan-types';
 
 // Helper for Turkish characters in uppercase
 const toTRUpper = (str: string) => (str || '').toLocaleUpperCase('tr-TR');
@@ -45,6 +45,7 @@ export function Definitions() {
     { id: 'routes', label: 'Reçeteler', icon: Map, indent: true },
     { id: 'event-groups', label: 'Olay Grupları', icon: Layers, indent: true },
     { id: 'event-reasons', label: 'Olay Sebepleri', icon: AlertCircle, indent: true },
+    { id: 'plan-types', label: 'Planlama Türleri', icon: ClipboardList, indent: true },
     { id: '_group_tools', label: 'SİSTEM ARAÇLARI', isGroupHeader: true, icon: LayoutGrid },
     { id: 'import', label: 'Veri Aktarımı', icon: FileUp, indent: true }
   ];
@@ -61,6 +62,7 @@ export function Definitions() {
   const [machines, setMachines] = useState<any[]>([]);
   const [allProducts, setAllProducts] = useState<any[]>([]);
   const [eventGroups, setEventGroups] = useState<any[]>([]);
+  const [allOperations, setAllOperations] = useState<any[]>([]);
   const [modularEditProduct, setModularEditProduct] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -87,6 +89,14 @@ export function Definitions() {
   const [showRecipeModal, setShowRecipeModal] = useState(false);
   const [selectedRecipe, setSelectedRecipe] = useState<any>(null);
   const [viewRecipeId, setViewRecipeId] = useState<string | null>(null);
+
+  // Search state for entity tables
+  const [showFilters, setShowFilters] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'passive'>('all');
+  const [deptFilter, setDeptFilter] = useState('');
+  const [locFilter, setLocFilter] = useState('');
+  const [groupFilter, setGroupFilter] = useState('');
   const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
     const initial = new Set(['_group_base']);
     const currentTab = tab || (location.state as any)?.activeTab || 'machines';
@@ -118,8 +128,6 @@ export function Definitions() {
     direction: null
   });
 
-  // Search state for entity tables
-  const [searchTerm, setSearchTerm] = useState('');
 
   // Selection & Bulk Edit state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -139,23 +147,6 @@ export function Definitions() {
     }));
   };
 
-  const toggleSelectAll = () => {
-    if (selectedIds.size === filteredData.length && filteredData.length > 0) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(filteredData.map((item: any) => item.id)));
-    }
-  };
-
-  const toggleSelectItem = (id: string) => {
-    const newSelected = new Set(selectedIds);
-    if (newSelected.has(id)) {
-      newSelected.delete(id);
-    } else {
-      newSelected.add(id);
-    }
-    setSelectedIds(newSelected);
-  };
 
   // Import states
   const [importType, setImportType] = useState((location.state as any)?.importType || 'production_records');
@@ -173,6 +164,7 @@ export function Definitions() {
     if (activeTab === 'stations') return '/stations';
     if (activeTab === 'event-groups') return '/production-event-groups';
     if (activeTab === 'event-reasons') return '/production-event-reasons';
+    if (activeTab === 'plan-types') return '/work-plan-types';
     return `/${activeTab}`;
   };
 
@@ -180,15 +172,13 @@ export function Definitions() {
     if (activeTab === 'import') return;
     setLoading(true);
     try {
-      // Use the helper to get the correct endpoint for the current tab
       const endpoint = getEndpoint();
 
-      // For warehouses/stations tab: fetch company units (departments) and locations
       const [res, depsRes, rolesRes, unitsRes, locsRes] = await Promise.all([
         api.get(endpoint).catch(() => []),
         api.get('/departments').catch(() => []),
         api.get('/department-roles').catch(() => []),
-        api.get('/departments').catch(() => []), // Replaced system unit call
+        api.get('/departments').catch(() => []),
         api.get('/system/company/locations').catch(() => []),
       ]);
       setData(Array.isArray(res) ? res : []);
@@ -197,15 +187,15 @@ export function Definitions() {
       setCompanyUnits(Array.isArray(unitsRes) ? unitsRes : []);
       setCompanyLocations(Array.isArray(locsRes) ? locsRes : []);
 
-      // Fetch specifically for production definitions
-      if (activeTab === 'operations' || activeTab === 'routes' || activeTab === 'products' || activeTab === 'stations' || activeTab === 'event-reasons') {
-        const [routesRes, wareRes, stationsRes, machinesRes, productsRes, groupsRes] = await Promise.all([
+      if (activeTab === 'operations' || activeTab === 'routes' || activeTab === 'products' || activeTab === 'stations' || activeTab === 'event-reasons' || activeTab === 'plan-types') {
+        const [routesRes, wareRes, stationsRes, machinesRes, productsRes, groupsRes, opsRes] = await Promise.all([
           api.get('/production-routes').catch(() => []),
           api.get('/inventory/warehouses').catch(() => []),
           api.get('/stations').catch(() => []),
           api.get('/machines').catch(() => []),
           api.get('/products').catch(() => []),
-          api.get('/production-event-groups').catch(() => [])
+          api.get('/production-event-groups').catch(() => []),
+          api.get('/operations').catch(() => [])
         ]);
         setRoutes(Array.isArray(routesRes) ? routesRes : []);
         setWarehouses(Array.isArray(wareRes) ? wareRes : []);
@@ -213,6 +203,7 @@ export function Definitions() {
         setMachines(Array.isArray(machinesRes) ? machinesRes : []);
         setAllProducts(Array.isArray(productsRes) ? productsRes : []);
         setEventGroups(Array.isArray(groupsRes) ? groupsRes : []);
+        setAllOperations(Array.isArray(opsRes) ? opsRes : []);
       }
     } catch (e) {
       console.error(`Error loading ${activeTab}:`, e);
@@ -311,10 +302,36 @@ export function Definitions() {
 
   // Filtered data based on search term
   const filteredData = useMemo(() => {
-    if (!searchTerm) return sortedData;
+    let result = statusFilter === 'all'
+      ? sortedData
+      : sortedData.filter((item: any) => item.status === statusFilter);
+
+    if (deptFilter) {
+      result = result.filter((item: any) =>
+        item.departmentId === deptFilter ||
+        item.unitId === deptFilter ||
+        item.department?.id === deptFilter
+      );
+    }
+    if (locFilter) {
+      result = result.filter((item: any) =>
+        item.locationId === locFilter ||
+        item.unit?.locationId === locFilter ||
+        item.department?.locationId === locFilter
+      );
+    }
+    if (groupFilter) {
+      const lowGroup = groupFilter.toLowerCase();
+      result = result.filter((item: any) =>
+        (item.productGroup?.toLowerCase().includes(lowGroup)) ||
+        (item.category?.toLowerCase().includes(lowGroup))
+      );
+    }
+
+    if (!searchTerm) return result;
 
     const lowerSearch = searchTerm.toLowerCase();
-    return sortedData.filter((item: any) => {
+    return result.filter((item: any) => {
       if (activeTab === 'machines') {
         return (
           item.code?.toLowerCase().includes(lowerSearch) ||
@@ -390,7 +407,7 @@ export function Definitions() {
       }
       return true;
     });
-  }, [sortedData, searchTerm, activeTab]);
+  }, [sortedData, searchTerm, activeTab, statusFilter, deptFilter, locFilter, groupFilter]);
 
   const paginatedData = useMemo(() => {
     return filteredData.slice(
@@ -398,6 +415,24 @@ export function Definitions() {
       (currentPage + 1) * pageSize
     );
   }, [filteredData, currentPage, pageSize]);
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === (filteredData?.length || 0) && (filteredData?.length || 0) > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredData?.map((item: any) => item.id) || []));
+    }
+  };
+
+  const toggleSelectItem = (id: string) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  };
 
   const pageCount = Math.ceil(filteredData.length / pageSize);
 
@@ -657,38 +692,131 @@ export function Definitions() {
 
   return (
     <div className="h-[calc(100vh-64px)] p-4 lg:p-6 w-full flex flex-col gap-4 animate-in fade-in duration-500 overflow-hidden">
-      <div className="shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-black text-theme-main flex items-center gap-2">
-            <Database className="w-5 h-5 text-theme-primary" /> SİSTEM TANIMLARI
-          </h2>
-          <p className="text-theme-muted text-[11px] font-bold mt-0.5">Makine, operatör ve ürün gibi <strong className="text-theme-primary lowercase">temel sistem tanımlamalarını</strong> buradan yönetebilirsiniz.</p>
+      <div className="shrink-0 flex flex-col sm:flex-row items-center gap-4 bg-theme-surface/30 backdrop-blur-md border border-theme/50 p-4 rounded-2xl shadow-sm">
+        <div className="relative group flex-1 max-w-sm">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-theme-dim group-focus-within:text-theme-primary transition-colors" />
+          <input
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Hızlı Arama..."
+            className="w-full h-11 bg-theme-base/20 border border-theme rounded-2xl pl-10 pr-4 py-2 text-xs text-theme-main focus:outline-none focus:border-theme-primary/40 focus:bg-theme-surface transition-all font-bold placeholder:text-theme-dim/50"
+          />
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex bg-theme-base/50 p-1 rounded-xl border border-theme">
-            <button
-              onClick={() => setViewMode('grid')}
-              className={`p-1.5 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-theme-primary text-white shadow-lg shadow-theme-primary/20' : 'text-theme-dim hover:text-theme-main'}`}
-            >
-              <LayoutGrid size={13} />
-            </button>
-            <button
-              onClick={() => setViewMode('table')}
-              className={`p-1.5 rounded-lg transition-all ${viewMode === 'table' ? 'bg-theme-primary text-white shadow-lg shadow-theme-primary/20' : 'text-theme-dim hover:text-theme-main'}`}
-            >
-              <List size={13} />
-            </button>
+
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          className={`h-11 px-4 rounded-2xl border flex items-center gap-2 text-xs font-black transition-all uppercase tracking-wider ${showFilters ? 'bg-theme-primary text-white border-theme-primary shadow-theme-primary/20' : 'bg-theme-base/20 text-theme-dim border-theme hover:bg-theme-main/5 hover:text-theme-main'}`}
+        >
+          <Filter className="w-4 h-4" /> Filtreler
+        </button>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 bg-theme-base/20 p-1 rounded-2xl border border-theme h-11 px-3">
+            <span className="text-[10px] font-black text-theme-dim uppercase tracking-widest px-2">DURUM:</span>
+            <div className="flex gap-1">
+              {['all', 'active', 'passive'].map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setStatusFilter(s as any)}
+                  className={`px-4 py-1.5 rounded-xl text-[10px] font-black transition-all uppercase tracking-wider ${statusFilter === s ? 'bg-theme-primary text-white shadow-lg shadow-theme-primary/20' : 'text-theme-dim hover:bg-theme-main/5 hover:text-theme-main'}`}
+                >
+                  {s === 'all' ? 'TÜMÜ' : s === 'active' ? 'AKTİF' : 'PASİF'}
+                </button>
+              ))}
+            </div>
           </div>
-          {(activeTab !== 'import' && activeTab !== 'department-roles' && activeTab !== 'event-reasons' && activeTab !== 'event-groups') && (
+
+          <div className="h-8 w-px bg-theme/30 mx-1 hidden sm:block" />
+
+          {activeTab !== 'import' && (
             <button
-              onClick={handleAddNew}
-              className="flex items-center gap-2 px-6 h-10 bg-theme-primary hover:bg-theme-primary-hover text-white font-black rounded-xl transition-all shadow-xl shadow-theme-primary/20 hover:scale-[1.02] active:scale-95 text-xs whitespace-nowrap"
+              onClick={() => { setShowAddForm(true); setFormData({}); }}
+              className="bg-theme-primary hover:bg-theme-primary-hover h-11 text-white px-6 py-2 rounded-2xl text-[10px] font-black transition-all shadow-xl shadow-theme-primary/30 flex items-center gap-2.5 group active:scale-95 whitespace-nowrap uppercase tracking-widest"
             >
-              <Plus className="w-4 h-4" /> Yeni Ekle
+              <Plus className="w-4 h-4 stroke-[3]" /> YENİ EKLE
             </button>
+          )}
+
+          {activeTab === 'import' && (
+            <div className="flex gap-2">
+              <button onClick={handleDownloadTemplate} className="h-11 px-5 rounded-2xl border-2 border-theme bg-theme-base/20 text-theme-dim hover:text-theme-main hover:bg-theme-main/5 text-[10px] font-black flex items-center gap-2 transition-all uppercase tracking-widest">
+                <Download className="w-4 h-4" /> ŞABLON
+              </button>
+              <label className="h-11 px-5 rounded-2xl bg-theme-primary text-white text-[10px] font-black flex items-center gap-2 transition-all shadow-xl shadow-theme-primary/20 cursor-pointer hover:bg-theme-primary-hover active:scale-95 uppercase tracking-widest">
+                <FileUp className="w-4 h-4" /> VERİ YÜKLE
+                <input type="file" className="hidden" id="bulk-import-file-main" accept=".xlsx,.xls,.csv" onChange={handleFileUpload} />
+              </label>
+            </div>
+          )}
+
+          <div className="h-8 w-px bg-theme/30 mx-1" />
+
+          {['warehouses', 'work-centers', 'stations'].includes(activeTab) && (
+            <div className="flex bg-theme-base/30 p-1 rounded-2xl border border-theme shrink-0 h-11 items-center">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`flex items-center gap-2 px-4 h-full rounded-xl transition-all font-black text-[10px] uppercase ${viewMode === 'grid' ? 'bg-theme-primary text-white shadow-lg shadow-theme-primary/20' : 'text-theme-dim hover:text-theme-main'}`}
+              >
+                <LayoutGrid size={14} />
+                <span className="hidden sm:inline">Izgara</span>
+              </button>
+              <button
+                onClick={() => setViewMode('table')}
+                className={`flex items-center gap-2 px-4 h-full rounded-xl transition-all font-black text-[10px] uppercase ${viewMode === 'table' ? 'bg-theme-primary text-white shadow-lg shadow-theme-primary/20' : 'text-theme-dim hover:text-theme-main'}`}
+              >
+                <List size={14} />
+                <span className="hidden sm:inline">Liste</span>
+              </button>
+            </div>
           )}
         </div>
       </div>
+
+      {showFilters && (
+        <div className="shrink-0 bg-theme-surface/30 backdrop-blur-md border border-theme/50 p-4 rounded-2xl shadow-sm flex flex-wrap gap-4 animate-in slide-in-from-top-2 duration-300">
+          {['machines', 'operators', 'work-centers', 'stations', 'department-roles', 'operations', 'plan-types'].includes(activeTab) && (
+            <div className="flex-1 min-w-[200px]">
+              <label className="text-[10px] font-black text-theme-dim mb-1.5 block uppercase ml-1">Departman Filtresi</label>
+              <CustomSelect
+                options={[{ id: '', label: 'Tüm Departmanlar' }, ...departments.map(d => ({ id: d.id, label: d.name }))]}
+                value={deptFilter}
+                onChange={setDeptFilter}
+                placeholder="Seçiniz..."
+              />
+            </div>
+          )}
+          {['machines', 'work-centers', 'warehouses'].includes(activeTab) && (
+            <div className="flex-1 min-w-[200px]">
+              <label className="text-[10px] font-black text-theme-dim mb-1.5 block uppercase ml-1">Lokasyon Filtresi</label>
+              <CustomSelect
+                options={[{ id: '', label: 'Tüm Lokasyonlar' }, ...companyLocations.map(l => ({ id: l.id, label: l.name }))]}
+                value={locFilter}
+                onChange={setLocFilter}
+                placeholder="Seçiniz..."
+              />
+            </div>
+          )}
+          {activeTab === 'products' && (
+            <div className="flex-1 min-w-[200px]">
+              <label className="text-[10px] font-black text-theme-dim mb-1.5 block uppercase ml-1">Grup Filtresi</label>
+              <input
+                value={groupFilter}
+                onChange={e => setGroupFilter(e.target.value)}
+                className="w-full h-11 bg-theme-base/20 border-2 border-theme rounded-2xl px-4 text-xs text-theme-main focus:outline-none focus:border-theme-primary/40 focus:bg-theme-surface transition-all font-bold"
+                placeholder="Grup adı yazın..."
+              />
+            </div>
+          )}
+          <div className="flex items-end">
+            <button
+              onClick={() => { setDeptFilter(''); setLocFilter(''); setGroupFilter(''); }}
+              className="h-11 px-4 rounded-2xl border-2 border-rose-500/20 bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-all shadow-sm flex items-center gap-2 text-xs font-black uppercase tracking-wider"
+            >
+              <RotateCcw className="w-4 h-4" /> Temizle
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 flex flex-col lg:flex-row gap-4 min-h-0 overflow-hidden">
         {/* Sidebar - Desktop: Vertical, Mobile: Horizontal Scroll */}
@@ -1157,7 +1285,7 @@ export function Definitions() {
                       className="w-full h-10 bg-theme-surface border-2 border-theme rounded-xl pl-8 pr-4 py-2 text-xs text-theme-main focus:outline-none focus:border-theme-primary/50 transition-all font-bold"
                     />
                   </div>
-                  {(activeTab !== 'import' && activeTab !== 'department-roles' && activeTab !== 'event-reasons' && activeTab !== 'event-groups') && (
+                  {(activeTab !== 'department-roles' && activeTab !== 'event-reasons' && activeTab !== 'event-groups') && (
                     <button
                       onClick={handleAddNew}
                       className="bg-theme-primary hover:bg-theme-primary-hover h-10 text-white px-4 py-2 rounded-xl text-xs font-black transition-all shadow-xl shadow-theme-primary/20 flex items-center gap-2 group active:scale-95 whitespace-nowrap"
@@ -1597,6 +1725,10 @@ export function Definitions() {
                               <SortHeader label="Tip" sortKey="type" />
                             </>
                           )}
+                          {activeTab === 'plan-types' && (
+                            <>
+                            </>
+                          )}
 
                           <SortHeader label="Durum" sortKey="status" />
                           <th className="px-2 py-3 text-[10px] border-b border-theme font-black text-theme-muted text-center">İşlemler</th>
@@ -1635,8 +1767,8 @@ export function Definitions() {
                               <td className="px-2 py-3 border-b border-theme/30 font-bold text-theme-primary font-mono text-sm leading-none">
                                 {isEditingRow ? (
                                   <input
-                                    value={localChanges[item.id]?.[(activeTab === 'machines' || activeTab === 'operations' || activeTab === 'routes' || activeTab === 'stations' || activeTab === 'work-centers' || activeTab === 'warehouses' || activeTab === 'event-reasons' || activeTab === 'event-groups' || activeTab === 'firms') ? 'code' : activeTab === 'operators' ? 'employeeId' : activeTab === 'shifts' ? 'shiftCode' : (activeTab === 'department-roles') ? 'id' : 'productCode'] ?? (item.code || item.employeeId || item.shiftCode || item.productCode || (activeTab === 'department-roles' ? item.id : ''))}
-                                    onChange={(e) => updateLocalChanges(item.id, (activeTab === 'machines' || activeTab === 'operations' || activeTab === 'routes' || activeTab === 'stations' || activeTab === 'work-centers' || activeTab === 'warehouses' || activeTab === 'event-reasons' || activeTab === 'event-groups' || activeTab === 'firms') ? 'code' : activeTab === 'operators' ? 'employeeId' : activeTab === 'shifts' ? 'shiftCode' : (activeTab === 'department-roles') ? 'id' : 'productCode', e.target.value)}
+                                    value={localChanges[item.id]?.[(activeTab === 'machines' || activeTab === 'operations' || activeTab === 'routes' || activeTab === 'stations' || activeTab === 'work-centers' || activeTab === 'warehouses' || activeTab === 'event-reasons' || activeTab === 'event-groups' || activeTab === 'firms' || activeTab === 'plan-types') ? 'code' : activeTab === 'operators' ? 'employeeId' : activeTab === 'shifts' ? 'shiftCode' : (activeTab === 'department-roles') ? 'id' : 'productCode'] ?? (item.code || item.employeeId || item.shiftCode || item.productCode || (activeTab === 'department-roles' ? item.id : ''))}
+                                    onChange={(e) => updateLocalChanges(item.id, (activeTab === 'machines' || activeTab === 'operations' || activeTab === 'routes' || activeTab === 'stations' || activeTab === 'work-centers' || activeTab === 'warehouses' || activeTab === 'event-reasons' || activeTab === 'event-groups' || activeTab === 'firms' || activeTab === 'plan-types') ? 'code' : activeTab === 'operators' ? 'employeeId' : activeTab === 'shifts' ? 'shiftCode' : (activeTab === 'department-roles') ? 'id' : 'productCode', e.target.value)}
                                     className="settings-inline-input text-theme-primary font-mono"
                                   />
                                 ) : (item.code || item.employeeId || item.shiftCode || item.productCode || (activeTab === 'department-roles' ? item.id.slice(0, 8) : item.id.slice(0, 8)))}
@@ -1644,11 +1776,11 @@ export function Definitions() {
                               <td className="px-2 py-3 border-b border-theme/30 text-xs text-theme-main font-bold whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">
                                 {isEditingRow ? (
                                   <input
-                                    value={localChanges[item.id]?.[(activeTab === 'machines' || activeTab === 'operations' || activeTab === 'routes' || activeTab === 'stations' || activeTab === 'work-centers' || activeTab === 'warehouses' || activeTab === 'event-groups' || activeTab === 'firms') ? 'name' : activeTab === 'operators' ? 'fullName' : activeTab === 'shifts' ? 'shiftName' : activeTab === 'department-roles' ? 'name' : 'productName'] ?? (item.name || item.fullName || item.shiftName || item.productName || '')}
-                                    onChange={(e) => updateLocalChanges(item.id, (activeTab === 'machines' || activeTab === 'operations' || activeTab === 'routes' || activeTab === 'stations' || activeTab === 'work-centers' || activeTab === 'warehouses' || activeTab === 'event-groups' || activeTab === 'firms') ? 'name' : activeTab === 'operators' ? 'fullName' : activeTab === 'shifts' ? 'shiftName' : activeTab === 'department-roles' ? 'name' : 'productName', e.target.value)}
+                                    value={localChanges[item.id]?.[(activeTab === 'machines' || activeTab === 'operations' || activeTab === 'routes' || activeTab === 'stations' || activeTab === 'work-centers' || activeTab === 'warehouses' || activeTab === 'event-groups' || activeTab === 'firms') ? 'name' : activeTab === 'operators' ? 'fullName' : activeTab === 'shifts' ? 'shiftName' : activeTab === 'department-roles' ? 'name' : activeTab === 'plan-types' ? 'typeName' : 'productName'] ?? (item.name || item.fullName || item.shiftName || item.productName || item.typeName || '')}
+                                    onChange={(e) => updateLocalChanges(item.id, (activeTab === 'machines' || activeTab === 'operations' || activeTab === 'routes' || activeTab === 'stations' || activeTab === 'work-centers' || activeTab === 'warehouses' || activeTab === 'event-groups' || activeTab === 'firms') ? 'name' : activeTab === 'operators' ? 'fullName' : activeTab === 'shifts' ? 'shiftName' : activeTab === 'department-roles' ? 'name' : activeTab === 'plan-types' ? 'typeName' : 'productName', e.target.value)}
                                     className="settings-inline-input"
                                   />
-                                ) : (item.name || item.fullName || item.shiftName || item.productName)}
+                                ) : (item.name || item.fullName || item.shiftName || item.productName || item.typeName)}
                               </td>
 
                               {activeTab === 'machines' && (

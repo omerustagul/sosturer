@@ -213,20 +213,6 @@ export function ProductionOrders() {
 
   return (
     <div className="p-4 lg:p-6 space-y-8 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h2 className="text-xl font-black text-theme-main flex items-center gap-2 tracking-tight">
-            <DiamondPlus className="w-5 h-5 text-theme-primary" /> ÜRETİM EMİRLERİ
-          </h2>
-          <p className="font-bold text-theme-muted text-sm mt-1">Lot bazlı üretim takibi ve operasyonel süreç yönetimi.</p>
-        </div>
-        <button
-          onClick={() => navigate('/production-orders/new')}
-          className="bg-theme-primary hover:bg-theme-primary-hover text-white h-10 px-4 py-2 rounded-xl font-black text-sm transition-all shadow-xl shadow-theme-primary/20 flex items-center gap-2 active:scale-95"
-        >
-          <Plus className="w-5 h-5" /> YENİ ÜRETİM EMRİ
-        </button>
-      </div>
 
       {showAddForm && (
         <div className="modern-glass-card p-6 animate-in slide-in-from-top-4 duration-300">
@@ -632,6 +618,7 @@ export function ProductionOrders() {
               </p>
               <div className="flex items-center justify-center gap-4">
                 <button
+                  type="button"
                   onClick={() => setDuplicateCount(Math.max(1, duplicateCount - 1))}
                   className="w-10 h-10 rounded-xl bg-theme-base border border-theme flex items-center justify-center text-theme-main hover:bg-theme-main/5 transition-all text-theme-dim hover:text-theme-main"
                 >
@@ -644,23 +631,26 @@ export function ProductionOrders() {
                   className="w-20 h-12 bg-theme-base border border-theme rounded-xl text-center font-black text-xl text-theme-primary outline-none focus:border-theme-primary transition-all shadow-inner"
                 />
                 <button
+                  type="button"
                   onClick={() => setDuplicateCount(Math.min(50, duplicateCount + 1))}
                   className="w-10 h-10 rounded-xl bg-theme-base border border-theme flex items-center justify-center text-theme-main hover:bg-theme-main/5 transition-all text-theme-dim hover:text-theme-main"
                 >
                   <Plus className="w-4 h-4" />
                 </button>
               </div>
-              <p className="text-[10px] text-theme-dim text-center opacity-70 uppercase font-black tracking-widest bg-theme-main/5 py-2 rounded-lg border border-theme/5">
+              <p className="text-[10px] text-theme-dim text-center opacity-70 uppercase font-black tracking-widest bg-theme-main/5 py-2 rounded-lg border border-theme/50">
                 Toplam {selectedRows.length * duplicateCount} yeni emir oluşturulacak
               </p>
               <div className="flex gap-4 pt-4">
                 <button
+                  type="button"
                   onClick={() => setShowDuplicateModal(false)}
                   className="flex-1 h-12 bg-theme-main/5 text-theme-dim font-black rounded-xl border border-white/10 hover:bg-theme-main/10 transition-all text-xs uppercase"
                 >
                   Vazgeç
                 </button>
                 <button
+                  type="button"
                   onClick={executeBulkDuplicate}
                   className="flex-1 h-12 bg-theme-primary text-white font-black rounded-xl shadow-xl shadow-theme-primary/20 hover:scale-[1.02] active:scale-95 transition-all text-xs uppercase flex items-center justify-center gap-2"
                 >

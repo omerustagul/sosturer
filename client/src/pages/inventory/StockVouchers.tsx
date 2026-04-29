@@ -4,19 +4,15 @@ import { format } from 'date-fns';
 import {
   ArrowRightLeft,
   CalendarClock,
-  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   FileText,
   Package,
   Plus,
   RefreshCw,
-  Save,
   Search,
   Trash2,
-  UploadCloud,
   Warehouse,
-  X,
   Edit2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -108,27 +104,32 @@ export function StockVouchers() {
 
   return (
     <div className="p-4 lg:p-6 w-full space-y-6 bg-theme-base animate-in fade-in duration-700">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <h2 className="text-xl font-black text-theme-main uppercase flex items-center gap-2">
-            <FileText className="w-5 h-5 text-theme-primary" /> STOK FİŞLERİ
-          </h2>
-          <p className="text-theme-main/80 text-[12px] mt-1 font-bold opacity-60">
-            Lot Bazlı Giriş, Çıkış, Transfer Ve Sayım İşlemleri
-          </p>
+      <div className="shrink-0 flex flex-col sm:flex-row items-center gap-4 bg-theme-surface/30 backdrop-blur-md border border-theme/50 p-4 rounded-2xl shadow-sm">
+        <div className="relative group flex-1 max-w-sm">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-theme-dim group-focus-within:text-theme-primary transition-colors" />
+          <input
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Hızlı Arama (Fiş No, Ürün, Lot...)"
+            className="w-full h-11 bg-theme-base/20 border-2 border-theme rounded-2xl pl-10 pr-4 py-2 text-xs text-theme-main focus:outline-none focus:border-theme-primary/40 focus:bg-theme-surface transition-all font-bold placeholder:text-theme-dim/50"
+          />
         </div>
+
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate('/inventory/stock-vouchers/new')}
-            className="h-10 px-6 rounded-xl bg-theme-primary text-white hover:bg-theme-primary-hover shadow-lg shadow-theme-primary/20 transition-all flex items-center gap-2 text-[10px] font-black uppercase tracking-widest"
-          >
-            <Plus size={16} /> Yeni Stok Fişi Oluştur
-          </button>
-          <button
             onClick={fetchData}
-            className="h-10 px-4 rounded-xl bg-theme-base border border-theme text-theme-muted hover:text-theme-main hover:border-theme-primary/30 transition-all flex items-center gap-2 text-[10px] font-black uppercase tracking-widest"
+            className="h-11 px-4 rounded-2xl border-2 border-theme bg-theme-base/20 text-theme-dim hover:text-theme-main hover:bg-theme-surface hover:border-theme-primary/30 transition-all flex items-center gap-2 text-[10px] font-black uppercase tracking-widest"
           >
-            <RefreshCw size={16} /> Yenile
+            <RefreshCw size={14} /> Yenile
+          </button>
+          
+          <div className="h-8 w-px bg-theme/30 mx-1" />
+
+          <button
+            onClick={() => navigate('/inventory/stock-vouchers/new')}
+            className="bg-theme-primary hover:bg-theme-primary-hover h-11 text-white px-8 py-2 rounded-2xl text-[10px] font-black transition-all shadow-xl shadow-theme-primary/30 flex items-center gap-2.5 group active:scale-95 whitespace-nowrap uppercase tracking-widest"
+          >
+            <Plus className="w-4 h-4 stroke-[3]" /> Yeni Stok Fişi
           </button>
         </div>
       </div>
@@ -142,45 +143,39 @@ export function StockVouchers() {
 
 
       <div className="modern-glass-card p-0 overflow-hidden">
-        <div className="p-5 border-b border-theme bg-theme-surface/30 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-theme-success/10 rounded-2xl">
-              <ArrowRightLeft className="w-5 h-5 text-theme-success" />
+          <div className="px-6 py-4 border-b border-theme bg-theme-surface/10 flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-4">
+              <div className="w-1.5 h-6 bg-theme-success rounded-full" />
+              <h3 className="text-sm font-black text-theme-main leading-tight uppercase tracking-wider">
+                Fiş Kayıtları
+              </h3>
+              <div className="h-4 w-px bg-theme/30" />
+              <span className="text-[10px] font-bold text-theme-muted">
+                {filteredVouchers.length} Sonuç Listeleniyor
+              </span>
             </div>
-            <div>
-              <h3 className="text-lg font-black text-theme-main uppercase leading-none">Stok Fişleri</h3>
-              <p className="text-[10px] text-theme-dim font-black uppercase tracking-widest mt-1 opacity-60">
-                {filteredVouchers.length.toLocaleString('tr-TR')} kayıt
-              </p>
+
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 px-3 py-1 bg-theme-base/50 border border-theme rounded-xl">
+                <div className="w-2 h-2 rounded-full bg-theme-success animate-pulse" />
+                <span className="text-[9px] font-black text-theme-dim uppercase tracking-tighter">Canlı Veri Akışı</span>
+              </div>
             </div>
           </div>
-          <div className="relative w-full xl:w-80">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-muted w-4 h-4" />
-            <input
-              value={searchTerm}
-              onChange={(event) => {
-                setSearchTerm(event.target.value);
-                setCurrentPage(0);
-              }}
-              className="w-full h-10 bg-theme-base border border-theme rounded-xl pl-10 pr-3 text-xs font-bold text-theme-main outline-none focus:border-theme-primary transition-all"
-              placeholder="Fiş, belge, firma, ürün, lot..."
-            />
-          </div>
-        </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-theme-surface/50">
-                <th className="px-6 py-4 text-[10px] font-black text-theme-dim uppercase">Tarih</th>
-                <th className="px-6 py-4 text-[10px] font-black text-theme-dim uppercase">Fiş No</th>
-                <th className="px-6 py-4 text-[10px] font-black text-theme-dim uppercase">Tip</th>
-                <th className="px-6 py-4 text-[10px] font-black text-theme-dim uppercase">Firma</th>
-                <th className="px-6 py-4 text-[10px] font-black text-theme-dim uppercase">Depo</th>
-                <th className="px-6 py-4 text-[10px] font-black text-theme-dim uppercase">Kontrol</th>
-                <th className="px-6 py-4 text-[10px] font-black text-theme-dim uppercase">Belge</th>
-                <th className="px-6 py-4 text-[10px] font-black text-theme-dim uppercase text-right">Miktar</th>
-                <th className="px-6 py-4 text-[10px] font-black text-theme-dim uppercase text-center w-24">İşlem</th>
+                <th className="px-6 py-4 text-[10px] font-black text-theme-dim">Tarih</th>
+                <th className="px-6 py-4 text-[10px] font-black text-theme-dim">Fiş No</th>
+                <th className="px-6 py-4 text-[10px] font-black text-theme-dim">Tip</th>
+                <th className="px-6 py-4 text-[10px] font-black text-theme-dim">Firma</th>
+                <th className="px-6 py-4 text-[10px] font-black text-theme-dim">Depo</th>
+                <th className="px-6 py-4 text-[10px] font-black text-theme-dim">Kontrol</th>
+                <th className="px-6 py-4 text-[10px] font-black text-theme-dim">Belge</th>
+                <th className="px-6 py-4 text-[10px] font-black text-theme-dim text-right">Miktar</th>
+                <th className="px-6 py-4 text-[10px] font-black text-theme-dim text-center w-24">İşlem</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-theme/20">

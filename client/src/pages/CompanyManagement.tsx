@@ -1527,13 +1527,13 @@ function NextGenSchedule() {
   return (
     <div className="modern-glass-card animate-in fade-in duration-700">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
-        <div className="flex items-center gap-6">
-          <div className="w-14 h-14 bg-theme-primary/10 rounded-2xl flex items-center justify-center border border-theme-primary/20 shadow-xl">
-            <CalendarDays className="w-7 h-7 text-theme-primary" />
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 bg-theme-primary/10 rounded-xl flex items-center justify-center border border-theme-primary/20 shadow-xl">
+            <CalendarDays className="w-6 h-6 text-theme-primary" />
           </div>
           <div>
-            <h3 className="text-xl font-black text-theme-main uppercase">Üretim Takvimi</h3>
-            <p className="text-theme-muted text-[11px] font-bold uppercase tracking-widest mt-1">Tatil ve özel izin günlerinizi yönetin</p>
+            <h3 className="text-xl font-black text-theme-main">Üretim Takvimi</h3>
+            <p className="text-theme-muted text-[11px] font-bold mt-0.2">Tatil ve özel izin günlerinizi yönetin</p>
           </div>
         </div>
 

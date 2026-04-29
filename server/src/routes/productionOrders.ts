@@ -173,7 +173,11 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
             productionOrderId: newOrder.id,
             componentProductId: c.componentProductId,
             quantity: Number(c.quantity),
-            notes: c.notes
+            unit: c.unit || null,
+            consumptionType: c.consumptionType || 'UNIT',
+            warehouseId: c.warehouseId || null,
+            lotNumber: c.lotNumber || null,
+            notes: c.notes || null
           }))
         });
       }

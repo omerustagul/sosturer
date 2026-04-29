@@ -38,7 +38,7 @@ export function Profile() {
     phone: user?.personalPhone || '',
     tc: user?.tc || '',
     gender: user?.gender || 'Erkek',
-    nationality: user?.nationality || 'T.C. Vatandaşı',
+    nationality: user?.nationality || 'Türkiye',
     birthDate: user?.birthDate || '',
     address: user?.personalAddress || '',
     memberSince: user?.memberSince || new Date().getFullYear().toString()
@@ -55,7 +55,7 @@ export function Profile() {
         phone: user.personalPhone || '',
         tc: user.tc || '',
         gender: user.gender || 'Erkek',
-        nationality: user.nationality || 'T.C. Vatandaşı',
+        nationality: user.nationality || 'Türkiye',
         birthDate: user.birthDate || '',
         address: user.personalAddress || '',
         memberSince: user.memberSince || ''
@@ -233,7 +233,7 @@ export function Profile() {
                   { key: 'tc', label: 'TC KİMLİK NUMARASI', icon: ShieldCheck },
                   { key: 'gender', label: 'CİNSİYET', icon: UserIcon, type: 'select', options: ['Erkek', 'Kadın', 'Diğer'] },
                   { key: 'birthDate', label: 'DOĞUM TARİHİ', icon: Calendar, type: 'date' },
-                  { key: 'nationality', label: 'UYRUK', icon: MapPin, type: 'select', options: ['T.C. Vatandaşı', 'Diğer'] },
+                  { key: 'nationality', label: 'UYRUK', icon: MapPin, type: 'select', options: ['Türkiye'] },
                   { key: 'startDate', label: 'ÜYELİK / BAŞLAMA', icon: Clock, readOnly: true },
                   { key: 'address', label: 'EV ADRESİ', icon: MapPin, fullWidth: true },
                 ].map((field) => (
@@ -309,20 +309,20 @@ export function Profile() {
                   </div>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-2">
                   {[
                     { title: "Üyelik Sözleşmesi", date: "Ocak 2026", size: "2.4 MB" },
                     { title: "KVKK Aydınlatma Metni", date: "Şubat 2026", size: "1.1 MB" },
                     { title: "Elektronik İleti Onayı", date: "Mart 2026", size: "850 KB" }
                   ].map((doc, idx) => (
-                    <div key={idx} className="group flex items-center justify-between p-4 rounded-xl border border-theme-border/20 bg-theme-base/20 hover:bg-theme-surface/40 hover:border-theme-primary/30 transition-all cursor-pointer">
-                      <div className="flex items-center gap-4">
+                    <div key={idx} className="group flex items-center justify-between p-2 rounded-xl border border-theme-border bg-theme-base/20 hover:bg-theme-surface/40 hover:border-theme-primary/30 transition-all cursor-pointer">
+                      <div className="flex items-center justify-center gap-4">
                         <div className="w-10 h-10 rounded-lg bg-theme-surface/50 flex items-center justify-center border border-theme transition-transform group-hover:scale-110">
                           <Download className="w-4 h-4 text-theme-muted group-hover:text-theme-primary" />
                         </div>
-                        <div>
-                          <p className="text-[12px] font-black text-theme-main group-hover:text-theme-primary transition-colors uppercase tracking-wider">{doc.title}</p>
-                          <span className="text-[9px] text-theme-muted font-bold uppercase tracking-widest">{doc.date} • {doc.size}</span>
+                        <div className="flex flex-col">
+                          <p className="text-[12px] font-black text-theme-main group-hover:text-theme-primary transition-colors">{doc.title}</p>
+                          <span className="text-[11px] text-theme-muted font-bold">{doc.date} • {doc.size}</span>
                         </div>
                       </div>
                       <ChevronRight className="w-4 h-4 text-theme-muted opacity-0 group-hover:opacity-100 transition-all" />

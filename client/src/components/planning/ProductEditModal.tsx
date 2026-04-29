@@ -211,7 +211,7 @@ export function ProductEditModal({
 
                 <div className="p-4 border border-theme-primary/20 bg-theme-primary/5 rounded-2xl flex flex-col justify-center items-center text-center space-y-2">
                   <Gauge className="w-8 h-8 text-theme-primary opacity-20" />
-                  <p className="text-[10px] font-bold text-theme-muted uppercase max-w-[150px]">Bu ölçümler "Birim Sarfiyat" hesaplamalarında temel alınacaktır.</p>
+                  <p className="text-[11px] font-bold text-theme-muted max-w-[200px]">Bu ölçümler "Birim Sarfiyat" hesaplamalarında temel alınacaktır.</p>
                 </div>
               </div>
             )}
@@ -331,7 +331,7 @@ export function ProductEditModal({
                       ))}
                       {formData.defaultComponents.length === 0 && (
                         <tr>
-                          <td colSpan={6} className="py-12 text-center text-theme-muted text-xs font-bold uppercase tracking-widest opacity-30">Bileşen tanımlanmamış</td>
+                          <td colSpan={6} className="py-36 text-center text-theme-muted text-xs font-bold opacity-30">Bileşen tanımlanmamış</td>
                         </tr>
                       )}
                     </tbody>
@@ -394,7 +394,7 @@ export function ProductEditModal({
                       ))}
                       {formData.defaultMachines.length === 0 && (
                         <tr>
-                          <td colSpan={3} className="py-12 text-center text-theme-muted text-xs font-bold uppercase tracking-widest opacity-30">Makine atanmamış</td>
+                          <td colSpan={3} className="py-36 text-center text-theme-muted text-xs font-bold opacity-30">Makine atanmamış</td>
                         </tr>
                       )}
                     </tbody>
@@ -534,14 +534,14 @@ export function ProductEditModal({
 
         {/* Footer */}
         <div className="p-3 border-t border-theme bg-theme-base/20 flex justify-end gap-3 shrink-0">
-          <button onClick={onClose} className="px-8 py-3 text-xs font-black text-theme-dim hover:text-theme-main transition-all uppercase tracking-widest">İPTAL</button>
+          <button onClick={onClose} className="px-8 py-3 text-xs font-black text-theme-dim hover:text-theme-danger transition-all uppercase tracking-widest">İPTAL</button>
           <button
             type="submit"
             form="product-edit-form"
             disabled={loading}
-            className="px-3 py-3 bg-theme-primary text-white rounded-xl font-black text-xs shadow-xl shadow-theme-primary/20 hover:bg-theme-primary-hover transition-all flex items-center gap-3 disabled:opacity-50"
+            className="px-3 py-3 bg-theme-primary text-white rounded-xl font-bold tracking-widest text-xs shadow-xl shadow-theme-primary/20 hover:bg-theme-primary-hover transition-all flex items-center gap-2 disabled:opacity-50"
           >
-            {loading ? <Loading size="sm" /> : <><Save className="w-4 h-4" /> DEĞİŞİKLİKLERİ KAYDET</>}
+            {loading ? <Loading size="sm" /> : <><Save className="w-4 h-4 mb-0.75" /> KAYDET</>}
           </button>
         </div>
       </div>

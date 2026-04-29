@@ -35,7 +35,6 @@ const ProductionPlanning = lazy(() => import('./pages/planning/ProductionPlannin
 const WorkPlanList = lazy(() => import('./pages/planning/WorkPlanList').then((m) => ({ default: m.WorkPlanList })));
 const WorkPlanForm = lazy(() => import('./pages/planning/WorkPlanForm').then((m) => ({ default: m.WorkPlanForm })));
 const ProductionOrders = lazy(() => import('./pages/planning/ProductionOrders').then((m) => ({ default: m.ProductionOrders })));
-const ProductionDefinitions = lazy(() => import('./pages/planning/ProductionDefinitions').then(m => ({ default: m.ProductionDefinitions })));
 const ProductionOrderForm = lazy(() => import('./pages/planning/ProductionOrderForm').then(m => ({ default: m.ProductionOrderForm })));
 
 const InventoryDashboard = lazy(() => import('./pages/inventory/InventoryDashboard').then((m) => ({ default: m.InventoryDashboard })));
@@ -119,7 +118,6 @@ function App() {
                 <Route path="production-orders" element={<ProductionOrders />} />
                 <Route path="production-orders/new" element={<ProductionOrderForm />} />
                 <Route path="production-orders/:lotNumber" element={<ProductionOrderForm />} />
-                <Route path="planning/definitions" element={<ProductionDefinitions />} />
               </Route>
             </Routes>
           </Suspense>
