@@ -96,8 +96,8 @@ export function RecordsList() {
     productGroup: '',
     category: '',
     brand: '',
-    startDate: '',
-    endDate: ''
+    startDate: new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0],
+    endDate: new Date().toISOString().split('T')[0]
   });
 
   // Reference data for filters
@@ -112,7 +112,7 @@ export function RecordsList() {
   // Pagination state
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
-    pageSize: 10,
+    pageSize: 20,
   });
   const [rowSelection, setRowSelection] = useState({});
   const [isBulkEditing, setIsBulkEditing] = useState(false);
@@ -1098,6 +1098,7 @@ export function RecordsList() {
                 value={filters.machineId}
                 onChange={(val) => setFilters(prev => ({ ...prev, machineId: val }))}
                 placeholder="Tüm Makineler"
+                fullWidth
               />
             </div>
 
@@ -1142,6 +1143,7 @@ export function RecordsList() {
                   value={filters.operatorId}
                   onChange={(val) => setFilters(prev => ({ ...prev, operatorId: val }))}
                   placeholder="Hepsi"
+                  fullWidth
                 />
               </div>
 
@@ -1154,6 +1156,7 @@ export function RecordsList() {
                   value={filters.productId}
                   onChange={(val) => setFilters(prev => ({ ...prev, productId: val }))}
                   placeholder="Hepsi"
+                  fullWidth
                 />
               </div>
 
@@ -1167,6 +1170,7 @@ export function RecordsList() {
                   onChange={(val) => setFilters(prev => ({ ...prev, productGroup: val }))}
                   placeholder="Hepsi"
                   searchable
+                  fullWidth
                 />
               </div>
 
@@ -1180,6 +1184,7 @@ export function RecordsList() {
                   onChange={(val) => setFilters(prev => ({ ...prev, category: val }))}
                   placeholder="Hepsi"
                   searchable
+                  fullWidth
                 />
               </div>
 
@@ -1193,6 +1198,7 @@ export function RecordsList() {
                   onChange={(val) => setFilters(prev => ({ ...prev, brand: val }))}
                   placeholder="Hepsi"
                   searchable
+                  fullWidth
                 />
               </div>
 
@@ -1205,6 +1211,7 @@ export function RecordsList() {
                   value={filters.shiftId}
                   onChange={(val) => setFilters(prev => ({ ...prev, shiftId: val }))}
                   placeholder="Hepsi"
+                  fullWidth
                 />
               </div>
             </div>
@@ -1319,12 +1326,12 @@ export function RecordsList() {
                     <td className="px-1 py-1 text-theme-dim font-bold text-[10px]"></td>
                     <td className="px-1 py-1 text-theme-dim font-bold text-[10px]"></td>
                     <td className="px-1 py-1 text-theme-primary/80 font-bold text-[11px]">{footerTotals.avgCycle} <span className="opacity-50 text-[9px] font-black lowercase">sn</span></td>
-                    <td className="px-1 py-1 text-theme-dim font-bold text-[11px]">{footerTotals.plannedQty.toLocaleString()}</td>
+                    <td className="px-1 py-1 text-theme-main font-bold text-[11px]">{footerTotals.plannedQty.toLocaleString()}</td>
                     <td className="px-1 py-1 text-theme-success font-black text-[11px]">{footerTotals.producedQty.toLocaleString()}</td>
                     <td className="px-1 py-1 text-theme-danger font-bold text-[11px]">{footerTotals.defectQty.toLocaleString()}</td>
                     <td className="px-1 py-1 text-theme-danger/80 font-bold text-[11px]">{footerTotals.downtime.toLocaleString()} <span className="opacity-50 text-[9px] font-black lowercase">dk</span></td>
                     <td className="px-1 py-1 text-left">
-                      <span className={`px-2 py-0.5 rounded-lg font-black text-[10px] bg-theme-primary/10 text-theme-primary border border-theme-primary/20`}>
+                      <span className={`px-2 py-0.5 rounded-lg font-black text-[12px] bg-theme-primary/10 text-theme-primary border border-theme-primary/20`}>
                         %{footerTotals.avgOee}
                       </span>
                     </td>
@@ -1345,7 +1352,7 @@ export function RecordsList() {
             <div className="h-4 w-px bg-theme hidden md:block" />
             <div className="flex items-center gap-3">
               <span className="text-[11px] font-black text-theme-dim whitespace-nowrap">Sayfada Görüntülenen:</span>
-              <div className="w-24">
+              <div className="min-w-fit">
                 <CustomSelect
                   options={[
                     { id: 20, label: '20' },
@@ -1368,12 +1375,12 @@ export function RecordsList() {
             <button
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
-              className="p-3 rounded-xl bg-theme-base border border-theme text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+              className="p-3 rounded-xl bg-theme-base border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
             >
               <ChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
             </button>
 
-            <div className="flex items-center gap-2 px-4 py-2 bg-theme-base border border-theme rounded-2xl">
+            <div className="flex items-center gap-2 px-4 py-2 bg-theme-base border rounded-2xl">
               <span className="text-theme-primary font-black text-sm min-w-[20px] text-center">
                 {table.getState().pagination.pageIndex + 1}
               </span>
@@ -1386,7 +1393,7 @@ export function RecordsList() {
             <button
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
-              className="p-3 rounded-xl bg-theme-base border border-theme text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+              className="p-3 rounded-xl bg-theme-base border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
             >
               <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
             </button>
@@ -1610,7 +1617,7 @@ function ProductionCalculatorModal({ shifts, products, onClose }: any) {
                     </div>
                     <div className="p-3 bg-theme-surface/50 border border-theme rounded-2xl text-center shadow-lg shadow-theme-danger/5">
                       <p className="text-[9px] font-black text-theme-danger uppercase tracking-widest mb-1">İHTİYAÇ</p>
-                      <p className="text-sm font-black text-theme-danger">{selectedProductRequirement.netRequirement}</p>
+                      <p className="text-xs font-black text-theme-danger">{selectedProductRequirement.netRequirement}</p>
                     </div>
                   </div>
 

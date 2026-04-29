@@ -17,7 +17,7 @@ export function InventoryDashboard() {
   const [lotFilter, setLotFilter] = useState('');
   const [stockStatus, setStockStatus] = useState('all');
   const [selectedWarehouseId, setSelectedWarehouseId] = useState<string | null>(null);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(20);
   const [currentPage, setCurrentPage] = useState(0);
 
   useEffect(() => {
@@ -162,7 +162,7 @@ export function InventoryDashboard() {
         <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
           <WarehouseButton
             active={!selectedWarehouseId}
-            name="TÜM DEPOLAR"
+            name="Tüm Depolar"
             type="GENEL"
             count={getWarehouseCount(null)}
             onClick={() => handleWarehouseSelect(null)}
@@ -188,7 +188,7 @@ export function InventoryDashboard() {
         <div className="p-4 border-b border-theme bg-theme-surface/30 space-y-4">
           <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
             <h3 className="text-xs font-bold text-theme-dim flex items-center gap-2 uppercase">
-              <Search size={14} /> ENVANTER LİSTESİ
+              <Search size={14} /> Envanter Listesi
             </h3>
             <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
               <button
@@ -245,7 +245,7 @@ export function InventoryDashboard() {
               <span className="text-[10px] font-black text-theme-dim uppercase tracking-widest">Depo</span>
               <CustomSelect
                 options={[
-                  { id: 'all', label: 'TÜM DEPOLAR' },
+                  { id: 'all', label: 'Tüm Depolar' },
                   ...warehouses.map((warehouse) => ({ id: warehouse.id, label: warehouse.name, subLabel: warehouse.type }))
                 ]}
                 value={selectedWarehouseId || 'all'}
@@ -257,10 +257,10 @@ export function InventoryDashboard() {
               <span className="text-[10px] font-black text-theme-dim uppercase tracking-widest">Stok Durumu</span>
               <CustomSelect
                 options={[
-                  { id: 'all', label: 'TÜM STOKLAR' },
-                  { id: 'positive', label: 'STOKTA VAR' },
-                  { id: 'zero', label: 'SIFIR STOK' },
-                  { id: 'negative', label: 'EKSİ STOK' }
+                  { id: 'all', label: 'Tüm Stoklar' },
+                  { id: 'positive', label: 'Stokta Var' },
+                  { id: 'zero', label: 'Sıfır Stok' },
+                  { id: 'negative', label: 'Eksi Stok' }
                 ]}
                 value={stockStatus}
                 onChange={(value) => {
@@ -291,12 +291,33 @@ export function InventoryDashboard() {
                   <td className="px-6 py-4 text-xs font-bold text-theme-muted">{level.product.productName}</td>
                   <td className="px-6 py-4 text-[10px] font-black text-theme-dim uppercase">{level.lotNumber || '-'}</td>
                   <td className="px-6 py-4 text-[10px] font-black text-theme-dim uppercase">{level.warehouse.name}</td>
-                  <td className="px-6 py-4 text-sm font-black text-theme-primary text-right">{level.quantity.toLocaleString()}</td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex flex-col items-end">
+                      <span className="text-sm font-black text-theme-primary">
+                        {(() => {
+                          const isKg = level.product?.unitOfMeasure?.toLowerCase() === 'kilogram' || level.product?.unitOfMeasure?.toLowerCase() === 'kg';
+                          if (isKg && level.quantity > 0 && level.quantity < 1) {
+                            return (level.quantity * 1000).toLocaleString(undefined, { maximumFractionDigits: 3 });
+                          }
+                          return level.quantity.toLocaleString(undefined, { maximumFractionDigits: 3 });
+                        })()}
+                      </span>
+                      <span className="text-[10px] font-black text-theme-dim uppercase opacity-60">
+                        {(() => {
+                          const isKg = level.product?.unitOfMeasure?.toLowerCase() === 'kilogram' || level.product?.unitOfMeasure?.toLowerCase() === 'kg';
+                          if (isKg && level.quantity > 0 && level.quantity < 1) {
+                            return 'Gram';
+                          }
+                          return level.product?.unitOfMeasure || 'Adet';
+                        })()}
+                      </span>
+                    </div>
+                  </td>
                 </tr>
               ))}
               {filteredLevels.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-20 text-center opacity-30 italic text-sm">
+                  <td colSpan={5} className="px-6 py-20 text-center opacity-30 font-bold text-sm">
                     Stok kaydı bulunamadı.
                   </td>
                 </tr>
@@ -309,7 +330,7 @@ export function InventoryDashboard() {
           <div className="flex items-center gap-6 order-2 md:order-1">
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-black text-theme-dim whitespace-nowrap">Sayfada Görüntülenen:</span>
-              <div className="w-24">
+              <div className="min-w-fit">
                 <CustomSelect
                   options={[
                     { id: 20, label: '20' },
@@ -338,12 +359,12 @@ export function InventoryDashboard() {
             <button
               onClick={() => setCurrentPage((prev) => Math.max(0, prev - 1))}
               disabled={currentPage === 0}
-              className="p-3 rounded-xl bg-theme-base border border-theme text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+              className="p-3 rounded-xl bg-theme-base border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
             >
               <ChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
             </button>
 
-            <div className="flex items-center gap-2 px-4 py-2 bg-theme-base border border-theme rounded-2xl">
+            <div className="flex items-center gap-2 px-4 py-2 bg-theme-base border border-theme rounded-xl">
               <span className="text-theme-primary font-black text-sm min-w-[20px] text-center">{currentPage + 1}</span>
               <span className="text-theme-dim font-bold text-xs uppercase tracking-widest">/</span>
               <span className="text-theme-muted font-black text-sm min-w-[20px] text-center">{pageCount}</span>
@@ -352,7 +373,7 @@ export function InventoryDashboard() {
             <button
               onClick={() => setCurrentPage((prev) => Math.min(pageCount - 1, prev + 1))}
               disabled={currentPage >= pageCount - 1}
-              className="p-3 rounded-xl bg-theme-base border border-theme text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+              className="p-3 rounded-xl bg-theme-base border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
             >
               <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
             </button>
@@ -385,20 +406,35 @@ function WarehouseButton({ active, name, type, count, onClick }: any) {
   return (
     <button
       onClick={onClick}
-      className={`min-w-[180px] max-w-[220px] shrink-0 px-4 py-3 rounded-xl border text-left transition-all ${active
-        ? 'bg-theme-primary text-white border-theme-primary shadow-lg shadow-theme-primary/20'
-        : 'bg-theme-base/50 border-theme text-theme-muted hover:text-theme-main hover:border-theme-primary/30'
+      className={`min-w-[180px] shrink-0 p-4 rounded-2xl border text-left transition-all duration-300 relative group overflow-hidden ${active
+        ? 'bg-theme-primary text-white border-theme-primary shadow-xl shadow-theme-primary/20 scale-[1.02]'
+        : 'bg-theme-surface/50 border-theme text-theme-muted hover:text-theme-main hover:border-theme-primary/30 hover:scale-[1.01]'
         }`}
     >
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-[12px] font-black uppercase truncate">{name}</span>
-        <span className={`text-[10px] font-black px-2 py-1 rounded-lg ${active ? 'bg-white/20 text-white' : 'bg-theme-primary/10 text-theme-primary'}`}>
-          {active ? 'AKTİF' : count}
-        </span>
+      {active && (
+        <div className="absolute top-0 right-0 p-1">
+          <div className="bg-white/20 text-[8px] font-black px-1.5 py-0.5 rounded-lg animate-pulse">AKTİF</div>
+        </div>
+      )}
+      <div className="space-y-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex flex-col flex-1 overflow-hidden">
+            <span className={`text-[12px] font-black uppercase tracking-tight break-words leading-tight ${active ? 'text-white' : 'text-theme-main'}`}>
+              {name}
+            </span>
+            <span className={`text-[9px] font-black uppercase opacity-60 mt-0.5 ${active ? 'text-white/70' : 'text-theme-dim'}`}>
+              {type || 'GENEL'}
+            </span>
+          </div>
+          <div className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm border-2 ${
+            active 
+              ? 'bg-white/10 border-white/20 text-white' 
+              : 'bg-theme-primary/5 border-theme-primary/10 text-theme-primary'
+          }`}>
+            {count}
+          </div>
+        </div>
       </div>
-      <p className={`text-[9px] font-black uppercase mt-1 truncate ${active ? 'text-white/70' : 'text-theme-dim'}`}>
-        {type || 'general'}
-      </p>
     </button>
   );
 }

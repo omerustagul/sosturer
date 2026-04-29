@@ -608,11 +608,14 @@ export function ProductionOrderForm() {
 
           if (L > 0 && D > 0 && rho > 0) {
             // Formula: PI * (D/20)^2 * ((L+f)/10) * rho
-            const weightPerUnit = Math.PI * Math.pow(D / 20, 2) * ((L + f) / 10) * rho;
+            const weightPerUnitGrams = Math.PI * Math.pow(D / 20, 2) * ((L + f) / 10) * rho;
+            const isKg = compProduct.unitOfMeasure?.toLowerCase().includes('kilogram') || compProduct.unitOfMeasure?.toLowerCase() === 'kg';
+            const weightPerUnit = isKg ? weightPerUnitGrams / 1000 : weightPerUnitGrams;
+
             return {
               ...c,
-              quantity: Number((weightPerUnit * Number(formData.quantity)).toFixed(4)),
-              unit: 'GR' // Force Grams for this calculation
+              quantity: Number((weightPerUnit * Number(formData.quantity)).toFixed(6)),
+              unit: compProduct.unitOfMeasure || (isKg ? 'KG' : 'GR')
             };
           }
         }
@@ -648,7 +651,7 @@ export function ProductionOrderForm() {
     <div className="min-h-screen pb-20 space-y-8 animate-in fade-in duration-500">
       {/* Header Bar */}
       <div className="h-20 bg-theme-surface/80 backdrop-blur-[5px] border-b border-theme px-6 sticky top-0 z-40 flex items-center justify-between">
-        <div className="flex items-start justify-center gap-2">
+        <div className="flex items-center justify-center gap-2">
           <button onClick={() => navigate('/production-orders')} className="p-1 border border-theme rounded-xl hover:bg-theme-main/5 text-theme-muted transition-all">
             <ChevronLeft className="w-6 h-6" />
           </button>
@@ -708,13 +711,13 @@ export function ProductionOrderForm() {
             </div>
           )}
 
-          {!isCompleted && (
+          {(!isCompleted || isEditing) && (
             <button
               onClick={handleSave}
               disabled={saving}
               className="h-10 px-4 py-2 bg-theme-primary text-white rounded-xl font-black text-xs shadow-xl shadow-theme-primary/20 hover:bg-theme-primary-hover transition-all flex items-center gap-3 active:scale-95 disabled:opacity-50"
             >
-              {saving ? <Loading size="sm" /> : <>{isEditing ? <Save className="w-4 h-4" /> : <Plus className="w-4 h-4" />}{isEditing ? 'GÜNCELLE' : 'OLUŞTUR'}</>}
+              {saving ? <Loading size="sm" /> : <>{isEditing ? <Save className="w-4 h-4" /> : <Plus className="w-4 h-4" />}{isEditing ? 'KAYDET' : 'OLUŞTUR'}</>}
             </button>
           )}
         </div>
@@ -731,7 +734,7 @@ export function ProductionOrderForm() {
                 <div className={`w-2 h-2 rounded-full animate-pulse shadow-lg ${formData.status === 'active' ? 'bg-theme-success shadow-theme-success/50' : formData.status === 'completed' ? 'bg-theme-primary shadow-theme-primary/50' : 'bg-theme-warning shadow-theme-warning/50'}`} />
               </div>
               <div className="grid grid-cols-1 gap-3">
-                <div className="p-3 rounded-xl bg-theme-surface border border-theme-border/50 flex flex-col gap-1 shadow-sm">
+                <div className="p-3 rounded-xl bg-theme-card border border-theme-border/50 flex flex-col gap-1 shadow-md shadow-theme-main/5">
                   <span className="text-[8px] font-black text-theme-muted uppercase tracking-widest">GÜNCEL DURUM</span>
                   <span className={`text-xs font-black uppercase tracking-wider ${formData.status === 'active' ? 'text-theme-success' : formData.status === 'completed' ? 'text-theme-primary' : 'text-theme-warning'}`}>
                     {formData.status === 'planned' ? 'Planlandı' :
@@ -740,7 +743,7 @@ export function ProductionOrderForm() {
                           formData.status === 'cancelled' ? 'İptal Edildi' : formData.status}
                   </span>
                 </div>
-                <div className="p-3 rounded-xl bg-theme-surface border border-theme-border/50 flex flex-col gap-1 shadow-sm">
+                <div className="p-3 rounded-xl bg-theme-card border border-theme-border/50 flex flex-col gap-1 shadow-md shadow-theme-main/5">
                   <span className="text-[8px] font-black text-theme-muted uppercase tracking-widest">İŞ EMRİ TİPİ</span>
                   <span className="text-xs font-black text-theme-dim uppercase tracking-wider">{formData.type} Üretim</span>
                 </div>

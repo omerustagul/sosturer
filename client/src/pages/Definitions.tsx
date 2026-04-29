@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useLocation, useParams, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import {
   Factory, Users, Clock, Package,
   Plus, Trash2, Edit, FileUp, Download, UploadCloud,
   CheckCircle2, AlertCircle, List, ChevronLeft, ChevronRight, Search, Info, Settings, LayoutGrid,
-  Warehouse, Building2, Workflow, Map, Layers, Handshake, Filter, RotateCcw, ClipboardList
+  Warehouse, Building2, Workflow, Map, Layers, Handshake, Filter, RotateCcw, ClipboardList, X
 } from 'lucide-react';
 import { Loading } from '../components/common/Loading';
 import { CustomSelect } from '../components/common/CustomSelect';
@@ -60,7 +61,6 @@ export function Definitions() {
   const [machines, setMachines] = useState<any[]>([]);
   const [allProducts, setAllProducts] = useState<any[]>([]);
   const [eventGroups, setEventGroups] = useState<any[]>([]);
-  const [allOperations, setAllOperations] = useState<any[]>([]);
   const [modularEditProduct, setModularEditProduct] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -95,6 +95,9 @@ export function Definitions() {
   const [deptFilter, setDeptFilter] = useState('');
   const [locFilter, setLocFilter] = useState('');
   const [groupFilter, setGroupFilter] = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
+  const [parentFilter, setParentFilter] = useState('');
 
   // const routeSteps = setViewRecipeId;
 
@@ -110,7 +113,7 @@ export function Definitions() {
   const [isBulkEditing, setIsBulkEditing] = useState(false);
   const [localChanges, setLocalChanges] = useState<Record<string, any>>({});
 
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(20);
   const [currentPage, setCurrentPage] = useState(0);
 
   const updateLocalChanges = (id: string, field: string, value: any) => {
@@ -164,14 +167,13 @@ export function Definitions() {
       setCompanyLocations(Array.isArray(locsRes) ? locsRes : []);
 
       if (activeTab === 'operations' || activeTab === 'routes' || activeTab === 'products' || activeTab === 'stations' || activeTab === 'event-reasons' || activeTab === 'plan-types') {
-        const [routesRes, wareRes, stationsRes, machinesRes, productsRes, groupsRes, opsRes] = await Promise.all([
+        const [routesRes, wareRes, stationsRes, machinesRes, productsRes, groupsRes] = await Promise.all([
           api.get('/production-routes').catch(() => []),
           api.get('/inventory/warehouses').catch(() => []),
           api.get('/stations').catch(() => []),
           api.get('/machines').catch(() => []),
           api.get('/products').catch(() => []),
-          api.get('/production-event-groups').catch(() => []),
-          api.get('/operations').catch(() => [])
+          api.get('/production-event-groups').catch(() => [])
         ]);
         setRoutes(Array.isArray(routesRes) ? routesRes : []);
         setWarehouses(Array.isArray(wareRes) ? wareRes : []);
@@ -179,7 +181,6 @@ export function Definitions() {
         setMachines(Array.isArray(machinesRes) ? machinesRes : []);
         setAllProducts(Array.isArray(productsRes) ? productsRes : []);
         setEventGroups(Array.isArray(groupsRes) ? groupsRes : []);
-        setAllOperations(Array.isArray(opsRes) ? opsRes : []);
       }
     } catch (e) {
       console.error(`Error loading ${activeTab}:`, e);
@@ -291,6 +292,20 @@ export function Definitions() {
       result = result.filter((item: any) =>
         (item.productGroup?.toLowerCase().includes(lowGroup)) ||
         (item.category?.toLowerCase().includes(lowGroup))
+      );
+    }
+    if (roleFilter) {
+      result = result.filter((item: any) => item.roleId === roleFilter);
+    }
+    if (typeFilter) {
+      result = result.filter((item: any) => item.type === typeFilter);
+    }
+    if (parentFilter) {
+      result = result.filter((item: any) =>
+        item.departmentId === parentFilter ||
+        item.groupId === parentFilter ||
+        item.stationId === parentFilter ||
+        item.workCenterId === parentFilter
       );
     }
 
@@ -657,8 +672,8 @@ export function Definitions() {
   };
 
   return (
-    <div className="h-[calc(100vh-64px)] p-4 lg:p-6 w-full flex flex-col gap-4 animate-in fade-in duration-500 overflow-hidden">
-      <div className="shrink-0 flex flex-col sm:flex-row items-center gap-4 bg-theme-surface/30 backdrop-blur-md border border-theme/50 p-4 rounded-2xl shadow-sm">
+    <div className="h-[calc(98vh-64px)] p-4 lg:p-6 w-full flex flex-col gap-4 animate-in fade-in duration-500 overflow-hidden">
+      <div className="shrink-0 flex flex-col sm:flex-row items-center gap-4 modern-glass-card p-4 border-theme-primary/10">
         <div className="relative group flex-1 max-w-sm">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-theme-dim group-focus-within:text-theme-primary transition-colors" />
           <input
@@ -684,7 +699,7 @@ export function Definitions() {
                 <button
                   key={s}
                   onClick={() => setStatusFilter(s as any)}
-                  className={`px-4 py-1.5 rounded-xl text-[10px] font-black transition-all uppercase tracking-wider ${statusFilter === s ? 'bg-theme-primary text-white shadow-lg shadow-theme-primary/20' : 'text-theme-dim hover:bg-theme-main/5 hover:text-theme-main'}`}
+                  className={`h-8 px-4 py-1 rounded-xl text-[10px] font-black transition-all uppercase tracking-wider ${statusFilter === s ? 'bg-theme-primary text-white shadow-lg shadow-theme-primary/20' : 'text-theme-dim hover:bg-theme-main/5 hover:text-theme-main'}`}
                 >
                   {s === 'all' ? 'TÜMÜ' : s === 'active' ? 'AKTİF' : 'PASİF'}
                 </button>
@@ -692,12 +707,12 @@ export function Definitions() {
             </div>
           </div>
 
-          <div className="h-8 w-px bg-theme/30 mx-1 hidden sm:block" />
+          <div className="h-8 w-px bg-theme mx-1 hidden sm:block" />
 
           {activeTab !== 'import' && (
             <button
               onClick={() => { setShowAddForm(true); setFormData({}); }}
-              className="bg-theme-primary hover:bg-theme-primary-hover h-11 text-white px-6 py-2 rounded-2xl text-[10px] font-black transition-all shadow-xl shadow-theme-primary/30 flex items-center gap-2.5 group active:scale-95 whitespace-nowrap uppercase tracking-widest"
+              className="bg-theme-primary hover:bg-theme-primary-hover h-10 text-white px-6 py-2 rounded-xl text-[10px] font-black transition-all shadow-xl shadow-theme-primary/30 flex items-center gap-2.5 group active:scale-95 whitespace-nowrap uppercase tracking-widest"
             >
               <Plus className="w-4 h-4 stroke-[3]" /> YENİ EKLE
             </button>
@@ -705,10 +720,10 @@ export function Definitions() {
 
           {activeTab === 'import' && (
             <div className="flex gap-2">
-              <button onClick={handleDownloadTemplate} className="h-11 px-5 rounded-2xl border-2 border-theme bg-theme-base/20 text-theme-dim hover:text-theme-main hover:bg-theme-main/5 text-[10px] font-black flex items-center gap-2 transition-all uppercase tracking-widest">
+              <button onClick={handleDownloadTemplate} className="h-10 px-5 rounded-xl border-2 border-theme bg-theme-base/20 text-theme-dim hover:text-theme-main hover:bg-theme-main/5 text-[10px] font-black flex items-center gap-2 transition-all uppercase tracking-widest">
                 <Download className="w-4 h-4" /> ŞABLON
               </button>
-              <label className="h-11 px-5 rounded-2xl bg-theme-primary text-white text-[10px] font-black flex items-center gap-2 transition-all shadow-xl shadow-theme-primary/20 cursor-pointer hover:bg-theme-primary-hover active:scale-95 uppercase tracking-widest">
+              <label className="h-10 px-5 rounded-xl bg-theme-primary text-white text-[10px] font-black flex items-center gap-2 transition-all shadow-xl shadow-theme-primary/20 cursor-pointer hover:bg-theme-primary-hover active:scale-95 uppercase tracking-widest">
                 <FileUp className="w-4 h-4" /> VERİ YÜKLE
                 <input type="file" className="hidden" id="bulk-import-file-main" accept=".xlsx,.xls,.csv" onChange={handleFileUpload} />
               </label>
@@ -718,10 +733,10 @@ export function Definitions() {
           <div className="h-8 w-px bg-theme/30 mx-1" />
 
           {['warehouses', 'work-centers', 'stations'].includes(activeTab) && (
-            <div className="flex bg-theme-base/30 p-1 rounded-2xl border border-theme shrink-0 h-11 items-center">
+            <div className="flex bg-theme-base/30 p-1 rounded-xl border border-theme shrink-0 h-10 items-center">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`flex items-center gap-2 px-4 h-full rounded-xl transition-all font-black text-[10px] uppercase ${viewMode === 'grid' ? 'bg-theme-primary text-white shadow-lg shadow-theme-primary/20' : 'text-theme-dim hover:text-theme-main'}`}
+                className={`flex items-center gap-2 px-4 h-full rounded-lg transition-all font-black text-[10px] uppercase ${viewMode === 'grid' ? 'bg-theme-primary text-white shadow-lg shadow-theme-primary/20' : 'text-theme-dim hover:text-theme-main'}`}
               >
                 <LayoutGrid size={14} />
                 <span className="hidden sm:inline">Izgara</span>
@@ -739,7 +754,7 @@ export function Definitions() {
       </div>
 
       {showFilters && (
-        <div className="shrink-0 bg-theme-surface/30 backdrop-blur-md border border-theme/50 p-4 rounded-2xl shadow-sm flex flex-wrap gap-4 animate-in slide-in-from-top-2 duration-300">
+        <div className="shrink-0 modern-glass-card p-4 rounded-xl border border-theme-primary/10 flex flex-wrap gap-4 animate-in slide-in-from-top-2 duration-300">
           {['machines', 'operators', 'work-centers', 'stations', 'department-roles', 'operations', 'plan-types'].includes(activeTab) && (
             <div className="flex-1 min-w-[200px]">
               <label className="text-[10px] font-black text-theme-dim mb-1.5 block uppercase ml-1">Departman Filtresi</label>
@@ -762,21 +777,104 @@ export function Definitions() {
               />
             </div>
           )}
+          {activeTab === 'operators' && (
+            <div className="flex-1 min-w-[200px]">
+              <label className="text-[10px] font-black text-theme-dim mb-1.5 block uppercase ml-1">Rol Filtresi</label>
+              <CustomSelect
+                options={[{ id: '', label: 'Tüm Roller' }, ...roles.map(r => ({ id: r.id, label: r.name }))]}
+                value={roleFilter}
+                onChange={setRoleFilter}
+                placeholder="Seçiniz..."
+              />
+            </div>
+          )}
+          {activeTab === 'stations' && (
+            <div className="flex-1 min-w-[200px]">
+              <label className="text-[10px] font-black text-theme-dim mb-1.5 block uppercase ml-1">İş Merkezi Filtresi</label>
+              <CustomSelect
+                options={[{ id: '', label: 'Tüm İş Merkezleri' }, ...departments.map(d => ({ id: d.id, label: d.name }))]}
+                value={parentFilter}
+                onChange={setParentFilter}
+                placeholder="Seçiniz..."
+              />
+            </div>
+          )}
+          {activeTab === 'warehouses' && (
+            <div className="flex-1 min-w-[200px]">
+              <label className="text-[10px] font-black text-theme-dim mb-1.5 block uppercase ml-1">Depo Tipi</label>
+              <CustomSelect
+                options={[
+                  { id: '', label: 'Tüm Tipler' },
+                  { id: 'general', label: 'Genel Depo' },
+                  { id: 'raw', label: 'Hammadde' },
+                  { id: 'finished', label: 'Mamül' },
+                  { id: 'semifinished', label: 'Yarı Mamül' },
+                  { id: 'consumable', label: 'Sarf Malzeme' },
+                  { id: 'scrap', label: 'Fire / Hurda' },
+                  { id: 'workcenter', label: 'İş Merkezi' },
+                ]}
+                value={typeFilter}
+                onChange={setTypeFilter}
+                placeholder="Seçiniz..."
+              />
+            </div>
+          )}
+          {activeTab === 'event-reasons' && (
+            <div className="flex-1 min-w-[200px]">
+              <label className="text-[10px] font-black text-theme-dim mb-1.5 block uppercase ml-1">Olay Grubu</label>
+              <CustomSelect
+                options={[{ id: '', label: 'Tüm Gruplar' }, ...eventGroups.map(g => ({ id: g.id, label: g.name }))]}
+                value={parentFilter}
+                onChange={setParentFilter}
+                placeholder="Seçiniz..."
+              />
+            </div>
+          )}
+          {activeTab === 'firms' && (
+            <div className="flex-1 min-w-[200px]">
+              <label className="text-[10px] font-black text-theme-dim mb-1.5 block uppercase ml-1">Firma Tipi</label>
+              <CustomSelect
+                options={[
+                  { id: '', label: 'Tüm Tipler' },
+                  { id: 'general', label: 'Genel' },
+                  { id: 'supplier', label: 'Tedarikçi' },
+                  { id: 'customer', label: 'Müşteri' },
+                  { id: 'logistics', label: 'Lojistik' },
+                  { id: 'customs', label: 'Gümrük' },
+                  { id: 'consignment', label: 'Konsinye' }
+                ]}
+                value={typeFilter}
+                onChange={setTypeFilter}
+                placeholder="Seçiniz..."
+              />
+            </div>
+          )}
+          {activeTab === 'operations' && (
+            <div className="flex-1 min-w-[200px]">
+              <label className="text-[10px] font-black text-theme-dim mb-1.5 block uppercase ml-1">İstasyon Filtresi</label>
+              <CustomSelect
+                options={[{ id: '', label: 'Tüm İstasyonlar' }, ...stations.map(s => ({ id: s.id, label: s.name }))]}
+                value={parentFilter}
+                onChange={setParentFilter}
+                placeholder="Seçiniz..."
+              />
+            </div>
+          )}
           {activeTab === 'products' && (
             <div className="flex-1 min-w-[200px]">
               <label className="text-[10px] font-black text-theme-dim mb-1.5 block uppercase ml-1">Grup Filtresi</label>
               <input
                 value={groupFilter}
                 onChange={e => setGroupFilter(e.target.value)}
-                className="w-full h-11 bg-theme-base/20 border-2 border-theme rounded-2xl px-4 text-xs text-theme-main focus:outline-none focus:border-theme-primary/40 focus:bg-theme-surface transition-all font-bold"
+                className="w-full h-10 bg-theme-base/20 border border-theme rounded-xl px-4 text-xs text-theme-main focus:outline-none focus:border-theme-primary/40 focus:bg-theme-surface transition-all font-bold placeholder:text-theme-dim/50"
                 placeholder="Grup adı yazın..."
               />
             </div>
           )}
           <div className="flex items-end">
             <button
-              onClick={() => { setDeptFilter(''); setLocFilter(''); setGroupFilter(''); }}
-              className="h-11 px-4 rounded-2xl border-2 border-rose-500/20 bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-all shadow-sm flex items-center gap-2 text-xs font-black uppercase tracking-wider"
+              onClick={() => { setDeptFilter(''); setLocFilter(''); setGroupFilter(''); setRoleFilter(''); setTypeFilter(''); setParentFilter(''); }}
+              className="h-10 px-4 rounded-xl border-2 border-rose-500/20 bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-all shadow-sm flex items-center gap-2 text-xs font-black uppercase tracking-wider"
             >
               <RotateCcw className="w-4 h-4" /> Temizle
             </button>
@@ -784,11 +882,11 @@ export function Definitions() {
         </div>
       )}
 
-      <div className="flex-1 flex flex-col gap-4 min-h-0 overflow-hidden">
+      <div className="flex-1 min-h-0 flex flex-col gap-4">
 
-        <div className="flex-1 flex flex-col min-h-0 modern-glass-card p-0 overflow-hidden relative border border-theme/50 bg-theme-surface/30 backdrop-blur-xl shadow-xl h-full lg:h-auto">
+        <div className="flex-1 min-h-0 flex flex-col modern-glass-card p-0 overflow-hidden relative shadow-xl shadow-theme-primary/10">
           {activeTab === 'import' ? (
-            <div className="space-y-4 overflow-y-auto">
+            <div className="flex-1 space-y-4 overflow-y-auto custom-scrollbar p-4">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 p-4 border-b border-theme">
                 <div>
                   <h3 className="text-lg font-bold text-theme-main mb-0">TOPLU VERİ AKTARIMI</h3>
@@ -945,116 +1043,10 @@ export function Definitions() {
                       className="w-full h-10 bg-theme-surface border-2 border-theme rounded-xl pl-8 pr-4 py-2 text-xs text-theme-main focus:outline-none focus:border-theme-primary/50 transition-all font-bold"
                     />
                   </div>
-                  <button
-                    onClick={handleAddNew}
-                    className="bg-theme-primary hover:bg-theme-primary-hover h-10 text-white px-4 py-2 rounded-xl text-xs font-black transition-all shadow-xl shadow-theme-primary/20 flex items-center gap-2 group active:scale-95 whitespace-nowrap"
-                  >
-                    <Plus className="w-4 h-4" /> Yeni Ekle
-                  </button>
                 </div>
               </div>
 
-              {showAddForm && (
-                <form onSubmit={handleSave} className="flex flex-col bg-theme-surface border-b border-theme animate-in slide-in-from-top-4 duration-300 overflow-hidden" style={{ maxHeight: '80%' }}>
-                  <div className="flex-1 overflow-y-auto p-5">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3">
-                      {activeTab === 'warehouses' ? (
-                        <>
-                          <div className="space-y-1">
-                            <label className="label-sm">DEPO KODU</label>
-                            <input value={formData.code || ''} className="form-input" onChange={(e) => setFormData({ ...formData, code: e.target.value })} placeholder="örn. DP-01" />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="label-sm">DEPO ADI</label>
-                            <input required value={formData.name || ''} className="form-input" onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="örn. MAMÜL DEPO" />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="label-sm">DEPO TİPİ</label>
-                            <CustomSelect
-                              options={[
-                                { id: 'general', label: 'Genel Depo' },
-                                { id: 'raw', label: 'Hammadde Deposu' },
-                                { id: 'finished', label: 'Mamül Deposu' },
-                                { id: 'semifinished', label: 'Yarı Mamül Deposu' },
-                                { id: 'consumable', label: 'Sarf Malzeme Deposu' },
-                                { id: 'scrap', label: 'Fire / Hurda' },
-                                { id: 'workcenter', label: 'İş Merkezi' },
-                              ]}
-                              value={formData.type || 'general'}
-                              onChange={(val) => setFormData({ ...formData, type: val })}
-                              searchable={false}
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="label-sm">DURUM</label>
-                            <CustomSelect
-                              options={[{ id: 'active', label: 'Aktif' }, { id: 'passive', label: 'Pasif' }]}
-                              value={formData.status || 'active'}
-                              onChange={(val) => setFormData({ ...formData, status: val })}
-                              searchable={false}
-                            />
-                          </div>
-                          <div className="space-y-1 md:col-span-2">
-                            <label className="label-sm">LOKASYON BAĞLANTISI</label>
-                            <CustomSelect
-                              options={companyLocations.map(l => ({ id: l.id, label: l.name }))}
-                              value={formData.locationId || ''}
-                              onChange={(val) => setFormData({ ...formData, locationId: val || null })}
-                              placeholder="Lokasyon Seçin"
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="label-sm">BİRİM BAĞLANTISI (Şirket Yapısından Seçin)</label>
-                            <CustomSelect
-                              options={flatUnitOptions}
-                              value={formData.unitId || ''}
-                              onChange={(val) => setFormData({ ...formData, unitId: val || null })}
-                              placeholder="Bağlanacak birimi seçin (isteğe bağlı)"
-                            />
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <div className="space-y-1">
-                            <label className="label-sm">İŞ MERKEZİ ADI</label>
-                            <input required value={formData.name || ''} className="form-input" onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="örn. CNC-1 KESİM" />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="label-sm">LOKASYON</label>
-                            <CustomSelect
-                              options={companyLocations.map(l => ({ id: l.id, label: l.name }))}
-                              value={formData.locationId || ''}
-                              onChange={(val) => setFormData({ ...formData, locationId: val })}
-                              placeholder="Lokasyon Seçin"
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="label-sm">DURUM</label>
-                            <CustomSelect
-                              options={[{ id: 'active', label: 'Aktif' }, { id: 'passive', label: 'Pasif' }]}
-                              value={formData.status || 'active'}
-                              onChange={(val) => setFormData({ ...formData, status: val })}
-                              searchable={false}
-                            />
-                          </div>
-                          <div className="space-y-1 md:col-span-2 lg:col-span-3">
-                            <label className="label-sm">KOD</label>
-                            <input value={formData.code || ''} className="form-input" onChange={(e) => setFormData({ ...formData, code: e.target.value })} placeholder="Birim Kodu" />
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  <div className="py-4 p-2 bg-theme-base/20 flex justify-end gap-3">
-                    <button type="button" onClick={() => setShowAddForm(false)} className="px-6 py-2.5 text-xs font-black text-theme-dim border border-theme rounded-xl hover:bg-theme-main/10 transition-all uppercase">İPTAL</button>
-                    <button type="submit" className="px-8 py-2.5 text-xs font-black text-white bg-theme-primary rounded-xl hover:bg-theme-primary-hover transition-all shadow-lg shadow-theme-primary/20 uppercase">
-                      {isEditing ? 'DEĞİŞİKLİKLERİ KAYDET' : 'KAYDET'}
-                    </button>
-                  </div>
-                </form>
-              )}
-
-              <div className="flex-1 overflow-auto custom-scrollbar relative">
+              <div className="flex-1 min-h-0 overflow-auto custom-scrollbar relative">
                 {loading ? (
                   <div className="absolute inset-0 z-10 flex items-center justify-center bg-theme-surface/60 backdrop-blur-sm">
                     <Loading size="lg" />
@@ -1204,351 +1196,10 @@ export function Definitions() {
                       className="w-full h-10 bg-theme-surface border-2 border-theme rounded-xl pl-8 pr-4 py-2 text-xs text-theme-main focus:outline-none focus:border-theme-primary/50 transition-all font-bold"
                     />
                   </div>
-                  {(activeTab !== 'department-roles' && activeTab !== 'event-reasons' && activeTab !== 'event-groups') && (
-                    <button
-                      onClick={handleAddNew}
-                      className="bg-theme-primary hover:bg-theme-primary-hover h-10 text-white px-4 py-2 rounded-xl text-xs font-black transition-all shadow-xl shadow-theme-primary/20 flex items-center gap-2 group active:scale-95 whitespace-nowrap"
-                    >
-                      <Plus className="w-4 h-4" /> Yeni Ekle
-                    </button>
-                  )}
                 </div>
               </div>
 
-              {showAddForm && (
-                <form onSubmit={handleSave} className="flex flex-col bg-theme-surface border-b border-theme animate-in slide-in-from-top-4 duration-300 overflow-hidden" style={{ maxHeight: '80%' }}>
-                  <div className="flex-1 overflow-y-auto p-5">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3">
-                      {activeTab === 'machines' && (
-                        <>
-                          <div className="space-y-1"><label className="label-sm">MAKİNE KODU</label><input required value={formData.code || ''} className="form-input" onChange={(e) => setFormData({ ...formData, code: e.target.value })} /></div>
-                          <div className="space-y-1"><label className="label-sm">ADI</label><input required value={formData.name || ''} className="form-input" onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
-                          <div className="space-y-1"><label className="label-sm">MARKA</label><input value={formData.brand || ''} className="form-input" onChange={(e) => setFormData({ ...formData, brand: e.target.value })} /></div>
-                          <div className="space-y-1"><label className="label-sm">MODEL</label><input value={formData.model || ''} className="form-input" onChange={(e) => setFormData({ ...formData, model: e.target.value })} /></div>
-                          <div className="space-y-1"><label className="label-sm">KURULUM TARİHİ</label><input value={formData.installedDate ? String(formData.installedDate).slice(0, 10) : ''} type="date" className="form-input" onChange={(e) => setFormData({ ...formData, installedDate: e.target.value || null })} /></div>
-                          <div className="space-y-1"><label className="label-sm">VARDİYA KAPASİTESİ (Adet)</label><input value={formData.capacityPerShift ?? ''} type="number" className="form-input" onChange={(e) => setFormData({ ...formData, capacityPerShift: e.target.value === '' ? null : Number(e.target.value) })} /></div>
-                          <div className="space-y-1 md:col-span-2 lg:col-span-3"><label className="label-sm">NOTLAR</label><input value={formData.notes || ''} className="form-input" onChange={(e) => setFormData({ ...formData, notes: e.target.value })} /></div>
-                        </>
-                      )}
-                      {activeTab === 'operators' && (
-                        <>
-                          <div className="space-y-1"><label className="label-sm">SİCİL NO</label><input required value={formData.employeeId || ''} className="form-input" onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })} /></div>
-                          <div className="space-y-1"><label className="label-sm">AD SOYAD</label><input required value={formData.fullName || ''} className="form-input" onChange={(e) => setFormData({ ...formData, fullName: e.target.value })} /></div>
-                          <div className="space-y-1">
-                            <label className="label-sm">DEPARTMAN</label>
-                            <CustomSelect
-                              options={departments.map(d => ({ id: d.id, label: d.name }))}
-                              value={formData.departmentId || ''}
-                              onChange={(val) => {
-                                setFormData({ ...formData, departmentId: val, roleId: '' });
-                              }}
-                              placeholder="Departman Seçin"
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="label-sm">GÖREV / ROL</label>
-                            <CustomSelect
-                              options={roles
-                                .filter(r => !formData.departmentId || r.departmentId === formData.departmentId)
-                                .map(r => ({ id: r.id, label: r.name, subLabel: r.department?.name }))}
-                              value={formData.roleId || ''}
-                              onChange={(val) => setFormData({ ...formData, roleId: val })}
-                              placeholder="Görev Seçin"
-                              disabled={!formData.departmentId}
-                            />
-                          </div>
-                          <div className="space-y-1"><label className="label-sm">İŞE GİRİŞ TARİHİ</label><input value={formData.hireDate ? String(formData.hireDate).slice(0, 10) : ''} type="date" className="form-input" onChange={(e) => setFormData({ ...formData, hireDate: e.target.value || null })} /></div>
-                          <div className="space-y-1"><label className="label-sm">TECRÜBE (Yıl)</label><input value={formData.experienceYears ?? ''} type="number" className="form-input" onChange={(e) => setFormData({ ...formData, experienceYears: e.target.value === '' ? null : Number(e.target.value) })} /></div>
-                          <div className="space-y-1 md:col-span-2 lg:col-span-3"><label className="label-sm">SERTİFİKALAR</label><input value={formData.certifications || ''} className="form-input" onChange={(e) => setFormData({ ...formData, certifications: e.target.value })} /></div>
-                        </>
-                      )}
-                      {activeTab === 'department-roles' && (
-                        <>
-                          <div className="space-y-1">
-                            <label className="label-sm">DEPARTMAN</label>
-                            <CustomSelect
-                              options={departments.map(d => ({ id: d.id, label: d.name }))}
-                              value={formData.departmentId || ''}
-                              onChange={(val) => setFormData({ ...formData, departmentId: val })}
-                              placeholder="Departman Seçin"
-                            />
-                          </div>
-                          <div className="space-y-1"><label className="label-sm">GÖREV / ROL ADI</label><input required value={formData.name || ''} className="form-input" onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
-                          <div className="space-y-1">
-                            <label className="label-sm">DURUM</label>
-                            <CustomSelect
-                              options={[{ id: 'active', label: 'Aktif' }, { id: 'passive', label: 'Pasif' }]}
-                              value={formData.status || 'active'}
-                              onChange={(val) => setFormData({ ...formData, status: val })}
-                            />
-                          </div>
-                        </>
-                      )}
-                      {activeTab === 'work-centers' && (
-                        <>
-                          <div className="space-y-1"><label className="label-sm">İŞ MERKEZİ KODU</label><input required value={formData.code || ''} className="form-input" onChange={(e) => setFormData({ ...formData, code: e.target.value })} /></div>
-                          <div className="space-y-1"><label className="label-sm">İŞ MERKEZİ ADI</label><input required value={formData.name || ''} className="form-input" onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
-                          <div className="space-y-1">
-                            <label className="label-sm">LOKASYON</label>
-                            <CustomSelect
-                              options={companyLocations.map(l => ({ id: l.id, label: l.name }))}
-                              value={formData.locationId || ''}
-                              onChange={(val) => setFormData({ ...formData, locationId: val })}
-                              placeholder="Lokasyon Seçin"
-                            />
-                          </div>
-                        </>
-                      )}
-                      {activeTab === 'warehouses' && (
-                        <>
-                          <div className="space-y-1">
-                            <label className="label-sm">DEPO KODU</label>
-                            <input value={formData.code || ''} className="form-input" onChange={(e) => setFormData({ ...formData, code: e.target.value })} placeholder="örn. DP-01" />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="label-sm">DEPO ADI</label>
-                            <input required value={formData.name || ''} className="form-input" onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="örn. MAMÜL DEPO" />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="label-sm">DEPO TİPİ</label>
-                            <CustomSelect
-                              options={[
-                                { id: 'general', label: 'Genel Depo' },
-                                { id: 'raw', label: 'Hammadde' },
-                                { id: 'finished', label: 'Mamül' },
-                                { id: 'semifinished', label: 'Yarı Mamül' },
-                                { id: 'consumable', label: 'Sarf Malzeme' },
-                                { id: 'scrap', label: 'Fire / Hurda' },
-                                { id: 'workcenter', label: 'İş Merkezi' },
-                              ]}
-                              value={formData.type || 'general'}
-                              onChange={(val) => setFormData({ ...formData, type: val })}
-                            />
-                          </div>
-                          <div className="space-y-1 md:col-span-2">
-                            <label className="label-sm">LOKASYON BAĞLANTISI</label>
-                            <CustomSelect
-                              options={companyLocations.map(l => ({ id: l.id, label: l.name }))}
-                              value={formData.locationId || ''}
-                              onChange={(val) => setFormData({ ...formData, locationId: val || null })}
-                              placeholder="Lokasyon Seçin"
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="label-sm">BİRİM BAĞLANTISI (Şirket Yapısından Seçin)</label>
-                            <CustomSelect
-                              options={flatUnitOptions}
-                              value={formData.unitId || ''}
-                              onChange={(val) => setFormData({ ...formData, unitId: val || null })}
-                              placeholder="Bağlanacak birimi seçin (isteğe bağlı)"
-                            />
-                          </div>
-                        </>
-                      )}
-                      {activeTab === 'shifts' && (
-                        <>
-                          <div className="space-y-1"><label className="label-sm">VARDİYA KODU</label><input required value={formData.shiftCode || ''} className="form-input" onChange={(e) => setFormData({ ...formData, shiftCode: e.target.value })} /></div>
-                          <div className="space-y-1"><label className="label-sm">VARDİYA ADI</label><input required value={formData.shiftName || ''} className="form-input" onChange={(e) => setFormData({ ...formData, shiftName: e.target.value })} /></div>
-                          <div className="space-y-1"><label className="label-sm">BAŞLANGIÇ (HH:MM)</label><input required value={formData.startTime || ''} className="form-input" placeholder="06:00" onChange={(e) => setFormData({ ...formData, startTime: e.target.value })} /></div>
-                          <div className="space-y-1"><label className="label-sm">BİTİŞ (HH:MM)</label><input required value={formData.endTime || ''} className="form-input" placeholder="14:00" onChange={(e) => setFormData({ ...formData, endTime: e.target.value })} /></div>
-                          <div className="space-y-1"><label className="label-sm">SÜRE (DK)</label><input required value={formData.durationMinutes || ''} type="number" className="form-input" onChange={(e) => setFormData({ ...formData, durationMinutes: parseInt(e.target.value) })} /></div>
-                          <div className="space-y-1"><label className="label-sm">RENK KODU</label><input value={formData.colorCode || ''} className="form-input" placeholder="#45B7D1" onChange={(e) => setFormData({ ...formData, colorCode: e.target.value })} /></div>
-                        </>
-                      )}
-                      {activeTab === 'products' && (
-                        <>
-                          <div className="space-y-1"><label className="label-sm">ÜRÜN KODU</label><input required value={formData.productCode || ''} className="form-input" onChange={(e) => setFormData({ ...formData, productCode: e.target.value })} /></div>
-                          <div className="space-y-1"><label className="label-sm">ÜRÜN ADI</label><input required value={formData.productName || ''} className="form-input" onChange={(e) => setFormData({ ...formData, productName: e.target.value })} /></div>
-                          <div className="space-y-1"><label className="label-sm">MARKA</label><input value={formData.brand || ''} className="form-input" onChange={(e) => setFormData({ ...formData, brand: e.target.value })} /></div>
-                          <div className="space-y-1"><label className="label-sm">ÜRÜN GRUBU</label><input value={formData.productGroup || ''} className="form-input" onChange={(e) => setFormData({ ...formData, productGroup: e.target.value })} /></div>
-                          <div className="space-y-1">
-                            <label className="label-sm">TAKİP SİSTEMİ</label>
-                            <CustomSelect
-                              options={[
-                                { id: 'LOT', label: 'Lot Takibi' },
-                                { id: 'SERIAL', label: 'Seri No Takibi' },
-                                { id: 'BOTH', label: 'Lot ve Seri Takibi' },
-                                { id: 'NONE', label: 'Takip Yok' }
-                              ]}
-                              value={formData.trackingType || 'NONE'}
-                              onChange={(val) => setFormData({ ...formData, trackingType: val })}
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="label-sm">STOK TİPİ</label>
-                            <CustomSelect
-                              options={[
-                                'Hammadde', 'Sarf Malzeme', 'Yarımamül', 'Mamül', 'Ölçüm Aracı',
-                                'Ekipman', 'Kalıp', 'Yardımcı Malzeme', 'Tüketim Malzemesi',
-                                'Ambalaj', 'Yedek Parça'
-                              ].map(s => ({ id: s, label: s }))}
-                              value={formData.stockType || ''}
-                              onChange={(val) => setFormData({ ...formData, stockType: val })}
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="label-sm">STD. ÜRETİM ADETİ (BİR LOT)</label>
-                            <input type="number" value={formData.defaultProductionQty || ''} className="form-input" onChange={(e) => setFormData({ ...formData, defaultProductionQty: Number(e.target.value) })} />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="label-sm">HEDEF DEPO (BİTİNCE)</label>
-                            <CustomSelect
-                              options={warehouses.map(w => ({ id: w.id, label: w.name }))}
-                              value={formData.targetWarehouseId || ''}
-                              onChange={(val) => setFormData({ ...formData, targetWarehouseId: val })}
-                            />
-                          </div>
-                          <div className="space-y-1"><label className="label-sm">ÜRÜN SINIFI</label><input value={formData.productClass || ''} className="form-input" onChange={(e) => setFormData({ ...formData, productClass: e.target.value })} /></div>
-                          <div className="space-y-1 md:col-span-2 lg:col-span-3"><label className="label-sm">AÇIKLAMA</label><input value={formData.description || ''} className="form-input" onChange={(e) => setFormData({ ...formData, description: e.target.value })} /></div>
-                        </>
-                      )}
-
-                      {activeTab === 'firms' && (
-                        <>
-                          <div className="space-y-1"><label className="label-sm">FİRMA KODU</label><input value={formData.code || ''} className="form-input" onChange={(e) => setFormData({ ...formData, code: e.target.value })} placeholder="örn. FRM-001" /></div>
-                          <div className="space-y-1"><label className="label-sm">FİRMA ADI</label><input required value={formData.name || ''} className="form-input" onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
-                          <div className="space-y-1">
-                            <label className="label-sm">FİRMA TİPİ</label>
-                            <CustomSelect
-                              options={[
-                                { id: 'general', label: 'Genel' },
-                                { id: 'supplier', label: 'Tedarikçi' },
-                                { id: 'customer', label: 'Müşteri' },
-                                { id: 'logistics', label: 'Lojistik' },
-                                { id: 'customs', label: 'Gümrük' },
-                                { id: 'consignment', label: 'Konsinye' }
-                              ]}
-                              value={formData.type || 'general'}
-                              onChange={(val) => setFormData({ ...formData, type: val })}
-                              searchable={false}
-                            />
-                          </div>
-                          <div className="space-y-1"><label className="label-sm">VERGİ DAİRESİ</label><input value={formData.taxOffice || ''} className="form-input" onChange={(e) => setFormData({ ...formData, taxOffice: e.target.value })} /></div>
-                          <div className="space-y-1"><label className="label-sm">VERGİ NO</label><input value={formData.taxNumber || ''} className="form-input" onChange={(e) => setFormData({ ...formData, taxNumber: e.target.value })} /></div>
-                          <div className="space-y-1"><label className="label-sm">TELEFON</label><input value={formData.phone || ''} className="form-input" onChange={(e) => setFormData({ ...formData, phone: e.target.value })} /></div>
-                          <div className="space-y-1"><label className="label-sm">E-POSTA</label><input type="email" value={formData.email || ''} className="form-input" onChange={(e) => setFormData({ ...formData, email: e.target.value })} /></div>
-                          <div className="space-y-1"><label className="label-sm">YETKİLİ</label><input value={formData.contactName || ''} className="form-input" onChange={(e) => setFormData({ ...formData, contactName: e.target.value })} /></div>
-                          <div className="space-y-1 md:col-span-2"><label className="label-sm">ADRES</label><input value={formData.address || ''} className="form-input" onChange={(e) => setFormData({ ...formData, address: e.target.value })} /></div>
-                          <div className="space-y-1">
-                            <label className="label-sm">DURUM</label>
-                            <CustomSelect
-                              options={[{ id: 'active', label: 'Aktif' }, { id: 'passive', label: 'Pasif' }]}
-                              value={formData.status || 'active'}
-                              onChange={(val) => setFormData({ ...formData, status: val })}
-                              searchable={false}
-                            />
-                          </div>
-                          <div className="space-y-1 md:col-span-2 lg:col-span-3"><label className="label-sm">NOTLAR</label><input value={formData.notes || ''} className="form-input" onChange={(e) => setFormData({ ...formData, notes: e.target.value })} /></div>
-                        </>
-                      )}
-
-                      {activeTab === 'operations' && (
-                        <>
-                          <div className="space-y-1"><label className="label-sm">OPERASYON KODU</label><input required value={formData.code || ''} className="form-input" onChange={(e) => setFormData({ ...formData, code: e.target.value })} /></div>
-                          <div className="space-y-1"><label className="label-sm">OPERASYON ADI</label><input required value={formData.name || ''} className="form-input" onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
-                          <div className="space-y-1">
-                            <label className="label-sm">İŞ MERKEZİ / BİRİM</label>
-                            <CustomSelect
-                              options={companyUnits.map(u => ({ id: u.id, label: u.name, subLabel: companyLocations.find(l => l.id === u.locationId)?.name }))}
-                              value={formData.unitId || ''}
-                              onChange={(val) => setFormData({ ...formData, unitId: val, stationId: '' })}
-                              placeholder="Birim Seçin"
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="label-sm">İSTASYON</label>
-                            <CustomSelect
-                              options={stations.filter(s => s.unitId === (formData.unitId || '')).map(s => ({ id: s.id, label: s.name, subLabel: s.code }))}
-                              value={formData.stationId || ''}
-                              onChange={(val) => setFormData({ ...formData, stationId: val })}
-                              placeholder={formData.unitId ? "İstasyon Seçin" : "Önce İş Merkezi Seçin"}
-                              disabled={!formData.unitId}
-                            />
-                          </div>
-                          <div className="space-y-1 md:col-span-2 lg:col-span-3"><label className="label-sm">AÇIKLAMA</label><input value={formData.description || ''} className="form-input" onChange={(e) => setFormData({ ...formData, description: e.target.value })} /></div>
-                        </>
-                      )}
-
-                      {activeTab === 'stations' && (
-                        <>
-                          <div className="space-y-1"><label className="label-sm">İSTASYON KODU</label><input required value={formData.code || ''} className="form-input" onChange={(e) => setFormData({ ...formData, code: e.target.value })} /></div>
-                          <div className="space-y-1"><label className="label-sm">İSTASYON ADI</label><input required value={formData.name || ''} className="form-input" onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
-                          <div className="space-y-1">
-                            <label className="label-sm">İŞ MERKEZİ / BİRİM</label>
-                            <CustomSelect
-                              options={companyUnits.map(u => ({ id: u.id, label: u.name, subLabel: companyLocations.find(l => l.id === u.locationId)?.name }))}
-                              value={formData.unitId || ''}
-                              onChange={(val) => setFormData({ ...formData, unitId: val })}
-                              placeholder="Birim Seçin"
-                            />
-                          </div>
-                        </>
-                      )}
-                      {activeTab === 'event-groups' && (
-                        <>
-                          <div className="space-y-1"><label className="label-sm">GRUP KODU</label><input value={formData.code || ''} className="form-input" onChange={(e) => setFormData({ ...formData, code: e.target.value })} placeholder="örn. CNC-G" /></div>
-                          <div className="space-y-1"><label className="label-sm">GRUP ADI</label><input required value={formData.name || ''} className="form-input" onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="örn. CNC Kaynaklı" /></div>
-                          <div className="space-y-1">
-                            <label className="label-sm">DURUM</label>
-                            <CustomSelect
-                              options={[{ id: 'active', label: 'Aktif' }, { id: 'passive', label: 'Pasif' }]}
-                              value={formData.status || 'active'}
-                              onChange={(val) => setFormData({ ...formData, status: val })}
-                            />
-                          </div>
-                        </>
-                      )}
-                      {activeTab === 'event-reasons' && (
-                        <>
-                          <div className="space-y-1"><label className="label-sm">OLAY KODU</label><input value={formData.code || ''} className="form-input" onChange={(e) => setFormData({ ...formData, code: e.target.value })} placeholder="örn. RED-01" /></div>
-                          <div className="space-y-1"><label className="label-sm">OLAY SEBEBİ</label><input required value={formData.name || ''} className="form-input" onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
-                          <div className="space-y-1">
-                            <label className="label-sm">OLAY GRUBU</label>
-                            <CustomSelect
-                              options={eventGroups.map(g => ({ id: g.id, label: g.name, subLabel: g.code }))}
-                              value={formData.groupId || ''}
-                              onChange={(val) => setFormData({ ...formData, groupId: val })}
-                              placeholder="Grup Seçin"
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="label-sm">OLAY TİPİ</label>
-                            <CustomSelect
-                              options={[
-                                { id: 'RED', label: 'RED' },
-                                { id: 'NUMUNE', label: 'NUMUNE' },
-                                { id: 'TEKRAR_ISLEM', label: 'TEKRAR İŞLEM' },
-                                { id: 'SARTLI_KABUL', label: 'ŞARTLI KABUL' }
-                              ]}
-                              value={formData.type || ''}
-                              onChange={(val) => setFormData({ ...formData, type: val })}
-                              placeholder="Tip Seçin"
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="label-sm">DURUM</label>
-                            <CustomSelect
-                              options={[{ id: 'active', label: 'Aktif' }, { id: 'passive', label: 'Pasif' }]}
-                              value={formData.status || 'active'}
-                              onChange={(val) => setFormData({ ...formData, status: val })}
-                            />
-                          </div>
-                        </>
-                      )}
-
-
-                    </div>
-                    <div className="py-4 p-2 bg-theme-base/20 border-t border-theme flex justify-end gap-3">
-                      <button type="button" onClick={() => setShowAddForm(false)} className="px-6 py-2.5 text-xs font-black text-theme-dim border border-theme rounded-xl hover:bg-theme-main/10 transition-all uppercase">İPTAL</button>
-                      <button type="submit" className="px-8 py-2.5 text-xs font-black text-white bg-theme-primary rounded-xl hover:bg-theme-primary-hover transition-all shadow-lg shadow-theme-primary/20 uppercase">
-                        {isEditing ? 'DEĞİŞİKLİKLERİ KAYDET' : 'KAYDET'}
-                      </button>
-                    </div>
-                  </div>
-                </form>
-              )}
-
-              <div className="flex-1 overflow-auto custom-scrollbar relative">
+              <div className="flex-1 min-h-0 overflow-auto custom-scrollbar relative">
                 {loading ? (
                   <div className="absolute inset-0 z-10 flex items-center justify-center bg-theme-surface/60 backdrop-blur-sm">
                     <Loading size="lg" />
@@ -1683,12 +1334,12 @@ export function Definitions() {
                                   </div>
                                 </label>
                               </td>
-                              <td className="px-2 py-3 border-b border-theme/30 font-bold text-theme-primary font-mono text-sm leading-none">
+                              <td className="px-2 py-3 border-b border-theme/30 text-sm font-black text-theme-primary leading-none">
                                 {isEditingRow ? (
                                   <input
                                     value={localChanges[item.id]?.[(activeTab === 'machines' || activeTab === 'operations' || activeTab === 'routes' || activeTab === 'stations' || activeTab === 'work-centers' || activeTab === 'warehouses' || activeTab === 'event-reasons' || activeTab === 'event-groups' || activeTab === 'firms' || activeTab === 'plan-types') ? 'code' : activeTab === 'operators' ? 'employeeId' : activeTab === 'shifts' ? 'shiftCode' : (activeTab === 'department-roles') ? 'id' : 'productCode'] ?? (item.code || item.employeeId || item.shiftCode || item.productCode || (activeTab === 'department-roles' ? item.id : ''))}
                                     onChange={(e) => updateLocalChanges(item.id, (activeTab === 'machines' || activeTab === 'operations' || activeTab === 'routes' || activeTab === 'stations' || activeTab === 'work-centers' || activeTab === 'warehouses' || activeTab === 'event-reasons' || activeTab === 'event-groups' || activeTab === 'firms' || activeTab === 'plan-types') ? 'code' : activeTab === 'operators' ? 'employeeId' : activeTab === 'shifts' ? 'shiftCode' : (activeTab === 'department-roles') ? 'id' : 'productCode', e.target.value)}
-                                    className="settings-inline-input text-theme-primary font-mono"
+                                    className="settings-inline-input text-theme-primary"
                                   />
                                 ) : (item.code || item.employeeId || item.shiftCode || item.productCode || (activeTab === 'department-roles' ? item.id.slice(0, 8) : item.id.slice(0, 8)))}
                               </td>
@@ -2003,7 +1654,7 @@ export function Definitions() {
                               <td className="px-2 py-3 border-b border-theme/30">
                                 <span
                                   onClick={() => !isEditingRow && handleToggleStatus(item)}
-                                  className={`text-[9px] font-black px-3 py-1 rounded-full border flex items-center gap-1.5 w-fit ${item.status === 'active' ? 'bg-theme-success/10 text-theme-success border-theme-success/20' : 'bg-theme-base/20 text-theme-dim border-theme'} ${!isEditingRow ? 'cursor-pointer hover:scale-105 transition-transform active:scale-95' : 'opacity-50'}`}
+                                  className={`text-[9px] font-black px-3 py-1 rounded-lg border flex items-center gap-1.5 w-fit ${item.status === 'active' ? 'bg-theme-success/10 text-theme-success border-theme-success/20' : 'bg-theme-base/20 text-theme-dim border-theme'} ${!isEditingRow ? 'cursor-pointer hover:scale-105 transition-transform active:scale-95' : 'opacity-50'}`}
                                 >
                                   <div className={`w-1 h-1 rounded-full ${item.status === 'active' ? 'bg-theme-success animate-pulse' : 'bg-theme-base/20'}`} />
                                   {item.status === 'active' ? 'AKTİF' : 'PASİF'}
@@ -2047,7 +1698,7 @@ export function Definitions() {
                 <div className="flex items-center gap-6 order-2 md:order-1">
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] font-black text-theme-dim whitespace-nowrap uppercase">SAYFADA:</span>
-                    <div className="w-24">
+                    <div className="min-w-fit">
                       <CustomSelect
                         options={[
                           { id: 20, label: '20' },
@@ -2076,12 +1727,12 @@ export function Definitions() {
                   <button
                     onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
                     disabled={currentPage === 0}
-                    className="p-3 rounded-xl bg-theme-base border border-theme text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+                    className="p-3 rounded-xl bg-theme-base border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
                   >
                     <ChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
                   </button>
 
-                  <div className="flex items-center gap-2 px-4 py-2 bg-theme-base border border-theme rounded-2xl">
+                  <div className="flex items-center gap-2 px-4 py-2 bg-theme-base border border-theme rounded-xl">
                     <span className="text-theme-primary font-black text-sm min-w-[20px] text-center">
                       {currentPage + 1}
                     </span>
@@ -2094,7 +1745,7 @@ export function Definitions() {
                   <button
                     onClick={() => setCurrentPage(prev => Math.min(pageCount - 1, prev + 1))}
                     disabled={currentPage >= pageCount - 1}
-                    className="p-3 rounded-xl bg-theme-base border border-theme text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+                    className="p-3 rounded-xl bg-theme-base border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
                   >
                     <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
                   </button>
@@ -2156,6 +1807,394 @@ export function Definitions() {
           recipeId={viewRecipeId!}
           onClose={() => setViewRecipeId(null)}
         />
+      )}
+
+      {showAddForm && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-theme-base/60 backdrop-blur-md animate-in fade-in duration-300"
+            onClick={() => setShowAddForm(false)}
+          />
+          <div className="relative w-full max-w-4xl bg-theme-surface border border-theme rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh]">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-theme bg-theme-base/20 backdrop-blur-sm sticky top-0 z-10">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-theme-primary/10 rounded-2xl flex items-center justify-center text-theme-primary shadow-inner">
+                  {isEditing ? <Edit className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-theme-main leading-tight tracking-tight">
+                    {isEditing ? 'KAYDI DÜZENLE' : 'YENİ KAYIT EKLE'}
+                  </h3>
+                  <p className="text-xs font-bold text-theme-dim uppercase tracking-widest mt-0.5">
+                    {(() => {
+                      const titles: Record<string, string> = {
+                        machines: 'MAKİNE TANIMI',
+                        operators: 'OPERATÖR TANIMI',
+                        'department-roles': 'DEPARTMAN ROL TANIMI',
+                        'work-centers': 'İŞ MERKEZİ TANIMI',
+                        warehouses: 'DEPO TANIMI',
+                        shifts: 'VARDİYA TANIMI',
+                        products: 'ÜRÜN TANIMI',
+                        firms: 'FİRMA TANIMI',
+                        operations: 'OPERASYON TANIMI',
+                        stations: 'İSTASYON TANIMI',
+                        'event-groups': 'OLAY GRUBU TANIMI',
+                        'event-reasons': 'OLAY SEBEBİ TANIMI'
+                      };
+                      return titles[activeTab] || 'SİSTEM TANIMI';
+                    })()}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowAddForm(false)}
+                className="w-10 h-10 flex items-center justify-center rounded-xl bg-theme-base/10 text-theme-dim hover:bg-theme-primary hover:text-white transition-all active:scale-95 group"
+              >
+                <X className="w-5 h-5 transition-transform group-hover:rotate-90" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <form onSubmit={handleSave} className="flex-1 overflow-y-auto custom-scrollbar flex flex-col">
+              <div className="p-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {activeTab === 'machines' && (
+                    <>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">MAKİNE KODU</label><input required value={formData.code || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, code: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">ADI</label><input required value={formData.name || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">MARKA</label><input value={formData.brand || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, brand: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">MODEL</label><input value={formData.model || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, model: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">KURULUM TARİHİ</label><input value={formData.installedDate ? String(formData.installedDate).slice(0, 10) : ''} type="date" className="form-input h-11" onChange={(e) => setFormData({ ...formData, installedDate: e.target.value || null })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">VARDİYA KAPASİTESİ (Adet)</label><input value={formData.capacityPerShift ?? ''} type="number" className="form-input h-11" onChange={(e) => setFormData({ ...formData, capacityPerShift: e.target.value === '' ? null : Number(e.target.value) })} /></div>
+                      <div className="space-y-2 md:col-span-2 lg:col-span-3"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">NOTLAR</label><input value={formData.notes || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, notes: e.target.value })} /></div>
+                    </>
+                  )}
+                  {activeTab === 'operators' && (
+                    <>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">SİCİL NO</label><input required value={formData.employeeId || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">AD SOYAD</label><input required value={formData.fullName || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, fullName: e.target.value })} /></div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">DEPARTMAN</label>
+                        <CustomSelect
+                          options={departments.map(d => ({ id: d.id, label: d.name }))}
+                          value={formData.departmentId || ''}
+                          onChange={(val) => {
+                            setFormData({ ...formData, departmentId: val, roleId: '' });
+                          }}
+                          placeholder="Departman Seçin"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">GÖREV / ROL</label>
+                        <CustomSelect
+                          options={roles
+                            .filter(r => !formData.departmentId || r.departmentId === formData.departmentId)
+                            .map(r => ({ id: r.id, label: r.name, subLabel: r.department?.name }))}
+                          value={formData.roleId || ''}
+                          onChange={(val) => setFormData({ ...formData, roleId: val })}
+                          placeholder="Görev Seçin"
+                          disabled={!formData.departmentId}
+                        />
+                      </div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">İŞE GİRİŞ TARİHİ</label><input value={formData.hireDate ? String(formData.hireDate).slice(0, 10) : ''} type="date" className="form-input h-11" onChange={(e) => setFormData({ ...formData, hireDate: e.target.value || null })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">TECRÜBE (Yıl)</label><input value={formData.experienceYears ?? ''} type="number" className="form-input h-11" onChange={(e) => setFormData({ ...formData, experienceYears: e.target.value === '' ? null : Number(e.target.value) })} /></div>
+                      <div className="space-y-2 md:col-span-2 lg:col-span-3"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">SERTİFİKALAR</label><input value={formData.certifications || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, certifications: e.target.value })} /></div>
+                    </>
+                  )}
+                  {activeTab === 'department-roles' && (
+                    <>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">DEPARTMAN</label>
+                        <CustomSelect
+                          options={departments.map(d => ({ id: d.id, label: d.name }))}
+                          value={formData.departmentId || ''}
+                          onChange={(val) => setFormData({ ...formData, departmentId: val })}
+                          placeholder="Departman Seçin"
+                        />
+                      </div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">GÖREV / ROL ADI</label><input required value={formData.name || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">DURUM</label>
+                        <CustomSelect
+                          options={[{ id: 'active', label: 'Aktif' }, { id: 'passive', label: 'Pasif' }]}
+                          value={formData.status || 'active'}
+                          onChange={(val) => setFormData({ ...formData, status: val })}
+                        />
+                      </div>
+                    </>
+                  )}
+                  {activeTab === 'work-centers' && (
+                    <>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">İŞ MERKEZİ KODU</label><input required value={formData.code || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, code: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">İŞ MERKEZİ ADI</label><input required value={formData.name || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">LOKASYON</label>
+                        <CustomSelect
+                          options={companyLocations.map(l => ({ id: l.id, label: l.name }))}
+                          value={formData.locationId || ''}
+                          onChange={(val) => setFormData({ ...formData, locationId: val })}
+                          placeholder="Lokasyon Seçin"
+                        />
+                      </div>
+                    </>
+                  )}
+                  {activeTab === 'warehouses' && (
+                    <>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">DEPO KODU</label>
+                        <input value={formData.code || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, code: e.target.value })} placeholder="örn. DP-01" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">DEPO ADI</label>
+                        <input required value={formData.name || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="örn. MAMÜL DEPO" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">DEPO TİPİ</label>
+                        <CustomSelect
+                          options={[
+                            { id: 'general', label: 'Genel Depo' },
+                            { id: 'raw', label: 'Hammadde' },
+                            { id: 'finished', label: 'Mamül' },
+                            { id: 'semifinished', label: 'Yarı Mamül' },
+                            { id: 'consumable', label: 'Sarf Malzeme' },
+                            { id: 'scrap', label: 'Fire / Hurda' },
+                            { id: 'workcenter', label: 'İş Merkezi' },
+                          ]}
+                          value={formData.type || 'general'}
+                          onChange={(val) => setFormData({ ...formData, type: val })}
+                        />
+                      </div>
+                      <div className="space-y-2 md:col-span-2">
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">LOKASYON BAĞLANTISI</label>
+                        <CustomSelect
+                          options={companyLocations.map(l => ({ id: l.id, label: l.name }))}
+                          value={formData.locationId || ''}
+                          onChange={(val) => setFormData({ ...formData, locationId: val || null })}
+                          placeholder="Lokasyon Seçin"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">BİRİM BAĞLANTISI</label>
+                        <CustomSelect
+                          options={flatUnitOptions}
+                          value={formData.unitId || ''}
+                          onChange={(val) => setFormData({ ...formData, unitId: val || null })}
+                          placeholder="Bağlanacak birimi seçin"
+                        />
+                      </div>
+                    </>
+                  )}
+                  {activeTab === 'shifts' && (
+                    <>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">VARDİYA KODU</label><input required value={formData.shiftCode || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, shiftCode: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">VARDİYA ADI</label><input required value={formData.shiftName || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, shiftName: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">BAŞLANGIÇ (HH:MM)</label><input required value={formData.startTime || ''} className="form-input h-11" placeholder="06:00" onChange={(e) => setFormData({ ...formData, startTime: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">BİTİŞ (HH:MM)</label><input required value={formData.endTime || ''} className="form-input h-11" placeholder="14:00" onChange={(e) => setFormData({ ...formData, endTime: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">SÜRE (DK)</label><input required value={formData.durationMinutes || ''} type="number" className="form-input h-11" onChange={(e) => setFormData({ ...formData, durationMinutes: parseInt(e.target.value) })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">RENK KODU</label><input value={formData.colorCode || ''} className="form-input h-11" placeholder="#45B7D1" onChange={(e) => setFormData({ ...formData, colorCode: e.target.value })} /></div>
+                    </>
+                  )}
+                  {activeTab === 'products' && (
+                    <>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">ÜRÜN KODU</label><input required value={formData.productCode || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, productCode: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">ÜRÜN ADI</label><input required value={formData.productName || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, productName: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">MARKA</label><input value={formData.brand || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, brand: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">ÜRÜN GRUBU</label><input value={formData.productGroup || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, productGroup: e.target.value })} /></div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">TAKİP SİSTEMİ</label>
+                        <CustomSelect
+                          options={[
+                            { id: 'LOT', label: 'Lot Takibi' },
+                            { id: 'SERIAL', label: 'Seri No Takibi' },
+                            { id: 'BOTH', label: 'Lot ve Seri Takibi' },
+                            { id: 'NONE', label: 'Takip Yok' }
+                          ]}
+                          value={formData.trackingType || 'NONE'}
+                          onChange={(val) => setFormData({ ...formData, trackingType: val })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">STOK TİPİ</label>
+                        <CustomSelect
+                          options={[
+                            'Hammadde', 'Sarf Malzeme', 'Yarımamül', 'Mamül', 'Ölçüm Aracı',
+                            'Ekipman', 'Kalıp', 'Yardımcı Malzeme', 'Tüketim Malzemesi',
+                            'Ambalaj', 'Yedek Parça'
+                          ].map(s => ({ id: s, label: s }))}
+                          value={formData.stockType || ''}
+                          onChange={(val) => setFormData({ ...formData, stockType: val })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">STD. ÜRETİM ADETİ</label>
+                        <input type="number" value={formData.defaultProductionQty || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, defaultProductionQty: Number(e.target.value) })} />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">HEDEF DEPO</label>
+                        <CustomSelect
+                          options={warehouses.map(w => ({ id: w.id, label: w.name }))}
+                          value={formData.targetWarehouseId || ''}
+                          onChange={(val) => setFormData({ ...formData, targetWarehouseId: val })}
+                        />
+                      </div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">ÜRÜN SINIFI</label><input value={formData.productClass || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, productClass: e.target.value })} /></div>
+                      <div className="space-y-2 md:col-span-2 lg:col-span-3"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">AÇIKLAMA</label><input value={formData.description || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, description: e.target.value })} /></div>
+                    </>
+                  )}
+                  {activeTab === 'firms' && (
+                    <>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">FİRMA KODU</label><input value={formData.code || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, code: e.target.value })} placeholder="örn. FRM-001" /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">FİRMA ADI</label><input required value={formData.name || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">FİRMA TİPİ</label>
+                        <CustomSelect
+                          options={[
+                            { id: 'general', label: 'Genel' },
+                            { id: 'supplier', label: 'Tedarikçi' },
+                            { id: 'customer', label: 'Müşteri' },
+                            { id: 'logistics', label: 'Lojistik' },
+                            { id: 'customs', label: 'Gümrük' },
+                            { id: 'consignment', label: 'Konsinye' }
+                          ]}
+                          value={formData.type || 'general'}
+                          onChange={(val) => setFormData({ ...formData, type: val })}
+                          searchable={false}
+                        />
+                      </div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">VERGİ DAİRESİ</label><input value={formData.taxOffice || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, taxOffice: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">VERGİ NO</label><input value={formData.taxNumber || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, taxNumber: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">TELEFON</label><input value={formData.phone || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, phone: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">E-POSTA</label><input type="email" value={formData.email || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, email: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">YETKİLİ</label><input value={formData.contactName || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, contactName: e.target.value })} /></div>
+                      <div className="space-y-2 md:col-span-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">ADRES</label><input value={formData.address || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, address: e.target.value })} /></div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">DURUM</label>
+                        <CustomSelect
+                          options={[{ id: 'active', label: 'Aktif' }, { id: 'passive', label: 'Pasif' }]}
+                          value={formData.status || 'active'}
+                          onChange={(val) => setFormData({ ...formData, status: val })}
+                          searchable={false}
+                        />
+                      </div>
+                      <div className="space-y-2 md:col-span-2 lg:col-span-3"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">NOTLAR</label><input value={formData.notes || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, notes: e.target.value })} /></div>
+                    </>
+                  )}
+                  {activeTab === 'operations' && (
+                    <>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">OPERASYON KODU</label><input required value={formData.code || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, code: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">OPERASYON ADI</label><input required value={formData.name || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">İŞ MERKEZİ / BİRİM</label>
+                        <CustomSelect
+                          options={companyUnits.map(u => ({ id: u.id, label: u.name, subLabel: companyLocations.find(l => l.id === u.locationId)?.name }))}
+                          value={formData.unitId || ''}
+                          onChange={(val) => setFormData({ ...formData, unitId: val, stationId: '' })}
+                          placeholder="Birim Seçin"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">İSTASYON</label>
+                        <CustomSelect
+                          options={stations.filter(s => s.unitId === (formData.unitId || '')).map(s => ({ id: s.id, label: s.name, subLabel: s.code }))}
+                          value={formData.stationId || ''}
+                          onChange={(val) => setFormData({ ...formData, stationId: val })}
+                          placeholder={formData.unitId ? "İstasyon Seçin" : "Önce İş Merkezi Seçin"}
+                          disabled={!formData.unitId}
+                        />
+                      </div>
+                      <div className="space-y-2 md:col-span-2 lg:col-span-3"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">AÇIKLAMA</label><input value={formData.description || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, description: e.target.value })} /></div>
+                    </>
+                  )}
+                  {activeTab === 'stations' && (
+                    <>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">İSTASYON KODU</label><input required value={formData.code || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, code: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">İSTASYON ADI</label><input required value={formData.name || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">İŞ MERKEZİ / BİRİM</label>
+                        <CustomSelect
+                          options={companyUnits.map(u => ({ id: u.id, label: u.name, subLabel: companyLocations.find(l => l.id === u.locationId)?.name }))}
+                          value={formData.unitId || ''}
+                          onChange={(val) => setFormData({ ...formData, unitId: val })}
+                          placeholder="Birim Seçin"
+                        />
+                      </div>
+                    </>
+                  )}
+                  {activeTab === 'event-groups' && (
+                    <>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">GRUP KODU</label><input value={formData.code || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, code: e.target.value })} placeholder="örn. CNC-G" /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">GRUP ADI</label><input required value={formData.name || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="örn. CNC Kaynaklı" /></div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">DURUM</label>
+                        <CustomSelect
+                          options={[{ id: 'active', label: 'Aktif' }, { id: 'passive', label: 'Pasif' }]}
+                          value={formData.status || 'active'}
+                          onChange={(val) => setFormData({ ...formData, status: val })}
+                        />
+                      </div>
+                    </>
+                  )}
+                  {activeTab === 'event-reasons' && (
+                    <>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">OLAY KODU</label><input value={formData.code || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, code: e.target.value })} placeholder="örn. RED-01" /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">OLAY SEBEBİ</label><input required value={formData.name || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">OLAY GRUBU</label>
+                        <CustomSelect
+                          options={eventGroups.map(g => ({ id: g.id, label: g.name, subLabel: g.code }))}
+                          value={formData.groupId || ''}
+                          onChange={(val) => setFormData({ ...formData, groupId: val })}
+                          placeholder="Grup Seçin"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">OLAY TİPİ</label>
+                        <CustomSelect
+                          options={[
+                            { id: 'RED', label: 'RED' },
+                            { id: 'NUMUNE', label: 'NUMUNE' },
+                            { id: 'TEKRAR_ISLEM', label: 'TEKRAR İŞLEM' },
+                            { id: 'SARTLI_KABUL', label: 'ŞARTLI KABUL' }
+                          ]}
+                          value={formData.type || ''}
+                          onChange={(val) => setFormData({ ...formData, type: val })}
+                          placeholder="Tip Seçin"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">DURUM</label>
+                        <CustomSelect
+                          options={[{ id: 'active', label: 'Aktif' }, { id: 'passive', label: 'Pasif' }]}
+                          value={formData.status || 'active'}
+                          onChange={(val) => setFormData({ ...formData, status: val })}
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="p-6 border-t border-theme bg-theme-base/20 backdrop-blur-sm flex justify-end gap-3 sticky bottom-0 z-10 mt-auto">
+                <button
+                  type="button"
+                  onClick={() => setShowAddForm(false)}
+                  className="px-6 py-2.5 text-xs font-black text-theme-dim border border-theme rounded-xl hover:bg-theme-main/10 transition-all uppercase tracking-widest active:scale-95"
+                >
+                  İPTAL
+                </button>
+                <button
+                  type="submit"
+                  className="px-8 py-2.5 text-xs font-black text-white bg-theme-primary rounded-xl hover:bg-theme-primary-hover transition-all shadow-xl shadow-theme-primary/20 uppercase tracking-widest active:scale-95"
+                >
+                  {isEditing ? 'GÜNCELLE' : 'KAYDET'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );

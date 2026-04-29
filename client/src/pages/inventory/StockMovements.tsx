@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { Loading } from '../../components/common/Loading';
 import { CustomSelect } from '../../components/common/CustomSelect';
-import { ArrowRightLeft, Calendar, ChevronLeft, ChevronRight, Filter, History, Package, Search, TrendingDown, TrendingUp, X } from 'lucide-react';
+import { Tooltip } from '../../components/common/Tooltip';
+import { ArrowRightLeft, Calendar, ChevronLeft, ChevronRight, Filter, History, Package, Search, TrendingDown, TrendingUp, X, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 
@@ -18,27 +20,31 @@ const initialFilters = {
 };
 
 const movementTypes = [
-  { id: 'all', label: 'TÜM TİPLER' },
-  { id: 'PRODUCTION', label: 'ÜRETİM GİRİŞİ' },
-  { id: 'SALE', label: 'SATIŞ ÇIKIŞI' },
-  { id: 'STOCK_VOUCHER_ENTRY', label: 'STOK GİRİŞİ' },
-  { id: 'STOCK_VOUCHER_EXIT', label: 'STOK ÇIKIŞI' },
-  { id: 'TRANSFER', label: 'TRANSFER' },
-  { id: 'STOCK_COUNT_SURPLUS', label: 'SAYIM FAZLASI' },
-  { id: 'STOCK_COUNT_SHORTAGE', label: 'SAYIM EKSİĞİ' },
-  { id: 'SCRAP', label: 'FİRE / HURDA' },
-  { id: 'RESERVE', label: 'REZERVE' },
-  { id: 'CONSUMPTION_EXIT', label: 'TÜKETİM ÇIKIŞI' }
+  { id: 'all', label: 'Tüm Hareketler' },
+  { id: 'PRODUCTION', label: 'Üretim Girişi' },
+  { id: 'SALE', label: 'Satış Çıkışı' },
+  { id: 'STOCK_VOUCHER_ENTRY', label: 'Stok Girişi' },
+  { id: 'STOCK_VOUCHER_EXIT', label: 'Stok Çıkışı' },
+  { id: 'TRANSFER', label: 'Transfer' },
+  { id: 'STOCK_COUNT_SURPLUS', label: 'Sayım Fazlası' },
+  { id: 'STOCK_COUNT_SHORTAGE', label: 'Sayım Eksigi' },
+  { id: 'SCRAP', label: 'Fire / Hurda' },
+  { id: 'RESERVE', label: 'Rezerve' },
+  { id: 'CONSUMPTION', label: 'Üretim Tüketimi' },
+  { id: 'REJECT', label: 'Üretim Reddi' },
+  { id: 'SAMPLE', label: 'Üretim Numarası' },
+  { id: 'CONSUMPTION_EXIT', label: 'Tüketim Çıkışı' }
 ];
 
 const normalize = (value: any) => String(value || '').toLocaleLowerCase('tr-TR');
 
 export function StockMovements() {
+  const navigate = useNavigate();
   const [movements, setMovements] = useState<any[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [filters, setFilters] = useState(initialFilters);
   const [loading, setLoading] = useState(true);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(20);
   const [currentPage, setCurrentPage] = useState(0);
 
   useEffect(() => {
@@ -124,6 +130,19 @@ export function StockMovements() {
     setCurrentPage(0);
   };
 
+  const handleReferenceClick = (move: any) => {
+    if (!move.referenceId) return;
+
+    const prodTypes = ['PRODUCTION', 'CONSUMPTION', 'RESERVE', 'REJECT', 'SAMPLE'];
+    const voucherTypes = ['STOCK_VOUCHER_ENTRY', 'STOCK_VOUCHER_EXIT'];
+
+    if (prodTypes.includes(move.type)) {
+      navigate(`/production-orders/${move.referenceId}`);
+    } else if (voucherTypes.includes(move.type)) {
+      navigate(`/inventory/stock-vouchers/${move.referenceId}`);
+    }
+  };
+
   if (loading) return <Loading size="lg" fullScreen />;
 
   return (
@@ -140,13 +159,13 @@ export function StockMovements() {
       <div className="modern-glass-card p-0 overflow-hidden">
         <div className="p-6 border-b border-theme bg-theme-surface/30 space-y-5">
           <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-5">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-theme-primary/10 rounded-2xl">
-                <History className="w-5 h-5 text-theme-primary" />
+            <div className="flex items-center justify-center gap-4">
+              <div className="p-2.5 bg-theme-primary/10 rounded-xl mb-1">
+                <History className="w-4.5 h-4.5 text-theme-primary" />
               </div>
               <div>
-                <h3 className="text-lg font-black text-theme-main leading-none">İŞLEM GÜNLÜĞÜ</h3>
-                <p className="text-[10px] text-theme-dim font-black uppercase tracking-widest mt-1 opacity-50">
+                <h3 className="text-md font-black text-theme-main leading-none">İŞLEM GÜNLÜĞÜ</h3>
+                <p className="text-[11px] text-theme-dim font-black mt-0 opacity-50">
                   {`${filteredMovements.length.toLocaleString()} hareket listeleniyor`}
                 </p>
               </div>
@@ -204,7 +223,7 @@ export function StockMovements() {
               <span className="text-[10px] font-black text-theme-dim uppercase tracking-widest">Depo</span>
               <CustomSelect
                 options={[
-                  { id: 'all', label: 'TÜM DEPOLAR' },
+                  { id: 'all', label: 'Tüm Depolar' },
                   ...warehouses.map((warehouse) => ({ id: warehouse.id, label: warehouse.name, subLabel: warehouse.type }))
                 ]}
                 value={filters.warehouseId}
@@ -240,6 +259,7 @@ export function StockMovements() {
                 <th className="px-8 py-5 text-[11px] font-black text-theme-dim ">Nereden / Nereye</th>
                 <th className="px-8 py-5 text-[11px] font-black text-theme-dim ">Referans</th>
                 <th className="px-8 py-5 text-[10px] font-black text-theme-dim text-right">Miktar</th>
+                <th className="px-8 py-5 text-[10px] font-black text-theme-dim text-left">Birim</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-theme/20">
@@ -247,7 +267,7 @@ export function StockMovements() {
                 <tr key={move.id} className="hover:bg-theme-main/5 transition-all group">
                   <td className="px-8 py-5">
                     <div className="flex flex-col">
-                      <span className="text-xs font-black text-theme-main">
+                      <span className="text-xs font-bold text-theme-main">
                         {format(new Date(move.createdAt), 'dd MMMM yyyy', { locale: tr })}
                       </span>
                       <span className="text-[10px] text-theme-muted font-bold">
@@ -269,29 +289,63 @@ export function StockMovements() {
                   </td>
                   <td className="px-8 py-5">
                     <div className="flex items-center gap-3">
-                      <span className="text-xs font-bold text-theme-main">{move.fromWarehouse?.name || '---'}</span>
+                      <span className="text-xs font-bold text-theme-main">{move.fromWarehouse?.name || '-'}</span>
                       <ArrowRightLeft size={12} className="text-theme-dim opacity-90" />
-                      <span className="text-xs font-bold text-theme-main">{move.toWarehouse?.name || '---'}</span>
+                      <span className="text-xs font-bold text-theme-main">{move.toWarehouse?.name || '-'}</span>
                     </div>
                   </td>
                   <td className="px-8 py-5">
-                    <div className="flex flex-col">
-                      <span className="text-[10px] font-black text-theme-dim uppercase">{move.referenceId || '-'}</span>
-                      {move.description && (
-                        <span className="text-[10px] font-bold text-theme-muted truncate max-w-[220px]">{move.description}</span>
+                    <div className="flex items-center gap-3">
+                      {move.referenceId && (
+                        <div className="opacity-50 group-hover:opacity-100 transition-opacity">
+                          <Tooltip content="Kayda Git">
+                            <button
+                              onClick={() => handleReferenceClick(move)}
+                              className="p-1.5 rounded-lg bg-theme-surface border border-theme text-theme-dim hover:text-theme-primary hover:border-theme-primary/30 hover:bg-theme-primary/10 transition-all flex items-center justify-center shadow-sm"
+                            >
+                              <Eye size={13} strokeWidth={2.5} />
+                            </button>
+                          </Tooltip>
+                        </div>
                       )}
+                      <div className="flex flex-col flex-1">
+                        <span className="text-[10px] font-black text-theme-dim uppercase">
+                          {move.type.includes('PRODUCTION') || move.type.includes('CONSUMPTION') ? 'ÜRETİM EMRİ' : (move.referenceId || '-')}
+                        </span>
+                        {move.description && (
+                          <span className="text-[10px] font-bold text-theme-muted truncate max-w-[200px]">{move.description}</span>
+                        )}
+                      </div>
                     </div>
                   </td>
                   <td className="px-8 py-5 text-right">
                     <span className={`text-sm font-black ${move.toWarehouseId ? 'text-theme-success' : 'text-theme-danger'}`}>
-                      {move.toWarehouseId ? '+' : '-'}{move.quantity.toLocaleString()}
+                      {move.toWarehouseId ? '+' : '-'}
+                      {(() => {
+                        const isKg = move.product?.unitOfMeasure?.toLowerCase() === 'kilogram' || move.product?.unitOfMeasure?.toLowerCase() === 'kg';
+                        if (isKg && move.quantity > 0 && move.quantity < 1) {
+                           return (move.quantity * 1000).toLocaleString(undefined, { maximumFractionDigits: 4 });
+                        }
+                        return move.quantity.toLocaleString(undefined, { maximumFractionDigits: 4 });
+                      })()}
+                    </span>
+                  </td>
+                  <td className="px-8 py-5 text-left">
+                    <span className="text-[10px] font-bold text-theme-muted">
+                      {(() => {
+                        const isKg = move.product?.unitOfMeasure?.toLowerCase() === 'kilogram' || move.product?.unitOfMeasure?.toLowerCase() === 'kg';
+                        if (isKg && move.quantity > 0 && move.quantity < 1) {
+                           return 'Gram';
+                        }
+                        return move.product?.unitOfMeasure || '-';
+                      })()}
                     </span>
                   </td>
                 </tr>
               ))}
               {filteredMovements.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-8 py-32 text-center">
+                  <td colSpan={8} className="px-8 py-32 text-center">
                     <div className="flex flex-col items-center p-10 gap-2 opacity-20">
                       <History size={32} />
                       <p className="text-sm font-black">Hareket kaydı bulunamadı</p>
@@ -307,7 +361,7 @@ export function StockMovements() {
           <div className="flex items-center gap-6 order-2 md:order-1">
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-black text-theme-dim whitespace-nowrap">Sayfada Görüntülenen:</span>
-              <div className="w-24">
+              <div className="min-w-fit">
                 <CustomSelect
                   options={[
                     { id: 20, label: '20' },
@@ -336,12 +390,12 @@ export function StockMovements() {
             <button
               onClick={() => setCurrentPage((prev) => Math.max(0, prev - 1))}
               disabled={currentPage === 0}
-              className="p-3 rounded-xl bg-theme-base border border-theme text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+              className="p-3 rounded-xl bg-theme-base border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
             >
               <ChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
             </button>
 
-            <div className="flex items-center gap-2 px-4 py-2 bg-theme-base border border-theme rounded-2xl">
+            <div className="flex items-center gap-2 px-4 py-2 bg-theme-base border border-theme-border rounded-xl">
               <span className="text-theme-primary font-black text-sm min-w-[20px] text-center">
                 {currentPage + 1}
               </span>
@@ -354,7 +408,7 @@ export function StockMovements() {
             <button
               onClick={() => setCurrentPage((prev) => Math.min(pageCount - 1, prev + 1))}
               disabled={currentPage >= pageCount - 1}
-              className="p-3 rounded-xl bg-theme-base border border-theme text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+              className="p-3 rounded-xl bg-theme-base border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
             >
               <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
             </button>
@@ -399,6 +453,9 @@ function MovementTypeBadge({ type }: { type: string }) {
     CONSIGNMENT_ENTRY: { label: 'KONSİNYE GİRİŞİ', color: 'text-theme-success', bg: 'bg-theme-success/10', border: 'border-theme-success/20', icon: Package },
     CONSIGNMENT_EXIT: { label: 'KONSİNYE ÇIKIŞI', color: 'text-theme-danger', bg: 'bg-theme-danger/10', border: 'border-theme-danger/20', icon: Package },
     CONSUMPTION_EXIT: { label: 'TÜKETİM ÇIKIŞI', color: 'text-theme-danger', bg: 'bg-theme-danger/10', border: 'border-theme-danger/20', icon: Package },
+    CONSUMPTION: { label: 'ÜRETİM TÜKETİMİ', color: 'text-theme-danger', bg: 'bg-theme-danger/10', border: 'border-theme-danger/20', icon: Package },
+    REJECT: { label: 'ÜRETİM REDDİ', color: 'text-theme-danger', bg: 'bg-theme-danger/10', border: 'border-theme-danger/20', icon: X },
+    SAMPLE: { label: 'ÜRETİM NUMUNESİ', color: 'text-theme-warning', bg: 'bg-theme-warning/10', border: 'border-theme-warning/20', icon: Package },
     ADJUSTMENT: { label: 'DÜZELTME', color: 'text-theme-primary', bg: 'bg-theme-primary/10', border: 'border-theme-primary/20', icon: Filter },
   };
 

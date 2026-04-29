@@ -6,12 +6,14 @@ interface TooltipProps {
   children: React.ReactNode;
   position?: 'top' | 'bottom' | 'left' | 'right';
   className?: string;
+  interactive?: boolean;
 }
 
-export function Tooltip({ content, children, position = 'top', className = '' }: TooltipProps) {
+export function Tooltip({ content, children, position = 'top', className = '', interactive = false }: TooltipProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
   const triggerRef = useRef<HTMLDivElement>(null);
+  const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const updateCoords = () => {
     if (triggerRef.current) {
@@ -36,6 +38,22 @@ export function Tooltip({ content, children, position = 'top', className = '' }:
       window.removeEventListener('resize', updateCoords);
     };
   }, [isVisible]);
+
+  const handleMouseEnter = () => {
+    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    updateCoords();
+    setIsVisible(true);
+  };
+
+  const handleMouseLeave = () => {
+    if (interactive) {
+      closeTimeoutRef.current = setTimeout(() => {
+        setIsVisible(false);
+      }, 150);
+    } else {
+      setIsVisible(false);
+    }
+  };
 
   if (!content) return <>{children}</>;
 
@@ -86,17 +104,16 @@ export function Tooltip({ content, children, position = 'top', className = '' }:
     <div
       ref={triggerRef}
       className={`relative inline-block ${className}`}
-      onMouseEnter={() => {
-        updateCoords();
-        setIsVisible(true);
-      }}
-      onMouseLeave={() => setIsVisible(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       {children}
       {isVisible && coords && createPortal(
         <div
           style={{ ...getPositionStyles(), position: 'absolute' }}
-          className={`z-[9999] px-3 py-2 text-[11px] font-bold text-theme-main bg-theme-card/98 backdrop-blur-2xl border border-theme-border rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] whitespace-pre-line ${position === 'right' ? 'animate-tooltip-rtl' : 'animate-in fade-in zoom-in-95'} duration-500 w-max max-w-xs pointer-events-none text-center ring-1 ring-theme-border/50`}
+          className={`z-[9999] px-1 py-1 text-[11px] font-bold text-theme-main bg-theme-card/98 backdrop-blur-2xl border border-theme-border rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] whitespace-pre-line ${position === 'right' ? 'animate-tooltip-rtl' : 'animate-in fade-in zoom-in-95'} duration-500 w-max max-w-xs ${interactive ? 'pointer-events-auto' : 'pointer-events-none'} text-center ring-1 ring-theme-border/50`}
+          onMouseEnter={interactive ? handleMouseEnter : undefined}
+          onMouseLeave={interactive ? handleMouseLeave : undefined}
         >
           {content}
           <div className={`absolute w-0 h-0 ${arrowClasses[position]} opacity-95`} />

@@ -265,9 +265,14 @@ a:not(.no-hover-animation) {
   }
 }
 
-.animate-dropdown {
+.animate-dropdown-sidebar {
   animation: slide-down-fade 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
   transform-origin: top;
+}
+
+.animate-dropdown-switcher {
+  animation: slide-down-fade 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  transform-origin: bottom;
 }
 
 @keyframes slide-up-premium {

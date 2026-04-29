@@ -625,9 +625,10 @@ router.put('/stock-vouchers/:id', authenticateToken, async (req: AuthRequest, re
 });
 
 router.delete('/stock-vouchers/:id', authenticateToken, async (req: AuthRequest, res) => {
+  const companyId = getCompanyId(req);
+  const id = String(req.params.id);
   try {
-    const companyId = getCompanyId(req);
-    const id = String(req.params.id);
+
 
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
     const isPureNumber = /^\d+$/.test(id);
@@ -1033,7 +1034,7 @@ router.get('/movements', authenticateToken, async (req: AuthRequest, res) => {
     const movements = await prisma.stockMovement.findMany({
       where,
       include: {
-        product: { select: { id: true, productCode: true, productName: true } },
+        product: { select: { id: true, productCode: true, productName: true, unitOfMeasure: true } },
         fromWarehouse: { select: { id: true, name: true, code: true, type: true } },
         toWarehouse: { select: { id: true, name: true, code: true, type: true } }
       },

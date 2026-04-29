@@ -431,7 +431,7 @@ export function ProductionOrders() {
           )}
         </div>
 
-        <div className="overflow-x-auto min-h-[400px]">
+        <div className="overflow-x-auto min-h-[100px]">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-40 gap-4">
               <Loading size="lg" />
@@ -444,7 +444,7 @@ export function ProductionOrders() {
                   <th className="pl-6 px-3 py-4 w-10">
                     <div
                       onClick={() => setSelectedRows(selectedRows.length === orders.length ? [] : orders.map(o => o.id))}
-                      className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center cursor-pointer transition-all ${selectedRows.length === orders.length && orders.length > 0 ? "bg-theme-success border-theme-success" : "border-theme-border/40 hover:border-theme-success"}`}
+                      className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center cursor-pointer transition-all ${selectedRows.length === orders.length && orders.length > 0 ? "bg-theme-success border-theme-success" : "border-theme-border hover:border-theme-success"}`}
                     >
                       {selectedRows.length === orders.length && orders.length > 0 && <Check className="w-3.5 h-3.5 text-white" />}
                     </div>
@@ -477,7 +477,7 @@ export function ProductionOrders() {
                       <td className="pl-6 px-3 py-4 w-10" onClick={(e) => e.stopPropagation()}>
                         <div
                           onClick={() => handleRowSelect(order.id)}
-                          className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center cursor-pointer transition-all ${isSelected ? "bg-theme-success border-theme-success" : "border-theme-border/40 hover:border-theme-success"}`}
+                          className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center cursor-pointer transition-all ${isSelected ? "bg-theme-success border-theme-success" : "border-theme-border hover:border-theme-success"}`}
                         >
                           {isSelected && <Check className="w-4 h-4 text-white" />}
                         </div>
@@ -514,11 +514,11 @@ export function ProductionOrders() {
                         </div>
                       </td>
                       <td className="px-3 py-4 max-w-[200px]">
-                        <div className="space-y-1 overflow-hidden w-full">
+                        <div className="space-y-0 overflow-hidden w-full">
                           <Tooltip content={order.product.productCode} position="top" className="w-full text-left inline-block">
-                            <span className="text-sm font-black text-theme-primary tracking-widest uppercase truncate block">{order.product.productCode}</span>
+                            <span className="text-sm font-black text-theme-primary truncate block">{order.product.productCode}</span>
                           </Tooltip>
-                          <Tooltip content={order.product.productName} position="top" className="w-full text-left inline-block mt-0.5">
+                          <Tooltip content={order.product.productName} position="top" className="w-full text-left inline-block mt-0">
                             <span className="text-xs font-bold text-theme-muted truncate block">{order.product.productName}</span>
                           </Tooltip>
                         </div>
@@ -547,7 +547,9 @@ export function ProductionOrders() {
                         <span className="text-sm font-black text-theme-main">{order.quantity}</span>
                       </td>
                       <td className="px-3 py-4 text-center">
-                        <span className="text-sm font-black text-theme-success">{acceptedQuantity || '-'}</span>
+                        <span className={`text-sm font-black ${order.status === 'completed' ? 'text-theme-primary' : 'text-theme-success'}`}>
+                          {acceptedQuantity || '-'}
+                        </span>
                       </td>
                       <td className="px-3 py-4 text-center" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1">

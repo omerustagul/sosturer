@@ -7,14 +7,232 @@ import {
   Moon, Sun, Activity, Menu, X, BookOpen, LayoutDashboard,
   Database, Workflow, Map, Layers, Handshake, FileUp, Users, Clock, List, AlertCircle, ClipboardList
 } from 'lucide-react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, memo, useMemo } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { ToastContainer } from './common/ToastContainer';
 import { NotificationPanel } from './layout/NotificationPanel';
 import { Tooltip } from './common/Tooltip';
 import { api } from '../lib/api';
-import { useTranslation } from 'react-i18next';
+import { cn } from '../lib/utils';
 
+// Separate Component for Nav Items to isolate state
+const SidebarNavItem = memo(({ item, collapsed, isMobile, isActive, openDropdown, setOpenDropdown, setIsCollapsed, location }: any) => {
+  if (item.isDropdown) {
+    return (
+      <div className="flex flex-col gap-1">
+        <Tooltip
+          content={collapsed ? (
+            <div className="flex flex-col gap-0.5 min-w-[140px] p-0.5">
+              <div className="px-2 py-1.5 border-b border-theme/20 mb-1 text-[10px] font-black text-theme-primary uppercase tracking-wider">{item.label}</div>
+              {item.children.map((child: any) => (
+                <Link
+                  key={child.path}
+                  to={child.path}
+                  className="flex items-center gap-2.5 p-2 rounded-lg text-[10.5px] font-bold text-theme-muted hover:text-theme-primary hover:bg-theme-primary/5 transition-all"
+                >
+                  <child.icon className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">{child.label}</span>
+                </Link>
+              ))}
+            </div>
+          ) : ""}
+          position="right"
+          className="w-full"
+          interactive={true}
+        >
+          <button
+            onClick={() => {
+              if (collapsed && !isMobile) {
+                setIsCollapsed(false);
+                setOpenDropdown(item.label);
+              } else {
+                setOpenDropdown(openDropdown === item.label ? null : item.label);
+              }
+            }}
+            className={`group relative flex items-center h-10 w-full gap-2 p-1 rounded-xl cursor-pointer transition-all duration-200 shrink-0 ${isActive || openDropdown === item.label ? 'bg-theme-primary text-white shadow-[0_8px_20px_-6px_var(--primary-glow)]' : 'text-theme-muted hover:bg-theme-main/5 hover:text-theme-main'} ${collapsed ? 'justify-center' : 'px-3'}`}
+          >
+            <item.icon className="shrink-0 transition-transform duration-200 group-hover:scale-110 w-4 h-4" />
+            {!collapsed && (
+              <>
+                <span className="font-bold text-[10.5px] whitespace-nowrap overflow-hidden transition-all duration-300 flex-1 text-left uppercase mt-1">{item.label}</span>
+                <span className="shrink-0">
+                  <ChevronLeft className={`w-3.5 h-3.5 transition-transform duration-300 ${openDropdown === item.label ? '-rotate-90' : ''}`} />
+                </span>
+              </>
+            )}
+          </button>
+        </Tooltip>
+
+        {!collapsed && openDropdown === item.label && (
+          <div className="flex flex-col gap-1 ml-0 pl-4 border-l border-theme/30 py-2 animate-dropdown-sidebar">
+            {item.children.map((child: any) => {
+              const isChildActive = location.pathname === child.path;
+              return (
+                <Link key={child.path} to={child.path} className={`flex items-center gap-2 p-2 rounded-xl text-[10.5px] font-black transition-all shrink-0 ${isChildActive ? 'text-theme-primary bg-theme-primary/5 border border-theme-primary/20' : 'text-theme-muted hover:text-theme-main hover:bg-theme-main/5'}`}>
+                  <child.icon className="w-3.5 h-3.5" />
+                  {child.label}
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <Tooltip
+      content={collapsed ? item.label : ""}
+      position="right"
+      className="w-full"
+    >
+      <Link
+        to={item.path}
+        className={`group relative flex items-center h-10 w-full gap-2 p-1 rounded-xl cursor-pointer transition-all duration-200 overflow-hidden shrink-0 ${isActive ? 'bg-theme-primary/10 border border-theme-primary/30 text-theme-primary shadow-[0_8px_20px_-6px_var(--primary-glow)]' : 'text-theme-muted hover:bg-theme-main/5 hover:text-theme-main'} ${collapsed ? 'justify-center' : 'px-3'}`}
+      >
+        <item.icon className={`shrink-0 transition-transform duration-200 group-hover:scale-110 w-4 h-4 ${isActive ? 'text-theme-primary' : ''}`} />
+        {!collapsed && <span className="font-bold text-[10.5px] uppercase whitespace-nowrap overflow-hidden transition-all duration-300 mt-1">{item.label}</span>}
+        {isActive && !collapsed && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-theme-primary animate-bounce" />}
+      </Link>
+    </Tooltip>
+  );
+});
+
+// Separate Component for the Sidebar Content and Switcher
+const SidebarContent = memo(({
+  collapsed = false,
+  isMobile = false,
+  navItems,
+  location,
+  openDropdown,
+  setOpenDropdown,
+  setIsCollapsed,
+  activeMenu,
+  menuSwitcherOpen,
+  setMenuSwitcherOpen,
+  menuSwitcherRef,
+  user,
+  switchMenu
+}: any) => (
+  <div className="flex flex-col h-full">
+    <div className="flex flex-col flex-1 py-3 px-2 gap-1 overflow-y-auto overflow-x-hidden no-scrollbar">
+      {navItems.map((item: any) => {
+        const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
+        return (
+          <SidebarNavItem
+            key={item.path}
+            item={item}
+            collapsed={collapsed}
+            isMobile={isMobile}
+            isActive={isActive}
+            openDropdown={openDropdown}
+            setOpenDropdown={setOpenDropdown}
+            setIsCollapsed={setIsCollapsed}
+            location={location}
+          />
+        );
+      })}
+    </div>
+
+    {/* Menu Switcher */}
+    <div className="mt-auto shrink-0 p-2 border-t border-theme/20" ref={menuSwitcherRef}>
+      {/* Upward Dropdown */}
+      {menuSwitcherOpen && (
+        <div className="mb-2 flex flex-col gap-1 animate-dropdown-switcher">
+          {([
+            { key: 'ana', label: 'Ana Menü', icon: LayoutDashboard, color: 'text-blue-600', activeBg: 'bg-blue-500/20', borderColor: 'border-blue-500/50', glow: 'shadow-[0_0_15px_-2px_rgba(59,130,246,0.2)]', inactiveBg: 'bg-blue-500/10' },
+            { key: 'tanim', label: 'Tanım Menüsü', icon: BookOpen, color: 'text-amber-500', activeBg: 'bg-amber-500/20', borderColor: 'border-amber-500/50', glow: 'shadow-[0_0_15px_-2px_rgba(245,158,11,0.2)]', inactiveBg: 'bg-amber-500/10' },
+            { key: 'rapor', label: 'Rapor Menüsü', icon: FileChartPie, color: 'text-emerald-500', activeBg: 'bg-emerald-500/20', borderColor: 'border-emerald-500/50', glow: 'shadow-[0_0_15px_-2px_rgba(16,185,129,0.2)]', inactiveBg: 'bg-emerald-500/10' },
+            { key: 'yonetim', label: 'Yönetim Paneli', icon: ShieldCheck, color: 'text-indigo-500', activeBg: 'bg-indigo-500/20', borderColor: 'border-indigo-500/50', glow: 'shadow-[0_0_15px_-2px_rgba(99,102,241,0.2)]', inactiveBg: 'bg-indigo-500/10' },
+          ] as const).map(({ key, label, icon: Icon, color, activeBg, borderColor, glow, inactiveBg }) => (
+            <Tooltip
+              key={key}
+              content={collapsed ? label : ""}
+              position="right"
+              className="w-full"
+            >
+              <button
+                onClick={() => switchMenu(key)}
+                className={`flex items-center gap-2 w-full h-11 p-2.5 rounded-xl border-2 backdrop-blur-sm transition-all duration-300 relative group/item overflow-hidden
+                  ${activeMenu === key
+                    ? `${activeBg} ${borderColor} ${glow} scale-[1.02] opacity-100 z-10`
+                    : `${inactiveBg} border-theme/30 opacity-100 hover:bg-theme-main/10 hover:border-theme/60`}
+                `}
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 translate-x-[-100%] group-hover/item:translate-x-[100%] transition-transform duration-1000" />
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ${activeMenu === key ? 'bg-white/30 shadow-inner' : 'bg-white/10'}`}>
+                  <Icon className={`w-3.5 h-3.5 shrink-0 ${color} ${activeMenu === key ? 'scale-110' : ''}`} />
+                </div>
+                {!collapsed && (
+                  <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${activeMenu === key ? color : 'text-theme-muted group-hover/item:text-theme-main'}`}>
+                    {label}
+                  </span>
+                )}
+                {activeMenu === key && (
+                  <div className={`absolute right-3 w-1.5 h-1.5 rounded-full ${color.replace('text', 'bg')}  animate-bounce`} />
+                )}
+              </button>
+            </Tooltip>
+          ))}
+        </div>
+      )}
+
+      {/* Trigger Card */}
+      <Tooltip
+        content={collapsed ? (activeMenu === 'ana' ? 'Ana Menü' : activeMenu === 'tanim' ? 'Tanım Menüsü' : activeMenu === 'rapor' ? 'Rapor Menüsü' : 'Yönetim Paneli') : ""}
+        position="right"
+        className="w-full"
+      >
+        <button
+          onClick={() => setMenuSwitcherOpen(!menuSwitcherOpen)}
+          className={`w-full flex items-center justify-center h-11 gap-2 p-2.5 rounded-xl border transition-all duration-500 group relative overflow-hidden
+            ${activeMenu === 'ana' ? 'bg-blue-500/10 border-blue-500/30 hover:bg-blue-500/20 shadow-lg shadow-blue-500/10'
+              : activeMenu === 'tanim' ? 'bg-amber-500/10 border-amber-500/30 hover:bg-amber-500/20 shadow-lg shadow-amber-500/10'
+                : activeMenu === 'rapor' ? 'bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/20 shadow-lg shadow-emerald-500/10'
+                  : 'bg-indigo-500/10 border-indigo-500/30 hover:bg-indigo-500/20 shadow-lg shadow-indigo-500/10'}
+          `}
+        >
+          <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+          {activeMenu === 'ana' && <LayoutDashboard className="w-4 h-4 shrink-0 text-blue-400" />}
+          {activeMenu === 'tanim' && <BookOpen className="w-4 h-4 shrink-0 text-amber-400" />}
+          {activeMenu === 'rapor' && <FileChartPie className="w-4 h-4 shrink-0 text-emerald-400" />}
+          {activeMenu === 'yonetim' && <ShieldCheck className="w-4 h-4 shrink-0 text-indigo-400" />}
+          {!collapsed && (
+            <>
+              <div className="flex flex-col items-start flex-1 min-w-0">
+                <span className="text-[8px] font-black uppercase tracking-widest text-theme-muted leading-none">Aktif Menü</span>
+                <span className={`text-[10px] font-black uppercase truncate leading-tight mt-0.5
+                  ${activeMenu === 'ana' ? 'text-blue-400'
+                    : activeMenu === 'tanim' ? 'text-amber-400'
+                      : activeMenu === 'rapor' ? 'text-emerald-400'
+                        : 'text-indigo-400'}`}>
+                  {activeMenu === 'ana' ? 'Ana Menü' : activeMenu === 'tanim' ? 'Tanım Menüsü' : activeMenu === 'rapor' ? 'Rapor Menüsü' : 'Yönetim Paneli'}
+                </span>
+              </div>
+              <ChevronUp className={`w-3.5 h-3.5 shrink-0 text-theme-muted transition-transform duration-300 ${menuSwitcherOpen ? 'rotate-180' : ''}`} />
+            </>
+          )}
+        </button>
+      </Tooltip>
+
+      {user.role === 'superadmin' && (
+        <Tooltip content={collapsed ? "Sistem Paneli" : ""} position="right" className="w-full">
+          <Link
+            to="/superadmin"
+            className={`mt-2 flex items-center gap-2 p-2 rounded-xl bg-indigo-500/5 border border-indigo-500/10 hover:bg-indigo-500 group/admin transition-all duration-300 ${collapsed ? 'justify-center' : ''}`}
+          >
+            <ShieldCheck className="w-4 h-4 text-indigo-400 group-hover/admin:text-white shrink-0" />
+            {!collapsed && (
+              <div className="flex flex-col">
+                <span className="text-[10px] font-black uppercase tracking-[0.1em] text-theme-main group-hover/admin:text-white">Sistem Paneli</span>
+              </div>
+            )}
+          </Link>
+        </Tooltip>
+      )}
+    </div>
+  </div>
+));
 
 export function Layout() {
   const location = useLocation();
@@ -28,7 +246,6 @@ export function Layout() {
   const userEmail = user.email || '';
   const userAvatarUrl = user.avatarUrl || '';
   const userInitials = userFullName ? userFullName.split(' ').filter(Boolean).map((n: string) => n[0]).join('').toUpperCase() : 'AD';
-
 
   const [isCollapsed, setIsCollapsed] = useState(() => {
     const saved = localStorage.getItem('sidebarCollapsed');
@@ -79,19 +296,15 @@ export function Layout() {
         api.get('/overtime')
       ]);
 
-      // 1. Check Shifts
       const activeShift = shifts.find((shift: any) => {
         if (shift.status !== 'active') return false;
         const [startH, startM] = shift.startTime.split(':').map(Number);
         const [endH, endM] = shift.endTime.split(':').map(Number);
-
         const startTotal = startH * 60 + startM;
         const endTotal = endH * 60 + endM;
-
         if (startTotal < endTotal) {
           return nowTotal >= startTotal && nowTotal <= endTotal;
         } else {
-          // Overnight shift (e.g. 23:00 - 07:00)
           return nowTotal >= startTotal || nowTotal <= endTotal;
         }
       });
@@ -105,7 +318,6 @@ export function Layout() {
         return;
       }
 
-      // 2. Check Overtime Plans for today
       const activeOvertime = overtimePlans.find((plan: any) => {
         const start = new Date(plan.startDate);
         const end = new Date(plan.endDate);
@@ -121,13 +333,11 @@ export function Layout() {
         return;
       }
 
-      // 3. Otherwise Closed
       setWorkStatus({
         type: 'closed',
         label: 'ÜRETİM KAPALI',
         details: 'TESİS ÇALIŞMIYOR'
       });
-
     } catch (error) {
       console.error('Work status fetch error:', error);
     }
@@ -136,7 +346,6 @@ export function Layout() {
   useEffect(() => {
     checkUnreadNotifications();
     fetchWorkStatus();
-
     const interval = setInterval(() => {
       checkUnreadNotifications();
       fetchWorkStatus();
@@ -150,29 +359,23 @@ export function Layout() {
     }
   }, [isNotificationOpen]);
 
-  // Close mobile menu on route change
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [location.pathname]);
 
   useEffect(() => {
     if (!user) return;
-
     let timeoutId: any;
     const INACTIVITY_LIMIT = 60 * 60 * 1000;
-
     const resetIdleTimer = () => {
       if (timeoutId) clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
         handleLogout();
       }, INACTIVITY_LIMIT);
     };
-
     const activityEvents = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click'];
     activityEvents.forEach(event => window.addEventListener(event, resetIdleTimer));
-
     resetIdleTimer();
-
     return () => {
       activityEvents.forEach(event => window.removeEventListener(event, resetIdleTimer));
       if (timeoutId) clearTimeout(timeoutId);
@@ -190,7 +393,7 @@ export function Layout() {
     localStorage.setItem('sidebarCollapsed', String(newState));
   };
 
-  const menuGroups = {
+  const menuGroups = useMemo(() => ({
     ana: [
       { icon: Bolt, label: 'KONTROL PANELİ', path: '/' },
       {
@@ -289,7 +492,7 @@ export function Layout() {
       {
         icon: ShieldCheck, label: 'YÖNETİM PANELİ', path: '/management', isDropdown: true,
         children: [
-          ...(user.role === 'admin' || user.role === 'superadmin' ? [
+          ...(user?.role === 'admin' || user?.role === 'superadmin' ? [
             { icon: Building2, label: 'Şirket Yönetimi', path: '/company' },
             { icon: User, label: 'Kullanıcılar', path: '/users' },
           ] : []),
@@ -297,166 +500,15 @@ export function Layout() {
         ]
       }
     ],
-  };
+  }), [user?.role]);
 
   const navItems = menuGroups[activeMenu];
-
-  const SidebarContent = ({ collapsed = false, isMobile = false }) => (
-    <div className="flex flex-col h-full">
-      <div className="flex flex-col flex-1 py-3 px-2 gap-1 overflow-y-auto overflow-x-hidden no-scrollbar">
-        {navItems.map((item: any) => {
-          const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
-
-          if (item.isDropdown) {
-            return (
-              <div key={item.path} className="flex flex-col gap-1">
-                <Tooltip
-                  content={collapsed ? item.label : ""}
-                  position="right"
-                  className="w-full"
-                >
-                  <button
-                    onClick={() => {
-                      if (collapsed && !isMobile) {
-                        setIsCollapsed(false);
-                        setOpenDropdown(item.label);
-                      } else {
-                        setOpenDropdown(openDropdown === item.label ? null : item.label);
-                      }
-                    }}
-                    className={`group relative flex items-center h-10 w-full gap-2 p-1 rounded-xl cursor-pointer transition-all duration-200 shrink-0 ${isActive || openDropdown === item.label ? 'bg-theme-primary text-white shadow-[0_8px_20px_-6px_var(--primary-glow)]' : 'text-theme-muted hover:bg-theme-main/5 hover:text-theme-main'} ${collapsed ? 'justify-center' : 'px-3'}`}
-                  >
-                    <item.icon className="shrink-0 transition-transform duration-200 group-hover:scale-110 w-4 h-4" />
-                    {!collapsed && (
-                      <>
-                        <span className="font-bold text-[10.5px] whitespace-nowrap overflow-hidden transition-all duration-300 flex-1 text-left uppercase mt-1">{item.label}</span>
-                        <span className="shrink-0">
-                          <ChevronLeft className={`w-3.5 h-3.5 transition-transform duration-300 ${openDropdown === item.label ? '-rotate-90' : ''}`} />
-                        </span>
-                      </>
-                    )}
-                  </button>
-                </Tooltip>
-
-                {!collapsed && openDropdown === item.label && (
-                  <div className="flex flex-col gap-1 ml-0 pl-4 border-l border-theme/30 py-2 animate-dropdown">
-                    {item.children.map((child: any) => {
-                      const isChildActive = location.pathname === child.path;
-                      return (
-                        <Link key={child.path} to={child.path} className={`flex items-center gap-2 p-2 rounded-xl text-[10.5px] font-black transition-all shrink-0 ${isChildActive ? 'text-theme-primary bg-theme-primary/5 border border-theme-primary/20' : 'text-theme-muted hover:text-theme-main hover:bg-theme-main/5'}`}>
-                          <child.icon className="w-3.5 h-3.5" />
-                          {child.label}
-                        </Link>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          }
-
-          return (
-            <Tooltip
-              key={item.path}
-              content={collapsed ? item.label : ""}
-              position="right"
-              className="w-full"
-            >
-              <Link
-                to={item.path}
-                className={`group relative flex items-center h-10 w-full gap-2 p-1 rounded-xl cursor-pointer transition-all duration-200 overflow-hidden shrink-0 ${isActive ? 'bg-theme-primary/10 border border-theme-primary/30 text-theme-primary shadow-[0_8px_20px_-6px_var(--primary-glow)]' : 'text-theme-muted hover:bg-theme-main/5 hover:text-theme-main'} ${collapsed ? 'justify-center' : 'px-3'}`}
-              >
-                <item.icon className={`shrink-0 transition-transform duration-200 group-hover:scale-110 w-4 h-4 ${isActive ? 'text-theme-primary' : ''}`} />
-                {!collapsed && <span className="font-bold text-[10.5px] uppercase whitespace-nowrap overflow-hidden transition-all duration-300 mt-1">{item.label}</span>}
-                {isActive && !collapsed && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-theme-primary animate-bounce" />}
-              </Link>
-            </Tooltip>
-          );
-        })}
-      </div>
-
-      {/* Menu Switcher */}
-      <div className="mt-auto shrink-0 p-2 border-t border-theme/20" ref={menuSwitcherRef}>
-        {/* Upward Dropdown */}
-        {menuSwitcherOpen && (
-          <div className="mb-2 flex flex-col gap-1 animate-dropdown">
-            {([
-              { key: 'ana', label: 'Ana Menü', icon: LayoutDashboard, color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20 hover:bg-blue-500/20' },
-              { key: 'tanim', label: 'Tanım Menüsü', icon: BookOpen, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20 hover:bg-amber-500/20' },
-              { key: 'rapor', label: 'Rapor Menüsü', icon: FileChartPie, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20 hover:bg-emerald-500/20' },
-              { key: 'yonetim', label: 'Yönetim Paneli', icon: ShieldCheck, color: 'text-indigo-400', bg: 'bg-indigo-500/10 border-indigo-500/20 hover:bg-indigo-500/20' },
-            ] as const).map(({ key, label, icon: Icon, color, bg }) => (
-              <button
-                key={key}
-                onClick={() => switchMenu(key)}
-                className={`flex items-center gap-2 w-full p-3 rounded-xl border transition-all duration-200 ${bg} ${activeMenu === key ? 'ring-2 ring-current opacity-100' : 'opacity-80 hover:opacity-100'}`}
-              >
-                <Icon className={`w-4 h-4 shrink-0 ${color}`} />
-                {!collapsed && <span className={`text-[10.5px] font-black uppercase ${color}`}>{label}</span>}
-                {activeMenu === key && !collapsed && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-current" />}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Trigger Card */}
-        <button
-          onClick={() => setMenuSwitcherOpen(!menuSwitcherOpen)}
-          className={`w-full flex items-center gap-2 p-3 rounded-xl border transition-all duration-200 group
-            ${activeMenu === 'ana' ? 'bg-blue-500/10 border-blue-500/30 hover:bg-blue-500/20'
-              : activeMenu === 'tanim' ? 'bg-amber-500/10 border-amber-500/30 hover:bg-amber-500/20'
-                : activeMenu === 'rapor' ? 'bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/20'
-                  : 'bg-indigo-500/10 border-indigo-500/30 hover:bg-indigo-500/20'}
-          `}
-        >
-          {activeMenu === 'ana' && <LayoutDashboard className="w-4 h-4 shrink-0 text-blue-400" />}
-          {activeMenu === 'tanim' && <BookOpen className="w-4 h-4 shrink-0 text-amber-400" />}
-          {activeMenu === 'rapor' && <FileChartPie className="w-4 h-4 shrink-0 text-emerald-400" />}
-          {activeMenu === 'yonetim' && <ShieldCheck className="w-4 h-4 shrink-0 text-indigo-400" />}
-          {!collapsed && (
-            <>
-              <div className="flex flex-col items-start flex-1 min-w-0">
-                <span className="text-[8px] font-black uppercase tracking-widest text-theme-muted leading-none">Aktif Menü</span>
-                <span className={`text-[10px] font-black uppercase truncate leading-tight mt-0.5
-                  ${activeMenu === 'ana' ? 'text-blue-400'
-                    : activeMenu === 'tanim' ? 'text-amber-400'
-                      : activeMenu === 'rapor' ? 'text-emerald-400'
-                        : 'text-indigo-400'}`}>
-                  {activeMenu === 'ana' ? 'Ana Menü' : activeMenu === 'tanim' ? 'Tanım Menüsü' : activeMenu === 'rapor' ? 'Rapor Menüsü' : 'Yönetim Paneli'}
-                </span>
-              </div>
-              <ChevronUp className={`w-3.5 h-3.5 shrink-0 text-theme-muted transition-transform duration-300 ${menuSwitcherOpen ? 'rotate-180' : ''}`} />
-            </>
-          )}
-        </button>
-
-        {!collapsed && user.role === 'superadmin' && (
-          <Link
-            to="/superadmin"
-            className="mt-2 flex items-center gap-2 p-2 rounded-xl bg-indigo-500/5 border border-indigo-500/10 hover:bg-indigo-500 group/admin transition-all duration-300"
-          >
-            <ShieldCheck className="w-4 h-4 text-indigo-400 group-hover/admin:text-white shrink-0" />
-            <div className="flex flex-col">
-              <span className="text-[10px] font-black uppercase tracking-[0.1em] text-theme-main group-hover/admin:text-white">Sistem Paneli</span>
-            </div>
-          </Link>
-        )}
-        {!collapsed && user.role !== 'superadmin' && (
-          <div className="flex items-center gap-2 px-1 pt-1 opacity-30">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-bounce" />
-            <span className="text-[9px] font-black text-theme-muted">Sosturer v26.4.28</span>
-          </div>
-        )}
-      </div>
-    </div>
-  );
 
   return (
     <div className="h-screen bg-theme-base text-theme-main font-sans w-full flex flex-col overflow-hidden selection:bg-theme-primary/30">
       {/* Header */}
       <header className="h-16 border-b border-theme bg-theme-surface/90 backdrop-blur-2xl px-3 sm:px-4 flex items-center justify-between shrink-0 z-50 shadow-[0_4px_30px_rgba(0,0,0,0.1)]">
         <div className="flex items-center gap-2 sm:gap-6">
-          {/* Mobile Menu Toggle */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             className="md:hidden p-2 rounded-xl bg-theme-main/5 text-theme-muted hover:text-theme-primary hover:bg-theme-primary/10 border border-theme transition-all active:scale-95"
@@ -492,7 +544,6 @@ export function Layout() {
         </div>
 
         <div className="flex gap-2 sm:gap-6 items-center vertical-align-middle">
-
           <div className="flex items-center gap-2">
             <Link to="/profile" className="flex items-center gap-2 group transition-all duration-300">
               <div className="text-right hidden xl:block">
@@ -508,7 +559,6 @@ export function Layout() {
               </div>
             </Link>
 
-            {/* Live Work / Shift Status - More compact on mobile */}
             <div className={`flex items-center h-9 sm:h-10 gap-2 sm:gap-2.5 border p-1 sm:p-1.5 rounded-xl backdrop-blur-xl shadow-lg transition-all duration-700 group shadow-lg ${workStatus.type === 'closed'
               ? 'bg-theme-danger/5 border-theme-danger/20 hover:bg-theme-danger/10 hover:border-theme-danger/40'
               : workStatus.type === 'overtime'
@@ -521,8 +571,7 @@ export function Layout() {
                   ? 'bg-theme-warning/10 border-theme-warning/30'
                   : 'bg-theme-success/10 border-theme-success/20'
                 }`}>
-                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-20 scale-150 ${workStatus.type === 'closed' ? 'bg-theme-danger' : workStatus.type === 'overtime' ? 'bg-theme-warning' : 'bg-theme-success'
-                  }`}></span>
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-20 scale-150 ${workStatus.type === 'closed' ? 'bg-theme-danger' : workStatus.type === 'overtime' ? 'bg-theme-warning' : 'bg-theme-success'}`}></span>
                 {workStatus.type === 'closed' ? (
                   <Moon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-theme-danger relative z-10" />
                 ) : workStatus.type === 'overtime' ? (
@@ -531,10 +580,8 @@ export function Layout() {
                   <Sun className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-theme-success relative z-10 animate-spin-slow" />
                 )}
               </div>
-
               <div className="flex flex-col items-start vertical-align-middle pr-1 sm:pr-2">
-                <span className={`text-[8px] sm:text-[9px] font-black tracking-[0.1em] sm:tracking-[0.2em] uppercase leading-none mt-0.5 ${workStatus.type === 'closed' ? 'text-theme-danger' : workStatus.type === 'overtime' ? 'text-theme-warning' : 'text-theme-success'
-                  }`}>
+                <span className={`text-[8px] sm:text-[9px] font-black tracking-[0.1em] sm:tracking-[0.2em] uppercase leading-none mt-0.5 ${workStatus.type === 'closed' ? 'text-theme-danger' : workStatus.type === 'overtime' ? 'text-theme-warning' : 'text-theme-success'}`}>
                   {workStatus.label}
                 </span>
                 <span className="hidden sm:block font-mono text-[10px] font-black text-theme-main tracking-tight opacity-50 uppercase mt-0.25">
@@ -582,8 +629,10 @@ export function Layout() {
 
         {/* Mobile Menu Drawer Content */}
         <aside
-          className={`fixed inset-y-0 left-0 z-[70] w-72 bg-theme-surface border-r border-theme transform transition-transform duration-300 ease-in-out md:hidden flex flex-col shadow-2xl ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-            }`}
+          className={cn(
+            "fixed inset-y-0 left-0 z-[70] w-72 bg-theme-surface border-r border-theme transform transition-transform duration-300 ease-in-out md:hidden flex flex-col shadow-2xl",
+            isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+          )}
         >
           <div className="h-16 px-4 flex items-center justify-between border-b border-theme shrink-0">
             <div className="flex items-center gap-2">
@@ -598,7 +647,20 @@ export function Layout() {
             </button>
           </div>
           <div className="flex-1 overflow-y-auto no-scrollbar py-4">
-            <SidebarContent isMobile={true} />
+            <SidebarContent
+              isMobile={true}
+              navItems={navItems}
+              location={location}
+              openDropdown={openDropdown}
+              setOpenDropdown={setOpenDropdown}
+              setIsCollapsed={setIsCollapsed}
+              activeMenu={activeMenu}
+              menuSwitcherOpen={menuSwitcherOpen}
+              setMenuSwitcherOpen={setMenuSwitcherOpen}
+              menuSwitcherRef={menuSwitcherRef}
+              user={user}
+              switchMenu={switchMenu}
+            />
           </div>
           <div className="p-4 border-t border-theme">
             <button
@@ -620,7 +682,7 @@ export function Layout() {
             className="pointer-events-auto w-8 h-8 bg-theme-surface/80 backdrop-blur-3xl border border-theme text-theme-main rounded-xl flex items-center justify-center shadow-2xl transition-all hover:scale-110 active:scale-95 group/toggle hover:border-theme-primary/50"
           >
             <div className="flex items-center justify-center relative overflow-hidden w-full h-full">
-              <div className={`transition-all duration-500 flex items-center gap-0.5 ${isCollapsed ? 'rotate-0' : 'rotate-180'}`}>
+              <div className={cn("transition-all duration-500 flex items-center gap-0.5", !isCollapsed && "rotate-180")}>
                 <div className="w-1 h-3 bg-theme-primary/40 rounded-full group-hover/toggle:bg-theme-primary transition-colors" />
                 <ChevronRight className="w-3 h-3 text-theme-primary group-hover/toggle:scale-125 transition-transform" />
               </div>
@@ -630,17 +692,48 @@ export function Layout() {
 
         {/* Desktop Sidebar */}
         <aside
-          className={`relative z-40 border-r border-theme bg-theme-surface/40 backdrop-blur-3xl flex flex-col transition-all duration-300 ease-in-out hidden md:flex shrink-0 overflow-x-hidden ${isCollapsed ? 'w-15' : 'w-50'}`}
+          className={cn(
+            "relative z-40 border-r border-theme bg-theme-surface/40 backdrop-blur-3xl flex flex-col transition-all duration-300 ease-in-out hidden md:flex shrink-0 overflow-x-hidden",
+            isCollapsed ? "w-16" : "w-51"
+          )}
         >
-          <SidebarContent collapsed={isCollapsed} />
+
+          <div className="flex-1 min-h-0">
+            <SidebarContent
+              collapsed={isCollapsed}
+              navItems={navItems}
+              location={location}
+              openDropdown={openDropdown}
+              setOpenDropdown={setOpenDropdown}
+              setIsCollapsed={setIsCollapsed}
+              activeMenu={activeMenu}
+              menuSwitcherOpen={menuSwitcherOpen}
+              setMenuSwitcherOpen={setMenuSwitcherOpen}
+              menuSwitcherRef={menuSwitcherRef}
+              user={user}
+              switchMenu={switchMenu}
+            />
+          </div>
+
+          {!isCollapsed && (
+            <div className="p-4 border-t border-theme/20 bg-theme-base/20">
+              <div className="flex items-center justify-between text-[10px] font-black text-theme-dim">
+                <span>sosturer.com</span>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-1.5 h-1 rounded-full bg-green-500 animate-bounce" />
+                  <span>v26.4.28</span>
+                </div>
+              </div>
+            </div>
+          )}
         </aside>
 
-        <main className="flex-1 overflow-y-auto w-full bg-theme-base relative">
-          <div key={location.pathname} className="animate-premium-page min-h-full">
+        <main className="flex-1 flex flex-col w-full bg-theme-base relative overflow-y-auto">
+          <div key={location.pathname} className="animate-premium-page flex-1 flex flex-col">
             <Outlet />
           </div>
         </main>
-      </div>
-    </div>
+      </div >
+    </div >
   );
 }

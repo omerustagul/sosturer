@@ -34,7 +34,7 @@ export function ReportsOperators() {
     endDate: new Date().toISOString().split('T')[0],
   });
 
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(20);
   const [currentPage, setCurrentPage] = useState(0);
 
   const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' }>({
@@ -296,7 +296,7 @@ export function ReportsOperators() {
               <div className="flex items-center gap-6 order-2 md:order-1">
                 <div className="flex items-center gap-2">
                   <span className="text-[11px] font-black text-theme-dim whitespace-nowrap">Sayfada Görüntülenen:</span>
-                  <div className="w-24">
+                  <div className="min-w-fit">
                     <CustomSelect
                       options={[
                         { id: 20, label: '20' },
@@ -325,12 +325,12 @@ export function ReportsOperators() {
                 <button
                   onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
                   disabled={currentPage === 0}
-                  className="p-3 rounded-xl bg-theme-base border border-theme text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+                  className="p-3 rounded-xl bg-theme-base border  text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
                 >
                   <ChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
                 </button>
 
-                <div className="flex items-center gap-2 px-4 py-2 bg-theme-base border border-theme rounded-2xl">
+                <div className="flex items-center gap-2 px-4 py-2 bg-theme-base border border-theme rounded-xl">
                   <span className="text-theme-primary font-black text-sm min-w-[20px] text-center">
                     {currentPage + 1}
                   </span>
@@ -343,7 +343,7 @@ export function ReportsOperators() {
                 <button
                   onClick={() => setCurrentPage(prev => Math.min(pageCount - 1, prev + 1))}
                   disabled={currentPage >= pageCount - 1}
-                  className="p-3 rounded-xl bg-theme-base border border-theme text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+                  className="p-3 rounded-xl bg-theme-base border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
                 >
                   <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
                 </button>

@@ -24,3 +24,12 @@ backup/
 # Database
 server/prisma/dev.db
 server/prisma/dev.db-journal
+
+# AI Agent Data
+brain/
+
+# Debug and Test Scripts
+server/src/check_*.ts
+server/src/debug_*.ts
+server/src/fix_*.ts
+server/src/test_*.ts

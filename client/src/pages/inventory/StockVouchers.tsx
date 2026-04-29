@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { ReactNode } from 'react';
 import { format } from 'date-fns';
 import {
   ArrowRightLeft,
@@ -104,30 +103,30 @@ export function StockVouchers() {
 
   return (
     <div className="p-4 lg:p-6 w-full space-y-6 bg-theme-base animate-in fade-in duration-700">
-      <div className="shrink-0 flex flex-col sm:flex-row items-center gap-4 bg-theme-surface/30 backdrop-blur-md border border-theme/50 p-4 rounded-2xl shadow-sm">
+      <div className="modern-glass-card p-4 overflow-hidden shrink-0 flex flex-col sm:flex-row border border-theme-primary-10 items-center gap-4 rounded-2xl">
         <div className="relative group flex-1 max-w-sm">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-theme-dim group-focus-within:text-theme-primary transition-colors" />
           <input
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Hızlı Arama (Fiş No, Ürün, Lot...)"
-            className="w-full h-11 bg-theme-base/20 border-2 border-theme rounded-2xl pl-10 pr-4 py-2 text-xs text-theme-main focus:outline-none focus:border-theme-primary/40 focus:bg-theme-surface transition-all font-bold placeholder:text-theme-dim/50"
+            className="w-full h-10 bg-theme-base/20 border-2 border-theme rounded-xl pl-10 pr-4 py-2 text-xs text-theme-main focus:outline-none focus:border-theme-primary/40 focus:bg-theme-surface transition-all font-bold placeholder:text-theme-dim/50"
           />
         </div>
 
         <div className="flex items-center gap-3">
           <button
             onClick={fetchData}
-            className="h-11 px-4 rounded-2xl border-2 border-theme bg-theme-base/20 text-theme-dim hover:text-theme-main hover:bg-theme-surface hover:border-theme-primary/30 transition-all flex items-center gap-2 text-[10px] font-black uppercase tracking-widest"
+            className="h-10 px-4 rounded-xl border-2 border-theme bg-theme-base/20 text-theme-dim hover:text-theme-main hover:bg-theme-surface hover:border-theme-primary/30 transition-all flex items-center gap-2 text-[10px] font-black uppercase tracking-widest"
           >
             <RefreshCw size={14} /> Yenile
           </button>
-          
+
           <div className="h-8 w-px bg-theme/30 mx-1" />
 
           <button
             onClick={() => navigate('/inventory/stock-vouchers/new')}
-            className="bg-theme-primary hover:bg-theme-primary-hover h-11 text-white px-8 py-2 rounded-2xl text-[10px] font-black transition-all shadow-xl shadow-theme-primary/30 flex items-center gap-2.5 group active:scale-95 whitespace-nowrap uppercase tracking-widest"
+            className="bg-theme-primary hover:bg-theme-primary-hover h-10 text-white px-8 py-2 rounded-xl text-[10px] font-black transition-all shadow-xl shadow-theme-primary/30 flex items-center gap-2.5 group active:scale-95 whitespace-nowrap uppercase tracking-widest"
           >
             <Plus className="w-4 h-4 stroke-[3]" /> Yeni Stok Fişi
           </button>
@@ -143,25 +142,18 @@ export function StockVouchers() {
 
 
       <div className="modern-glass-card p-0 overflow-hidden">
-          <div className="px-6 py-4 border-b border-theme bg-theme-surface/10 flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-4">
-              <div className="w-1.5 h-6 bg-theme-success rounded-full" />
-              <h3 className="text-sm font-black text-theme-main leading-tight uppercase tracking-wider">
-                Fiş Kayıtları
-              </h3>
-              <div className="h-4 w-px bg-theme/30" />
-              <span className="text-[10px] font-bold text-theme-muted">
-                {filteredVouchers.length} Sonuç Listeleniyor
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2 px-3 py-1 bg-theme-base/50 border border-theme rounded-xl">
-                <div className="w-2 h-2 rounded-full bg-theme-success animate-pulse" />
-                <span className="text-[9px] font-black text-theme-dim uppercase tracking-tighter">Canlı Veri Akışı</span>
-              </div>
-            </div>
+        <div className="px-6 py-4 border-b border-theme bg-theme-surface/10 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-4">
+            <div className="w-1.5 h-6 bg-theme-success rounded-full" />
+            <h3 className="text-sm font-black text-theme-main leading-tight uppercase tracking-wider">
+              Stok Fişleri
+            </h3>
+            <div className="h-4 w-px bg-theme/30" />
+            <span className="text-[10px] font-bold text-theme-muted">
+              {filteredVouchers.length} Sonuç Listeleniyor
+            </span>
           </div>
+        </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
@@ -280,7 +272,7 @@ export function StockVouchers() {
           <div className="flex items-center gap-6 order-2 md:order-1">
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-black text-theme-dim whitespace-nowrap">Sayfada Görüntülenen:</span>
-              <div className="w-24">
+              <div className="min-w-fit">
                 <CustomSelect
                   options={[
                     { id: 20, label: '20' },
@@ -308,11 +300,11 @@ export function StockVouchers() {
             <button
               onClick={() => setCurrentPage((prev) => Math.max(0, prev - 1))}
               disabled={currentPage === 0}
-              className="p-3 rounded-xl bg-theme-base border border-theme text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+              className="p-3 rounded-xl bg-theme-base border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
             >
               <ChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
             </button>
-            <div className="flex items-center gap-2 px-4 py-2 bg-theme-base border border-theme rounded-2xl">
+            <div className="flex items-center gap-2 px-4 py-2 bg-theme-base border border-theme rounded-xl">
               <span className="text-theme-primary font-black text-sm min-w-[20px] text-center">{currentPage + 1}</span>
               <span className="text-theme-dim font-bold text-xs uppercase tracking-widest">/</span>
               <span className="text-theme-muted font-black text-sm min-w-[20px] text-center">{pageCount}</span>
@@ -320,7 +312,7 @@ export function StockVouchers() {
             <button
               onClick={() => setCurrentPage((prev) => Math.min(pageCount - 1, prev + 1))}
               disabled={currentPage >= pageCount - 1}
-              className="p-3 rounded-xl bg-theme-base border border-theme text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+              className="p-3 rounded-xl bg-theme-base border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
             >
               <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
             </button>
@@ -334,7 +326,7 @@ export function StockVouchers() {
 function TypeBadge({ direction, label }: { direction: number; label: string }) {
   const isPositive = direction === 1;
   return (
-    <span className={`px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border inline-flex items-center gap-2 ${isPositive ? 'bg-theme-success/10 text-theme-success border-theme-success/20' : 'bg-theme-danger/10 text-theme-danger border-theme-danger/20'}`}>
+    <span className={`px-3 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest border inline-flex items-center gap-2 ${isPositive ? 'bg-theme-success/10 text-theme-success border-theme-success/20' : 'bg-theme-danger/10 text-theme-danger border-theme-danger/20'}`}>
       {isPositive ? '+' : '-'} {label}
     </span>
   );
@@ -350,7 +342,7 @@ function ControlBadge({ status, label }: { status: string; label: string }) {
         : 'bg-theme-primary/10 text-theme-primary border-theme-primary/20';
 
   return (
-    <span className={`px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border inline-flex items-center ${className}`}>
+    <span className={`px-3 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest border inline-flex items-center ${className}`}>
       {label}
     </span>
   );

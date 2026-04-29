@@ -4,8 +4,215 @@ import { AuthRequest, authenticateToken } from '../middleware/auth';
 import { NotificationService } from '../services/notificationService';
 
 const router = Router();
-
 const getCompanyId = (req: AuthRequest) => req.user?.companyId;
+
+async function syncProductionOrderStock(tx: any, id: string, companyId: string, status: string, oldStatus: string) {
+  // Get full order info (post-update)
+  const order = await tx.productionOrder.findFirst({
+    where: { id, companyId },
+    include: { 
+      steps: true,
+      components: true,
+      product: true
+    }
+  });
+
+  if (!order) {
+    console.log(`[syncStock] Order not found: ${id} for company ${companyId}`);
+    return;
+  }
+  console.log(`[syncStock] Processing order: ${order.lotNumber}, Status: ${status}, Old: ${oldStatus}, Components: ${order.components.length}`);
+
+  // We want to apply stock changes if it's becoming completed, OR if it's already completed and being updated
+  const isNewlyCompleted = status === 'completed' && oldStatus !== 'completed';
+  const isReCompleted = status === 'completed' && oldStatus === 'completed';
+  const isUncompleted = oldStatus === 'completed' && status !== 'completed';
+
+  // 1. If moving AWAY from completed (or re-completing to calculate delta), reverse stock
+  if (isUncompleted || isReCompleted) {
+    const sortedSteps = [...order.steps].sort((a, b) => b.sequence - a.sequence);
+    const finalQty = sortedSteps[0]?.approvedQty || order.quantity;
+
+    if (order.targetWarehouseId) {
+      await tx.stockLevel.updateMany({
+        where: {
+          companyId,
+          productId: order.productId,
+          warehouseId: order.targetWarehouseId,
+          lotNumber: order.lotNumber
+        },
+        data: { quantity: { decrement: finalQty } }
+      });
+    }
+
+    // Increment component stock levels back
+    for (const component of order.components) {
+      if (component.warehouseId) {
+        await tx.stockLevel.updateMany({
+          where: {
+            companyId,
+            productId: component.componentProductId,
+            warehouseId: component.warehouseId,
+            lotNumber: component.lotNumber || ""
+          },
+          data: { quantity: { increment: component.quantity } }
+        });
+      }
+    }
+
+    // Delete movements
+    await tx.stockMovement.deleteMany({
+      where: {
+        companyId,
+        referenceId: order.lotNumber,
+        type: { in: ['PRODUCTION', 'CONSUMPTION', 'REJECT', 'SAMPLE', 'RESERVE'] }
+      }
+    });
+  }
+
+  // 2. Handle component movements based on current/new status
+  if (status === 'active' || status === 'completed') {
+    // Delete existing reserve/consumption movements if not already deleted by the reversal above
+    if (!isReCompleted) {
+      await tx.stockMovement.deleteMany({
+        where: {
+          companyId,
+          referenceId: order.lotNumber,
+          type: { in: ['RESERVE', 'CONSUMPTION'] }
+        }
+      });
+    }
+
+    for (const component of order.components) {
+      const type = status === 'completed' ? 'CONSUMPTION' : 'RESERVE';
+      
+      await tx.stockMovement.create({
+        data: {
+          companyId: companyId!,
+          productId: component.componentProductId,
+          fromWarehouseId: component.warehouseId,
+          lotNumber: component.lotNumber,
+          quantity: component.quantity,
+          type,
+          referenceId: order.id,
+          description: status === 'completed' 
+            ? `Üretim Tüketimi - Lot: ${order.lotNumber}` 
+            : `Üretim Rezervi - Lot: ${order.lotNumber}`
+        }
+      });
+
+      // Physical decrement ONLY when completed (either newly or re-completed)
+      if (status === 'completed' && component.warehouseId) {
+        await tx.stockLevel.upsert({
+          where: {
+            productId_warehouseId_lotNumber: {
+              productId: component.componentProductId,
+              warehouseId: component.warehouseId,
+              lotNumber: component.lotNumber || ""
+            }
+          },
+          update: { quantity: { decrement: component.quantity } },
+          create: {
+            companyId: companyId!,
+            productId: component.componentProductId,
+            warehouseId: component.warehouseId,
+            lotNumber: component.lotNumber || "",
+            quantity: -component.quantity
+          }
+        });
+      }
+    }
+    // 3. If moving TO completed (or re-completing), apply product stock
+  if (status === 'completed') {
+    // Get the final step (highest sequence) for the approved quantity
+    const sortedSteps = [...order.steps].sort((a, b) => a.sequence - b.sequence);
+    const lastStep = sortedSteps[sortedSteps.length - 1];
+    
+    // In production, we use the final approved quantity from the last step. 
+    // If no steps exist or approved quantity is 0, we fallback to the order's requested quantity.
+    const finalQty = (lastStep && lastStep.approvedQty > 0) ? lastStep.approvedQty : order.quantity;
+    
+    const totalRejected = order.steps.reduce((acc, s) => acc + (s.rejectedQty || 0), 0);
+    const totalSample = order.steps.reduce((acc, s) => acc + (s.sampleQty || 0), 0);
+
+    if (order.targetWarehouseId) {
+      // UPSERT stock level for final product
+      await tx.stockLevel.upsert({
+        where: {
+          productId_warehouseId_lotNumber: {
+            productId: order.productId,
+            warehouseId: order.targetWarehouseId,
+            lotNumber: order.lotNumber
+          }
+        },
+        update: { quantity: { increment: finalQty } },
+        create: {
+          companyId: companyId!,
+          productId: order.productId,
+          warehouseId: order.targetWarehouseId,
+          lotNumber: order.lotNumber,
+          quantity: finalQty
+        }
+      });
+
+      if (!isReCompleted) {
+        // Delete existing production movements for this lot first if not already deleted
+        await tx.stockMovement.deleteMany({
+            where: {
+              companyId,
+              referenceId: order.lotNumber,
+              type: { in: ['PRODUCTION', 'REJECT', 'SAMPLE'] }
+            }
+        });
+      }
+
+      // Log produced product movement
+      await tx.stockMovement.create({
+        data: {
+          companyId: companyId!,
+          productId: order.productId,
+          toWarehouseId: order.targetWarehouseId,
+          lotNumber: order.lotNumber,
+          type: 'PRODUCTION',
+          quantity: finalQty,
+          description: `Üretim Emri Tamamlandı - Lot: ${order.lotNumber}`,
+          referenceId: order.id
+        }
+      });
+
+      // Log rejected quantity if any
+      if (totalRejected > 0) {
+        await tx.stockMovement.create({
+          data: {
+            companyId: companyId!,
+            productId: order.productId,
+            lotNumber: order.lotNumber,
+            type: 'REJECT',
+            quantity: totalRejected,
+            description: `Üretim Firesi/Hatalı - Lot: ${order.lotNumber}`,
+            referenceId: order.id
+          }
+        });
+      }
+
+      // Log sample quantity if any
+      if (totalSample > 0) {
+        await tx.stockMovement.create({
+          data: {
+            companyId: companyId!,
+            productId: order.productId,
+            lotNumber: order.lotNumber,
+            type: 'SAMPLE',
+            quantity: totalSample,
+            description: `Üretim Numunesi - Lot: ${order.lotNumber}`,
+            referenceId: order.id
+          }
+        });
+      }
+      }
+    }
+  }
+}
 
 // List production orders with full details
 router.get('/', authenticateToken, async (req: AuthRequest, res) => {
@@ -224,6 +431,14 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res) => {
     } = req.body;
 
     await prisma.$transaction(async (tx) => {
+      // 0. Get current order state for comparison
+      const currentOrder = await tx.productionOrder.findUnique({
+          where: { id, companyId }
+      });
+      if (!currentOrder) throw new Error('Üretim emri bulunamadı');
+
+      const newStatus = req.body.status || currentOrder.status;
+
       // 1. Update main order
       await tx.productionOrder.update({
         where: { id: id as string, companyId },
@@ -231,9 +446,10 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res) => {
           productId,
           lotNumber,
           quantity: Number(quantity),
-          status: req.body.status || undefined,
+          status: newStatus,
           startDate: startDate ? new Date(startDate) : null,
           endDate: endDate ? new Date(endDate) : null,
+          productionDate: newStatus === 'completed' ? new Date() : (currentOrder.productionDate),
           type: type || 'Asıl',
           targetWarehouseId,
           notes,
@@ -342,12 +558,15 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res) => {
           });
         }
       }
+      // 6. Sync Stock Movements
+      console.log(`[PUT] Calling syncStock for ${id}, Status: ${newStatus}`);
+      await syncProductionOrderStock(tx, id, companyId!, newStatus, currentOrder.status);
     });
 
     res.json({ success: true, message: 'Üretim emri güncellendi' });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Update production order error:', error);
-    res.status(400).json({ error: 'Üretim emri güncellenemedi' });
+    res.status(400).json({ error: error.message || 'Üretim emri güncellenemedi' });
   }
 });
 
@@ -503,103 +722,27 @@ router.patch('/:id/status', authenticateToken, async (req: AuthRequest, res) => 
     const { status } = req.body;
     const companyId = getCompanyId(req);
     
-    // Get full order info
+    // Get current status
     const order = await prisma.productionOrder.findFirst({
       where: { id, companyId },
-      include: { steps: true }
+      select: { status: true }
     });
 
     if (!order) return res.status(404).json({ error: 'Üretim emri bulunamadı' });
 
-    if (status === order.status) return res.json(order);
+    if (status === order.status) return res.json({ status });
 
     const result = await prisma.$transaction(async (tx) => {
-      // 1. If moving AWAY from completed, reverse stock
-      if (order.status === 'completed' && status !== 'completed') {
-        const sortedSteps = [...order.steps].sort((a, b) => b.sequence - a.sequence);
-        const finalQty = sortedSteps[0]?.approvedQty || order.quantity;
+      // 1. Sync Stock Movements
+      await syncProductionOrderStock(tx, id, companyId!, status, order.status);
 
-        if (order.targetWarehouseId) {
-          // Decrement stock level
-          await tx.stockLevel.update({
-            where: {
-              productId_warehouseId_lotNumber: {
-                productId: order.productId,
-                warehouseId: order.targetWarehouseId,
-                lotNumber: order.lotNumber
-              }
-            },
-            data: { quantity: { decrement: finalQty } }
-          });
-
-          // Delete stock movement
-          await tx.stockMovement.deleteMany({
-            where: {
-              companyId,
-              referenceId: order.id,
-              type: 'PRODUCTION'
-            }
-          });
-        }
-      }
-
-      // 2. If moving TO completed, apply stock
-      if (status === 'completed' && order.status !== 'completed') {
-        // Check all steps completed
-        const allCompleted = order.steps.every(s => s.status === 'completed');
-        if (!allCompleted) {
-          throw new Error('Tüm operasyonlar tamamlanmadan üretim emri bitirilemez.');
-        }
-
-        const sortedSteps = [...order.steps].sort((a, b) => b.sequence - a.sequence);
-        const finalQty = sortedSteps[0]?.approvedQty || order.quantity;
-
-        if (order.targetWarehouseId) {
-          // UPSERT stock level
-          await tx.stockLevel.upsert({
-            where: {
-              productId_warehouseId_lotNumber: {
-                productId: order.productId,
-                warehouseId: order.targetWarehouseId,
-                lotNumber: order.lotNumber
-              }
-            },
-            update: { quantity: { increment: finalQty } },
-            create: {
-              companyId: companyId!,
-              productId: order.productId,
-              warehouseId: order.targetWarehouseId,
-              lotNumber: order.lotNumber,
-              quantity: finalQty
-            }
-          });
-
-          // Log stock movement (Ensuring no duplicates by using update if exists? No, deleteMany first is safer if we want to be sure)
-          await tx.stockMovement.deleteMany({
-            where: { referenceId: order.id, type: 'PRODUCTION', companyId }
-          });
-
-          await tx.stockMovement.create({
-            data: {
-              companyId: companyId!,
-              productId: order.productId,
-              toWarehouseId: order.targetWarehouseId,
-              lotNumber: order.lotNumber,
-              type: 'PRODUCTION',
-              quantity: finalQty,
-              description: `Üretim Emri Tamamlandı - Lot: ${order.lotNumber}`,
-              referenceId: order.id
-            }
-          });
-        }
-      }
-
-      // 3. Update main order status
+      // 2. Update status and dates
       return await tx.productionOrder.update({
         where: { id, companyId },
         data: { 
           status, 
-          endDate: status === 'completed' ? new Date() : (status === 'planned' ? null : undefined) 
+          endDate: status === 'completed' ? new Date() : (status === 'planned' ? null : undefined),
+          productionDate: status === 'completed' ? new Date() : undefined
         }
       });
     });

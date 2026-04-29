@@ -102,11 +102,75 @@ router.put('/orders/:id/status', authenticateToken, async (req: AuthRequest, res
 
     const { status } = req.body;
 
-    const order = await prisma.order.update({
-      where: { id: req.params.id as string, companyId },
-      data: { status }
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Get order with items
+      const order = await tx.order.findUnique({
+        where: { id: req.params.id as string, companyId },
+        include: { orderItems: { include: { product: true } } }
+      });
+
+      if (!order) throw new Error('Sipariş bulunamadı');
+
+      // 2. If moving TO shipped/completed and wasn't before
+      const isNowShipped = (status === 'shipped' || status === 'completed');
+      const wasShipped = (order.status === 'shipped' || order.status === 'completed');
+
+      if (isNowShipped && !wasShipped) {
+        for (const item of order.orderItems) {
+          // Find a warehouse to ship from (default to product's target warehouse or first 'finished' warehouse)
+          let warehouseId = item.product.targetWarehouseId;
+          
+          if (!warehouseId) {
+            const finishedWarehouse = await tx.warehouse.findFirst({
+              where: { companyId, type: 'finished' }
+            });
+            warehouseId = finishedWarehouse?.id;
+          }
+
+          if (warehouseId) {
+            // Decrement stock (lotsuz for now as sales order items don't have lot)
+            await tx.stockLevel.upsert({
+              where: {
+                productId_warehouseId_lotNumber: {
+                  productId: item.productId,
+                  warehouseId: warehouseId,
+                  lotNumber: ""
+                }
+              },
+              update: { quantity: { decrement: item.quantity } },
+              create: {
+                companyId,
+                productId: item.productId,
+                warehouseId: warehouseId,
+                lotNumber: "",
+                quantity: -item.quantity
+              }
+            });
+
+            // Create movement
+            await tx.stockMovement.create({
+              data: {
+                companyId,
+                productId: item.productId,
+                fromWarehouseId: warehouseId,
+                quantity: item.quantity,
+                type: 'SALE',
+                referenceId: order.orderNumber,
+                description: `Sipariş Sevkiyatı - No: ${order.orderNumber}`
+              }
+            });
+          }
+        }
+      }
+
+      // 3. Update status
+      return await tx.order.update({
+        where: { id: req.params.id as string, companyId },
+        data: { status }
+      });
     });
-    res.json(order);
+
+    res.json(result);
   } catch (error) {
     res.status(500).json({ error: 'Sipariş durumu güncellenemedi' });
   }

@@ -27,6 +27,7 @@ interface CustomSelectProps {
   searchable?: boolean;
   isMulti?: boolean;
   variant?: 'default' | 'inline';
+  fullWidth?: boolean;
 }
 
 export const CustomSelect = memo(({
@@ -40,7 +41,8 @@ export const CustomSelect = memo(({
   className = '',
   searchable = true,
   isMulti = false,
-  variant = 'default'
+  variant = 'default',
+  fullWidth = false
 }: CustomSelectProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -228,7 +230,8 @@ export const CustomSelect = memo(({
       <div
         onClick={() => !disabled && setIsOpen(!isOpen)}
         className={cn(
-          "relative w-auto min-w-20 bg-theme-base border border-theme rounded-xl flex items-center justify-between cursor-pointer transition-all duration-300 group",
+          "relative min-w-[5rem] bg-theme-base border border-theme rounded-xl flex items-center justify-between cursor-pointer transition-all duration-300 group",
+          fullWidth ? "w-full" : "w-fit max-w-[12rem]",
           variant === 'inline' ? "h-10 px-2 py-1" : "h-10 px-2 py-1",
           isOpen && "ring-4 ring-theme-primary/10 border-theme-primary/40 bg-theme-surface shadow-primary-glow",
           !isOpen && !disabled && "hover:border-theme-primary/40 hover:bg-theme-surface/50",
@@ -236,7 +239,7 @@ export const CustomSelect = memo(({
           error && "border-red-500/40 ring-red-500/10"
         )}
       >
-        <div className="flex-1 truncate">
+        <div className="flex-1 min-w-0 px-2">
           {selectedLabels.length > 0 ? (
             <div className="flex flex-col">
               <span className={cn(
