@@ -40,6 +40,11 @@ import productionRouteRoutes from './routes/productionRoutes';
 import stationRoutes from './routes/stations';
 import productionEventReasonRoutes from './routes/productionEventReasons';
 import productionEventGroupRoutes from './routes/productionEventGroups';
+import consumptionTypeRoutes from './routes/consumptionTypes';
+import consumptionTransactionRoutes from './routes/consumptionTransactions';
+import measurementToolRoutes from './routes/measurementTools';
+import equipmentRoutes from './routes/equipment';
+import measurementMethodRoutes from './routes/measurementMethods';
 import { authenticateToken } from './middleware/auth';
 import { startScheduler } from './services/scheduler';
 
@@ -116,6 +121,11 @@ app.use('/api/production-routes', productionRouteRoutes);
 app.use('/api/stations', stationRoutes);
 app.use('/api/production-event-reasons', productionEventReasonRoutes);
 app.use('/api/production-event-groups', productionEventGroupRoutes);
+app.use('/api/consumption-types', consumptionTypeRoutes);
+app.use('/api/consumption-transactions', consumptionTransactionRoutes);
+app.use('/api/measurement-tools', measurementToolRoutes);
+app.use('/api/equipment', equipmentRoutes);
+app.use('/api/measurement-methods', measurementMethodRoutes);
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 const clientDistPath = path.resolve(__dirname, '../../client/dist');

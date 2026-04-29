@@ -12,7 +12,7 @@ router.get('/', async (req: AuthRequest, res) => {
 
     const shifts = await prisma.shift.findMany({
       where: { companyId },
-      orderBy: [{ displayOrder: 'asc' }, { shiftCode: 'asc' }],
+      orderBy: [{ displayOrder: 'asc' }, { createdAt: 'asc' }],
     });
     res.json(shifts);
   } catch (error) { 
@@ -31,7 +31,17 @@ router.get('/:id', async (req: AuthRequest, res) => {
 
 router.post('/', async (req: AuthRequest, res) => {
   try {
-    const shift = await prisma.shift.create({ data: { ...req.body, companyId: getCompanyId(req) } });
+    const companyId = getCompanyId(req);
+    const lastItem = await prisma.shift.findFirst({
+      where: { companyId },
+      orderBy: { displayOrder: 'desc' },
+      select: { displayOrder: true }
+    });
+    const nextOrder = (lastItem?.displayOrder ?? -1) + 1;
+
+    const shift = await prisma.shift.create({ 
+      data: { ...req.body, companyId, displayOrder: nextOrder } 
+    });
     res.status(201).json(shift);
   } catch (error) { res.status(500).json({ error: 'Failed to create shift' }); }
 });

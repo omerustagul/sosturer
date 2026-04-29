@@ -762,7 +762,7 @@ router.get('/warehouses', authenticateToken, async (req: AuthRequest, res) => {
       include: {
         _count: { select: { stockLevels: true } }
       },
-      orderBy: { code: 'asc' }
+      orderBy: [{ displayOrder: 'asc' }, { createdAt: 'asc' }]
     });
     res.json(warehouses);
   } catch (error) {
@@ -776,6 +776,14 @@ router.post('/warehouses', authenticateToken, async (req: AuthRequest, res) => {
     if (!companyId) return res.status(400).json({ error: 'Şirket ID eksik' });
 
     const { name, code, type, status, unitId, locationId } = req.body;
+
+    const lastItem = await prisma.warehouse.findFirst({
+      where: { companyId },
+      orderBy: { displayOrder: 'desc' },
+      select: { displayOrder: true }
+    });
+    const nextOrder = (lastItem?.displayOrder ?? -1) + 1;
+
     const warehouse = await (prisma as any).warehouse.create({
       data: {
         companyId,
@@ -784,7 +792,8 @@ router.post('/warehouses', authenticateToken, async (req: AuthRequest, res) => {
         type: type || 'general',
         status: status || 'active',
         unitId: unitId || null,
-        locationId: locationId || null
+        locationId: locationId || null,
+        displayOrder: nextOrder
       }
     });
     res.status(201).json(warehouse);

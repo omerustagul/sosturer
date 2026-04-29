@@ -36,6 +36,12 @@ const WorkPlanList = lazy(() => import('./pages/planning/WorkPlanList').then((m)
 const WorkPlanForm = lazy(() => import('./pages/planning/WorkPlanForm').then((m) => ({ default: m.WorkPlanForm })));
 const ProductionOrders = lazy(() => import('./pages/planning/ProductionOrders').then((m) => ({ default: m.ProductionOrders })));
 const ProductionOrderForm = lazy(() => import('./pages/planning/ProductionOrderForm').then(m => ({ default: m.ProductionOrderForm })));
+const ConsumptionTransactions = lazy(() => import('./pages/production/ConsumptionTransactions').then((m) => ({ default: m.ConsumptionTransactions })));
+const ConsumptionTransactionForm = lazy(() => import('./pages/production/ConsumptionTransactionForm').then((m) => ({ default: m.ConsumptionTransactionForm })));
+const MeasurementTools = lazy(() => import('./pages/production/TraceabilityAssets').then((m) => ({ default: m.MeasurementTools })));
+const MeasurementToolDetail = lazy(() => import('./pages/production/TraceabilityAssets').then((m) => ({ default: m.MeasurementToolDetail })));
+const EquipmentTracking = lazy(() => import('./pages/production/TraceabilityAssets').then((m) => ({ default: m.EquipmentTracking })));
+const EquipmentDetail = lazy(() => import('./pages/production/TraceabilityAssets').then((m) => ({ default: m.EquipmentDetail })));
 
 const InventoryDashboard = lazy(() => import('./pages/inventory/InventoryDashboard').then((m) => ({ default: m.InventoryDashboard })));
 const StockMovements = lazy(() => import('./pages/inventory/StockMovements').then((m) => ({ default: m.StockMovements })));
@@ -118,6 +124,13 @@ function App() {
                 <Route path="production-orders" element={<ProductionOrders />} />
                 <Route path="production-orders/new" element={<ProductionOrderForm />} />
                 <Route path="production-orders/:lotNumber" element={<ProductionOrderForm />} />
+                <Route path="production/consumption-transactions" element={<ConsumptionTransactions />} />
+                <Route path="production/consumption-transactions/new" element={<ConsumptionTransactionForm />} />
+                <Route path="production/consumption-transactions/:transactionNo" element={<ConsumptionTransactionForm />} />
+                <Route path="production/measurement-tools" element={<MeasurementTools />} />
+                <Route path="production/measurement-tools/:id" element={<MeasurementToolDetail />} />
+                <Route path="production/equipment" element={<EquipmentTracking />} />
+                <Route path="production/equipment/:id" element={<EquipmentDetail />} />
               </Route>
             </Routes>
           </Suspense>

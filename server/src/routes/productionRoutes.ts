@@ -19,7 +19,7 @@ router.get('/', authenticateToken, async (req: AuthRequest, res) => {
         },
         _count: { select: { products: true } }
       },
-      orderBy: { displayOrder: 'asc' } as any
+      orderBy: [{ displayOrder: 'asc' }, { createdAt: 'asc' }] as any
     });
     res.json(routes);
   } catch (error) {
@@ -34,12 +34,20 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
     const { name, code, description, steps } = req.body;
 
     const result = await prisma.$transaction(async (tx) => {
+      const lastItem = await tx.productionRoute.findFirst({
+        where: { companyId },
+        orderBy: { displayOrder: 'desc' },
+        select: { displayOrder: true }
+      });
+      const nextOrder = (lastItem?.displayOrder ?? -1) + 1;
+
       const route = await tx.productionRoute.create({
         data: {
           companyId,
           name,
           code,
-          description
+          description,
+          displayOrder: nextOrder
         }
       });
 

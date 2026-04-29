@@ -33,7 +33,7 @@ router.get('/', authenticateToken, async (req: AuthRequest, res: Response) => {
     const firms = await (prisma as any).firm.findMany({
       where: { companyId },
       select: firmSelect,
-      orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }]
+      orderBy: [{ displayOrder: 'asc' }, { createdAt: 'asc' }]
     });
 
     res.json(firms);
@@ -47,6 +47,13 @@ router.post('/', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const companyId = getCompanyId(req);
     if (!companyId) return res.status(400).json({ error: 'Şirket bilgisi bulunamadı' });
+
+    const lastItem = await (prisma as any).firm.findFirst({
+      where: { companyId },
+      orderBy: { displayOrder: 'desc' },
+      select: { displayOrder: true }
+    });
+    const nextOrder = (lastItem?.displayOrder ?? -1) + 1;
 
     const firm = await (prisma as any).firm.create({
       data: {
@@ -62,11 +69,10 @@ router.post('/', authenticateToken, async (req: AuthRequest, res: Response) => {
         contactName: req.body.contactName || null,
         notes: req.body.notes || null,
         status: req.body.status || 'active',
-        displayOrder: req.body.displayOrder || 0
+        displayOrder: req.body.displayOrder || nextOrder
       },
       select: firmSelect
     });
-
     res.status(201).json(firm);
   } catch (error: any) {
     console.error('[Firms] Create error:', error);

@@ -12,7 +12,7 @@ router.get('/', authenticateToken, async (req: AuthRequest, res: Response) => {
 
     const departments = await prisma.department.findMany({
       where: { companyId },
-      orderBy: { displayOrder: 'asc' }
+      orderBy: [{ displayOrder: 'asc' }, { createdAt: 'asc' }]
     });
     res.json(departments);
   } catch (error: any) {
@@ -27,7 +27,14 @@ router.post('/', authenticateToken, async (req: AuthRequest, res: Response) => {
     const companyId = req.user?.companyId;
     if (!companyId) return res.status(400).json({ error: 'Şirket bilgisi bulunamadı' });
 
-    const { name, code, status, displayOrder, locationId } = req.body;
+    const { name, code, status, locationId } = req.body;
+
+    const lastItem = await prisma.department.findFirst({
+      where: { companyId },
+      orderBy: { displayOrder: 'desc' },
+      select: { displayOrder: true }
+    });
+    const nextOrder = (lastItem?.displayOrder ?? -1) + 1;
     
     const department = await prisma.department.create({
       data: {
@@ -35,7 +42,7 @@ router.post('/', authenticateToken, async (req: AuthRequest, res: Response) => {
         name,
         code,
         status: status || 'active',
-        displayOrder: displayOrder || 0,
+        displayOrder: req.body.displayOrder || nextOrder,
         locationId
       }
     });

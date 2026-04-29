@@ -31,6 +31,7 @@ const movementTypes = [
   { id: 'SCRAP', label: 'Fire / Hurda' },
   { id: 'RESERVE', label: 'Rezerve' },
   { id: 'CONSUMPTION', label: 'Üretim Tüketimi' },
+  { id: 'CONSUMPTION_TRANSACTION', label: 'Tüketim İşlemi' },
   { id: 'REJECT', label: 'Üretim Reddi' },
   { id: 'SAMPLE', label: 'Üretim Numarası' },
   { id: 'CONSUMPTION_EXIT', label: 'Tüketim Çıkışı' }
@@ -138,6 +139,8 @@ export function StockMovements() {
 
     if (prodTypes.includes(move.type)) {
       navigate(`/production-orders/${move.referenceId}`);
+    } else if (move.type === 'CONSUMPTION_TRANSACTION') {
+      navigate(`/production/consumption-transactions/${move.referenceId}`);
     } else if (voucherTypes.includes(move.type)) {
       navigate(`/inventory/stock-vouchers/${move.referenceId}`);
     }
@@ -310,7 +313,7 @@ export function StockMovements() {
                       )}
                       <div className="flex flex-col flex-1">
                         <span className="text-[10px] font-black text-theme-dim uppercase">
-                          {move.type.includes('PRODUCTION') || move.type.includes('CONSUMPTION') ? 'ÜRETİM EMRİ' : (move.referenceId || '-')}
+                          {move.type === 'CONSUMPTION_TRANSACTION' ? 'TÜKETİM İŞLEMİ' : (move.type.includes('PRODUCTION') || move.type === 'CONSUMPTION' ? 'ÜRETİM EMRİ' : (move.referenceId || '-'))}
                         </span>
                         {move.description && (
                           <span className="text-[10px] font-bold text-theme-muted truncate max-w-[200px]">{move.description}</span>
@@ -453,6 +456,7 @@ function MovementTypeBadge({ type }: { type: string }) {
     CONSIGNMENT_ENTRY: { label: 'KONSİNYE GİRİŞİ', color: 'text-theme-success', bg: 'bg-theme-success/10', border: 'border-theme-success/20', icon: Package },
     CONSIGNMENT_EXIT: { label: 'KONSİNYE ÇIKIŞI', color: 'text-theme-danger', bg: 'bg-theme-danger/10', border: 'border-theme-danger/20', icon: Package },
     CONSUMPTION_EXIT: { label: 'TÜKETİM ÇIKIŞI', color: 'text-theme-danger', bg: 'bg-theme-danger/10', border: 'border-theme-danger/20', icon: Package },
+    CONSUMPTION_TRANSACTION: { label: 'TÜKETİM İŞLEMİ', color: 'text-theme-danger', bg: 'bg-theme-danger/10', border: 'border-theme-danger/20', icon: Package },
     CONSUMPTION: { label: 'ÜRETİM TÜKETİMİ', color: 'text-theme-danger', bg: 'bg-theme-danger/10', border: 'border-theme-danger/20', icon: Package },
     REJECT: { label: 'ÜRETİM REDDİ', color: 'text-theme-danger', bg: 'bg-theme-danger/10', border: 'border-theme-danger/20', icon: X },
     SAMPLE: { label: 'ÜRETİM NUMUNESİ', color: 'text-theme-warning', bg: 'bg-theme-warning/10', border: 'border-theme-warning/20', icon: Package },

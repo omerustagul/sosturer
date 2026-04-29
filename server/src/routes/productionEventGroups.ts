@@ -13,7 +13,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
     const companyId = getCompanyId(req);
     const groups = await prisma.productionEventGroup.findMany({
       where: { companyId },
-      orderBy: [{ displayOrder: 'asc' }, { createdAt: 'desc' }]
+      orderBy: [{ displayOrder: 'asc' }, { createdAt: 'asc' }]
     });
     res.json(groups);
   } catch (error) {
@@ -31,12 +31,20 @@ router.post('/', async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'İsim alanı zorunludur' });
     }
 
+    const lastItem = await prisma.productionEventGroup.findFirst({
+      where: { companyId },
+      orderBy: { displayOrder: 'desc' },
+      select: { displayOrder: true }
+    });
+    const nextOrder = (lastItem?.displayOrder ?? -1) + 1;
+
     const group = await prisma.productionEventGroup.create({
       data: {
         companyId,
         code,
         name,
-        status: status || 'active'
+        status: status || 'active',
+        displayOrder: nextOrder
       }
     });
     res.json(group);

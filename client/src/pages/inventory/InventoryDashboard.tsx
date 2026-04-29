@@ -149,41 +149,6 @@ export function InventoryDashboard() {
         <StatCard icon={AlertTriangle} label="KRİTİK SEVİYE" value="0" color="text-theme-danger" />
       </div>
 
-      <div className="modern-glass-card p-4 space-y-3">
-        <div className="flex items-center justify-between gap-4">
-          <h3 className="text-sm font-black text-theme-main uppercase flex items-center gap-2">
-            <Warehouse className="w-4 h-4 text-theme-primary" /> DEPOLAR
-          </h3>
-          <span className="text-[11px] font-black text-theme-dim">
-            {selectedWarehouse ? selectedWarehouse.name : 'Tüm Depolar'} Görüntüleniyor
-          </span>
-        </div>
-
-        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-          <WarehouseButton
-            active={!selectedWarehouseId}
-            name="Tüm Depolar"
-            type="GENEL"
-            count={getWarehouseCount(null)}
-            onClick={() => handleWarehouseSelect(null)}
-          />
-          {warehouses.map((warehouse) => (
-            <WarehouseButton
-              key={warehouse.id}
-              active={selectedWarehouseId === warehouse.id}
-              name={warehouse.name}
-              type={warehouse.type}
-              count={getWarehouseCount(warehouse.id)}
-              onClick={() => handleWarehouseSelect(warehouse.id)}
-            />
-          ))}
-        </div>
-
-        {warehouses.length === 0 && (
-          <p className="text-center py-8 opacity-30 italic text-sm">Henüz depo tanımlanmamış.</p>
-        )}
-      </div>
-
       <div className="modern-glass-card p-0 overflow-hidden">
         <div className="p-4 border-b border-theme bg-theme-surface/30 space-y-4">
           <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
@@ -402,42 +367,6 @@ function FilterInput({ icon: Icon, label, value, onChange, placeholder = '' }: a
   );
 }
 
-function WarehouseButton({ active, name, type, count, onClick }: any) {
-  return (
-    <button
-      onClick={onClick}
-      className={`min-w-[180px] shrink-0 p-4 rounded-2xl border text-left transition-all duration-300 relative group overflow-hidden ${active
-        ? 'bg-theme-primary text-white border-theme-primary shadow-xl shadow-theme-primary/20 scale-[1.02]'
-        : 'bg-theme-surface/50 border-theme text-theme-muted hover:text-theme-main hover:border-theme-primary/30 hover:scale-[1.01]'
-        }`}
-    >
-      {active && (
-        <div className="absolute top-0 right-0 p-1">
-          <div className="bg-white/20 text-[8px] font-black px-1.5 py-0.5 rounded-lg animate-pulse">AKTİF</div>
-        </div>
-      )}
-      <div className="space-y-3">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex flex-col flex-1 overflow-hidden">
-            <span className={`text-[12px] font-black uppercase tracking-tight break-words leading-tight ${active ? 'text-white' : 'text-theme-main'}`}>
-              {name}
-            </span>
-            <span className={`text-[9px] font-black uppercase opacity-60 mt-0.5 ${active ? 'text-white/70' : 'text-theme-dim'}`}>
-              {type || 'GENEL'}
-            </span>
-          </div>
-          <div className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm border-2 ${
-            active 
-              ? 'bg-white/10 border-white/20 text-white' 
-              : 'bg-theme-primary/5 border-theme-primary/10 text-theme-primary'
-          }`}>
-            {count}
-          </div>
-        </div>
-      </div>
-    </button>
-  );
-}
 
 function StatCard({ icon: Icon, label, value, color }: any) {
   return (

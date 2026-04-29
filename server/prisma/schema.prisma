@@ -63,6 +63,13 @@ model Company {
   customers               Customer[]
   orders                  Order[]
   offDays                 CompanyOffDay[]
+  consumptionTypes        ConsumptionType[]
+  consumptionTransactions ConsumptionTransaction[]
+  measurementTools        MeasurementTool[]
+  measurementToolStatuses MeasurementToolStatus[]
+  equipment               Equipment[]
+  measurementMethods      MeasurementMethod[]
+  equipmentStatuses       EquipmentStatus[]
 
   @@map("companies")
 }
@@ -176,28 +183,30 @@ model Shift {
 }
 
 model Department {
-  id               String           @id @default(uuid())
-  companyId        String           @map("company_id")
-  name             String
-  code             String?
-  status           String           @default("active")
-  displayOrder     Int              @default(0) @map("display_order")
-  createdAt        DateTime         @default(now()) @map("created_at")
-  updatedAt        DateTime         @updatedAt @map("updated_at")
-  type             String?          @default("office")
-  address          String?
-  locationId       String?          @map("location_id")
-  workingHours     String?          @map("working_hours")
-  openingDate      DateTime?        @map("opening_date")
-  notes            String?
-  headcountPlanned Int?             @map("headcount_planned")
-  roles            DepartmentRole[]
-  location         locations?       @relation(fields: [locationId], references: [id])
-  company          Company          @relation(fields: [companyId], references: [id])
-  operators        Operator[]
-  workPlans        WorkPlan[]
-  operations       Operation[]
-  stations         Station[]
+  id                      String                  @id @default(uuid())
+  companyId               String                  @map("company_id")
+  name                    String
+  code                    String?
+  status                  String                  @default("active")
+  displayOrder            Int                     @default(0) @map("display_order")
+  createdAt               DateTime                @default(now()) @map("created_at")
+  updatedAt               DateTime                @updatedAt @map("updated_at")
+  type                    String?                 @default("office")
+  address                 String?
+  locationId              String?                 @map("location_id")
+  workingHours            String?                 @map("working_hours")
+  openingDate             DateTime?               @map("opening_date")
+  notes                   String?
+  headcountPlanned        Int?                    @map("headcount_planned")
+  roles                   DepartmentRole[]
+  location                locations?              @relation(fields: [locationId], references: [id])
+  company                 Company                 @relation(fields: [companyId], references: [id])
+  operators               Operator[]
+  workPlans               WorkPlan[]
+  operations              Operation[]
+  stations                Station[]
+  measurementToolStatuses MeasurementToolStatus[]
+  equipmentStatuses       EquipmentStatus[]
 
   @@unique([companyId, name])
   @@map("departments")
@@ -262,20 +271,21 @@ model Product {
   targetWarehouseId     String?  @map("target_warehouse_id")
   completionTriggerStep Int?     @map("completion_trigger_step")
 
-  overtimePlanItems OvertimePlanItem[]
-  productionRecords ProductionRecord[]
-  productionPlans   ProductionPlan[]
-  stockLevels       StockLevel[]
-  stockMovements    StockMovement[]
-  stockVoucherItems StockVoucherItem[]
-  workPlanItems     WorkPlanItem[]
-  recipes           ProductRecipe[]
-  productionOrders  ProductionOrder[]
-  componentOf       ProductionOrderComponent[]
-  orderItems        OrderItem[]
-  routeId           String?                    @map("route_id")
-  route             ProductionRoute?           @relation(fields: [routeId], references: [id])
-  company           Company                    @relation(fields: [companyId], references: [id])
+  overtimePlanItems       OvertimePlanItem[]
+  productionRecords       ProductionRecord[]
+  productionPlans         ProductionPlan[]
+  stockLevels             StockLevel[]
+  stockMovements          StockMovement[]
+  stockVoucherItems       StockVoucherItem[]
+  consumptionTransactions ConsumptionTransaction[]
+  workPlanItems           WorkPlanItem[]
+  recipes                 ProductRecipe[]
+  productionOrders        ProductionOrder[]
+  componentOf             ProductionOrderComponent[]
+  orderItems              OrderItem[]
+  routeId                 String?                    @map("route_id")
+  route                   ProductionRoute?           @relation(fields: [routeId], references: [id])
+  company                 Company                    @relation(fields: [companyId], references: [id])
 
   measurements       Json?                     @map("measurements") // { width: number, height: number, density: number, etc. }
   defaultComponents  ProductDefaultComponent[] @relation("ProductDefaults")
@@ -509,25 +519,26 @@ model system_config {
 }
 
 model Warehouse {
-  id                    String                 @id @default(uuid())
-  companyId             String                 @map("company_id")
-  name                  String
-  code                  String?
-  type                  String                 @default("general") // general, finished, semifinished, raw, consumable, workcenter, scrap
-  status                String                 @default("active")
-  unitId                String?                @map("unit_id") // optional link to company unit/department
-  locationId            String?                @map("location_id")
-  displayOrder          Int                    @default(0) @map("display_order")
-  createdAt             DateTime               @default(now()) @map("created_at")
-  updatedAt             DateTime               @updatedAt @map("updated_at")
-  company               Company                @relation(fields: [companyId], references: [id])
-  location              locations?             @relation(fields: [locationId], references: [id])
-  stockLevels           StockLevel[]
-  movementsTo           StockMovement[]        @relation("to")
-  movementsFrom         StockMovement[]        @relation("from")
-  stockVouchers         StockVoucher[]         @relation("stock_voucher_warehouse")
-  targetStockVouchers   StockVoucher[]         @relation("stock_voucher_target_warehouse")
-  productionOrderEvents ProductionOrderEvent[]
+  id                      String                   @id @default(uuid())
+  companyId               String                   @map("company_id")
+  name                    String
+  code                    String?
+  type                    String                   @default("general") // general, finished, semifinished, raw, consumable, workcenter, scrap
+  status                  String                   @default("active")
+  unitId                  String?                  @map("unit_id") // optional link to company unit/department
+  locationId              String?                  @map("location_id")
+  displayOrder            Int                      @default(0) @map("display_order")
+  createdAt               DateTime                 @default(now()) @map("created_at")
+  updatedAt               DateTime                 @updatedAt @map("updated_at")
+  company                 Company                  @relation(fields: [companyId], references: [id])
+  location                locations?               @relation(fields: [locationId], references: [id])
+  stockLevels             StockLevel[]
+  movementsTo             StockMovement[]          @relation("to")
+  movementsFrom           StockMovement[]          @relation("from")
+  stockVouchers           StockVoucher[]           @relation("stock_voucher_warehouse")
+  targetStockVouchers     StockVoucher[]           @relation("stock_voucher_target_warehouse")
+  productionOrderEvents   ProductionOrderEvent[]
+  consumptionTransactions ConsumptionTransaction[]
 
   @@unique([companyId, name])
   @@map("warehouses")
@@ -824,12 +835,13 @@ model ProductionOrder {
   productionDate    DateTime? @map("production_date")
   parentId          String?   @map("parent_id")
 
-  steps      ProductionOrderStep[]
-  components ProductionOrderComponent[]
-  events     ProductionOrderEvent[]
-  machines   ProductionOrderMachine[]
-  parent     ProductionOrder?           @relation("LinkedOrders", fields: [parentId], references: [id])
-  children   ProductionOrder[]          @relation("LinkedOrders")
+  steps            ProductionOrderStep[]
+  components       ProductionOrderComponent[]
+  events           ProductionOrderEvent[]
+  machines         ProductionOrderMachine[]
+  parent           ProductionOrder?              @relation("LinkedOrders", fields: [parentId], references: [id])
+  children         ProductionOrder[]             @relation("LinkedOrders")
+  consumptionLinks ConsumptionTransactionOrder[]
 
   @@unique([companyId, lotNumber])
   @@map("production_orders")
@@ -1031,4 +1043,183 @@ model ProductionOrderMachine {
   machine         Machine         @relation(fields: [machineId], references: [id])
 
   @@map("production_order_machines")
+}
+
+model ConsumptionType {
+  id           String   @id @default(uuid())
+  companyId    String   @map("company_id")
+  code         String?
+  name         String
+  description  String?
+  status       String   @default("active")
+  displayOrder Int      @default(0) @map("display_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  company      Company                  @relation(fields: [companyId], references: [id])
+  transactions ConsumptionTransaction[]
+
+  @@unique([companyId, name])
+  @@map("consumption_types")
+}
+
+model ConsumptionTransaction {
+  id              String   @id @default(uuid())
+  companyId       String   @map("company_id")
+  transactionNo   String   @map("transaction_no")
+  typeId          String   @map("type_id")
+  transactionDate DateTime @default(now()) @map("transaction_date")
+  status          String   @default("pending")
+  productId       String   @map("product_id")
+  warehouseId     String   @map("warehouse_id")
+  lotNumber       String   @default("") @map("lot_number")
+  serialNo        String?  @map("serial_no")
+  personnelName   String?  @map("personnel_name")
+  createdByUserId String?  @map("created_by_user_id")
+  quantity        Float
+  unit            String?
+  notes           String?
+  stockApplied    Boolean  @default(false) @map("stock_applied")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  company          Company                       @relation(fields: [companyId], references: [id])
+  type             ConsumptionType               @relation(fields: [typeId], references: [id])
+  product          Product                       @relation(fields: [productId], references: [id])
+  warehouse        Warehouse                     @relation(fields: [warehouseId], references: [id])
+  productionOrders ConsumptionTransactionOrder[]
+
+  @@unique([companyId, transactionNo])
+  @@index([companyId, transactionDate])
+  @@index([productId, warehouseId, lotNumber])
+  @@map("consumption_transactions")
+}
+
+model ConsumptionTransactionOrder {
+  id                       String @id @default(uuid())
+  consumptionTransactionId String @map("consumption_transaction_id")
+  productionOrderId        String @map("production_order_id")
+
+  consumptionTransaction ConsumptionTransaction @relation(fields: [consumptionTransactionId], references: [id], onDelete: Cascade)
+  productionOrder        ProductionOrder        @relation(fields: [productionOrderId], references: [id], onDelete: Cascade)
+
+  @@unique([consumptionTransactionId, productionOrderId])
+  @@map("consumption_transaction_orders")
+}
+
+model MeasurementTool {
+  id           String   @id @default(uuid())
+  companyId    String   @map("company_id")
+  code         String?
+  name         String
+  serialNo     String?  @map("serial_no")
+  brand        String?
+  model        String?
+  status       String   @default("active")
+  displayOrder Int      @default(0) @map("display_order")
+  notes        String?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  company  Company                 @relation(fields: [companyId], references: [id])
+  statuses MeasurementToolStatus[]
+  methods  MeasurementToolMethod[]
+
+  @@unique([companyId, name])
+  @@map("measurement_tools")
+}
+
+model MeasurementToolStatus {
+  id                String    @id @default(uuid())
+  companyId         String    @map("company_id")
+  measurementToolId String    @map("measurement_tool_id")
+  workCenterId      String?   @map("work_center_id")
+  validUntil        DateTime? @map("valid_until")
+  negativeTolerance Float?    @map("negative_tolerance")
+  positiveTolerance Float?    @map("positive_tolerance")
+  certificate       String?
+  operationStatus   String    @default("available") @map("operation_status")
+  notes             String?
+  createdBy         String?   @map("created_by")
+  createdAt         DateTime  @default(now()) @map("created_at")
+
+  company         Company         @relation(fields: [companyId], references: [id])
+  measurementTool MeasurementTool @relation(fields: [measurementToolId], references: [id], onDelete: Cascade)
+  workCenter      Department?     @relation(fields: [workCenterId], references: [id])
+
+  @@index([measurementToolId, createdAt])
+  @@map("measurement_tool_statuses")
+}
+
+model MeasurementToolMethod {
+  id                  String @id @default(uuid())
+  measurementToolId   String @map("measurement_tool_id")
+  measurementMethodId String @map("measurement_method_id")
+
+  measurementTool   MeasurementTool   @relation(fields: [measurementToolId], references: [id], onDelete: Cascade)
+  measurementMethod MeasurementMethod @relation(fields: [measurementMethodId], references: [id], onDelete: Cascade)
+
+  @@unique([measurementToolId, measurementMethodId])
+  @@map("measurement_tool_methods")
+}
+
+model Equipment {
+  id           String   @id @default(uuid())
+  companyId    String   @map("company_id")
+  code         String?
+  name         String
+  serialNo     String?  @map("serial_no")
+  brand        String?
+  model        String?
+  status       String   @default("active")
+  displayOrder Int      @default(0) @map("display_order")
+  notes        String?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  company  Company           @relation(fields: [companyId], references: [id])
+  statuses EquipmentStatus[]
+
+  @@unique([companyId, name])
+  @@map("equipment")
+}
+
+model EquipmentStatus {
+  id                String    @id @default(uuid())
+  companyId         String    @map("company_id")
+  equipmentId       String    @map("equipment_id")
+  workCenterId      String?   @map("work_center_id")
+  validUntil        DateTime? @map("valid_until")
+  negativeTolerance Float?    @map("negative_tolerance")
+  positiveTolerance Float?    @map("positive_tolerance")
+  certificate       String?
+  operationStatus   String    @default("available") @map("operation_status")
+  notes             String?
+  createdBy         String?   @map("created_by")
+  createdAt         DateTime  @default(now()) @map("created_at")
+
+  company    Company     @relation(fields: [companyId], references: [id])
+  equipment  Equipment   @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  workCenter Department? @relation(fields: [workCenterId], references: [id])
+
+  @@index([equipmentId, createdAt])
+  @@map("equipment_statuses")
+}
+
+model MeasurementMethod {
+  id           String   @id @default(uuid())
+  companyId    String   @map("company_id")
+  code         String
+  name         String
+  notes        String?
+  status       String   @default("active")
+  displayOrder Int      @default(0) @map("display_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  company Company                 @relation(fields: [companyId], references: [id])
+  tools   MeasurementToolMethod[]
+
+  @@unique([companyId, code])
+  @@map("measurement_methods")
 }

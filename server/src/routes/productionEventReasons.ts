@@ -14,7 +14,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
     const reasons = await prisma.productionEventReason.findMany({
       where: { companyId },
       include: { group: true },
-      orderBy: [{ displayOrder: 'asc' }, { createdAt: 'desc' }]
+      orderBy: [{ displayOrder: 'asc' }, { createdAt: 'asc' }]
     });
     res.json(reasons);
   } catch (error) {
@@ -32,6 +32,13 @@ router.post('/', async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'İsim ve tip alanları zorunludur' });
     }
 
+    const lastItem = await prisma.productionEventReason.findFirst({
+      where: { companyId },
+      orderBy: { displayOrder: 'desc' },
+      select: { displayOrder: true }
+    });
+    const nextOrder = (lastItem?.displayOrder ?? -1) + 1;
+
     const reason = await prisma.productionEventReason.create({
       data: {
         companyId,
@@ -39,7 +46,8 @@ router.post('/', async (req: AuthRequest, res: Response) => {
         name,
         type,
         status: status || 'active',
-        groupId: groupId || null
+        groupId: groupId || null,
+        displayOrder: nextOrder
       }
     });
     res.json(reason);

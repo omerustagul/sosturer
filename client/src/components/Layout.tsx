@@ -402,6 +402,9 @@ export function Layout() {
           { icon: DiamondPlus, label: 'Yeni Üretim Kaydı', path: '/records/new' },
           { icon: Logs, label: 'Üretim Kayıtları', path: '/records' },
           { icon: ListOrdered, label: 'Üretim Emirleri', path: '/production-orders' },
+          { icon: ClipboardList, label: 'Tüketim İşlemleri', path: '/production/consumption-transactions' },
+          { icon: Activity, label: 'Ölçüm Araçları', path: '/production/measurement-tools' },
+          { icon: Wrench, label: 'Ekipmanlar', path: '/production/equipment' },
         ]
       },
       {
@@ -465,8 +468,17 @@ export function Layout() {
           { icon: Workflow, label: 'Operasyonlar', path: '/definitions/operations' },
           { icon: Map, label: 'Reçeteler', path: '/definitions/routes' },
           { icon: ClipboardList, label: 'Planlama Türleri', path: '/definitions/plan-types' },
+          { icon: ClipboardList, label: 'Tüketim Tipleri', path: '/definitions/consumption-types' },
+          { icon: Activity, label: 'Ölçüm Araçları', path: '/definitions/measurement-tools' },
+          { icon: Wrench, label: 'Ekipmanlar', path: '/definitions/equipment' },
           { icon: Layers, label: 'Olay Grupları', path: '/definitions/event-groups' },
           { icon: AlertCircle, label: 'Olay Sebepleri', path: '/definitions/event-reasons' },
+        ]
+      },
+      {
+        icon: ShieldCheck, label: 'KALİTE TANIMLARI', path: '/definitions/quality', isDropdown: true,
+        children: [
+          { icon: Activity, label: 'Ölçüm Yöntemleri', path: '/definitions/measurement-methods' },
         ]
       },
       {

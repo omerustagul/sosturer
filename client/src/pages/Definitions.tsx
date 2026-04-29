@@ -6,7 +6,7 @@ import {
   Factory, Users, Clock, Package,
   Plus, Trash2, Edit, FileUp, Download, UploadCloud,
   CheckCircle2, AlertCircle, List, ChevronLeft, ChevronRight, Search, Info, Settings, LayoutGrid,
-  Warehouse, Building2, Workflow, Map, Layers, Handshake, Filter, RotateCcw, ClipboardList, X
+  Warehouse, Building2, Workflow, Map, Layers, Handshake, Filter, RotateCcw, ClipboardList, X, Activity, Wrench, ShieldCheck
 } from 'lucide-react';
 import { Loading } from '../components/common/Loading';
 import { CustomSelect } from '../components/common/CustomSelect';
@@ -19,7 +19,9 @@ import { RecipeModal } from '../components/planning/RecipeModal';
 import { RecipeDetailModal } from '../components/planning/RecipeDetailModal';
 import { notify } from '../store/notificationStore';
 
-type TabType = 'machines' | 'operators' | 'shifts' | 'products' | 'firms' | 'work-centers' | 'stations' | 'warehouses' | 'department-roles' | 'import' | 'operations' | 'routes' | 'event-reasons' | 'event-groups' | 'plan-types';
+type TabType = 'machines' | 'operators' | 'shifts' | 'products' | 'firms' | 'work-centers' | 'stations' | 'warehouses' | 'department-roles' | 'import' | 'operations' | 'routes' | 'event-reasons' | 'event-groups' | 'plan-types' | 'consumption-types' | 'measurement-tools' | 'equipment' | 'measurement-methods';
+
+const simpleDefinitionTabs = ['consumption-types', 'measurement-tools', 'equipment', 'measurement-methods', 'plan-types'];
 
 
 export function Definitions() {
@@ -42,9 +44,14 @@ export function Definitions() {
     { id: '_group_production', label: 'ÜRETİM TANIMLARI', isGroupHeader: true, icon: LayoutGrid },
     { id: 'operations', label: 'Operasyonlar', icon: Workflow, indent: true },
     { id: 'routes', label: 'Reçeteler', icon: Map, indent: true },
+    { id: 'consumption-types', label: 'Tüketim Tipleri', icon: ClipboardList, indent: true },
+    { id: 'measurement-tools', label: 'Ölçüm Araçları', icon: Activity, indent: true },
+    { id: 'equipment', label: 'Ekipmanlar', icon: Wrench, indent: true },
     { id: 'event-groups', label: 'Olay Grupları', icon: Layers, indent: true },
     { id: 'event-reasons', label: 'Olay Sebepleri', icon: AlertCircle, indent: true },
     { id: 'plan-types', label: 'Planlama Türleri', icon: ClipboardList, indent: true },
+    { id: '_group_quality', label: 'KALİTE TANIMLARI', isGroupHeader: true, icon: ShieldCheck },
+    { id: 'measurement-methods', label: 'Ölçüm Yöntemleri', icon: Activity, indent: true },
     { id: '_group_tools', label: 'SİSTEM ARAÇLARI', isGroupHeader: true, icon: LayoutGrid },
     { id: 'import', label: 'Veri Aktarımı', icon: FileUp, indent: true }
   ];
@@ -61,6 +68,7 @@ export function Definitions() {
   const [machines, setMachines] = useState<any[]>([]);
   const [allProducts, setAllProducts] = useState<any[]>([]);
   const [eventGroups, setEventGroups] = useState<any[]>([]);
+  const [measurementMethods, setMeasurementMethods] = useState<any[]>([]);
   const [modularEditProduct, setModularEditProduct] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -144,6 +152,10 @@ export function Definitions() {
     if (activeTab === 'event-groups') return '/production-event-groups';
     if (activeTab === 'event-reasons') return '/production-event-reasons';
     if (activeTab === 'plan-types') return '/work-plan-types';
+    if (activeTab === 'consumption-types') return '/consumption-types';
+    if (activeTab === 'measurement-tools') return '/measurement-tools';
+    if (activeTab === 'equipment') return '/equipment';
+    if (activeTab === 'measurement-methods') return '/measurement-methods';
     return `/${activeTab}`;
   };
 
@@ -165,6 +177,11 @@ export function Definitions() {
       setRoles(Array.isArray(rolesRes) ? rolesRes : []);
       setCompanyUnits(Array.isArray(unitsRes) ? unitsRes : []);
       setCompanyLocations(Array.isArray(locsRes) ? locsRes : []);
+
+      if (activeTab === 'measurement-tools') {
+        const methodsRes = await api.get('/measurement-methods').catch(() => []);
+        setMeasurementMethods(Array.isArray(methodsRes) ? methodsRes : []);
+      }
 
       if (activeTab === 'operations' || activeTab === 'routes' || activeTab === 'products' || activeTab === 'stations' || activeTab === 'event-reasons' || activeTab === 'plan-types') {
         const [routesRes, wareRes, stationsRes, machinesRes, productsRes, groupsRes] = await Promise.all([
@@ -251,11 +268,20 @@ export function Definitions() {
     if (!sortConfig.key || !sortConfig.direction) return data;
 
     return [...data].sort((a, b) => {
-      const aVal = String(a[sortConfig.key] || '').toLowerCase();
-      const bVal = String(b[sortConfig.key] || '').toLowerCase();
+      const getSortValue = (item: any) => sortConfig.key === 'methods'
+        ? (item.methods || [])
+          .map((link: any) => link.measurementMethod?.name || link.measurementMethod?.code)
+          .filter(Boolean)
+          .join(' ')
+        : item[sortConfig.key];
 
-      const numA = Number(a[sortConfig.key]);
-      const numB = Number(b[sortConfig.key]);
+      const aRaw = getSortValue(a);
+      const bRaw = getSortValue(b);
+      const aVal = String(aRaw || '').toLowerCase();
+      const bVal = String(bRaw || '').toLowerCase();
+
+      const numA = Number(aRaw);
+      const numB = Number(bRaw);
 
       if (!isNaN(numA) && !isNaN(numB)) {
         return sortConfig.direction === 'asc' ? (numA - numB) : (numB - numA);
@@ -385,6 +411,18 @@ export function Definitions() {
           item.name?.toLowerCase().includes(lowerSearch) ||
           item.type?.toLowerCase().includes(lowerSearch)
         );
+      } else if (simpleDefinitionTabs.includes(activeTab)) {
+        const methodText = (item.methods || [])
+          .map((link: any) => link.measurementMethod?.name || link.measurementMethod?.code)
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        return (
+          item.code?.toLowerCase().includes(lowerSearch) ||
+          item.name?.toLowerCase().includes(lowerSearch) ||
+          item.notes?.toLowerCase().includes(lowerSearch) ||
+          methodText.includes(lowerSearch)
+        );
       }
       return true;
     });
@@ -440,7 +478,7 @@ export function Definitions() {
       setShowRecipeModal(true);
       return;
     }
-    setFormData({});
+    setFormData(activeTab === 'measurement-tools' ? { measurementMethodIds: [] } : {});
     setIsEditing(false);
     setShowAddForm(true);
   };
@@ -470,7 +508,14 @@ export function Definitions() {
       setSelectedRecipe(item);
       setShowRecipeModal(true);
     } else {
-      setFormData(item);
+      setFormData(activeTab === 'measurement-tools'
+        ? {
+          ...item,
+          measurementMethodIds: (item.methods || [])
+            .map((link: any) => link.measurementMethodId || link.measurementMethod?.id)
+            .filter(Boolean)
+        }
+        : item);
       setIsEditing(true);
       setShowAddForm(true);
     }
@@ -551,7 +596,7 @@ export function Definitions() {
       type: 'warning',
       onConfirm: async () => {
         try {
-          const { id, createdAt, updatedAt, unit, station, steps, department, role, company, ...rest } = item;
+          const { id, createdAt, updatedAt, unit, station, steps, department, role, company, statuses, methods, ...rest } = item;
           await api.put(`${getEndpoint()}/${id}`, { ...rest, status: newStatus });
           fetchData();
           notify.success('Durum Güncellendi', 'Kayıt durumu başarıyla değiştirildi.');
@@ -566,7 +611,7 @@ export function Definitions() {
     e.preventDefault();
     try {
       // Destructure to remove relations and sensitive fields
-      const { id, createdAt, updatedAt, unit, station, department, role, company, ...rest } = formData;
+      const { id, createdAt, updatedAt, unit, station, department, role, company, statuses, methods, ...rest } = formData;
 
       // We keep 'steps' if we are on the routes tab because the backend handles nested steps there.
       const dataToSave = {
@@ -662,6 +707,14 @@ export function Definitions() {
     ];
   }, [unitOptionsByLocation]);
 
+  const measurementMethodOptions = useMemo(() => {
+    return measurementMethods.map((method: any) => ({
+      id: method.id,
+      label: method.name,
+      subLabel: method.code || undefined
+    }));
+  }, [measurementMethods]);
+
 
   const tabLabel = () => {
     if (activeTab === 'work-centers') return 'İŞ MERKEZLERİ';
@@ -711,7 +764,7 @@ export function Definitions() {
 
           {activeTab !== 'import' && (
             <button
-              onClick={() => { setShowAddForm(true); setFormData({}); }}
+              onClick={handleAddNew}
               className="bg-theme-primary hover:bg-theme-primary-hover h-10 text-white px-6 py-2 rounded-xl text-[10px] font-black transition-all shadow-xl shadow-theme-primary/30 flex items-center gap-2.5 group active:scale-95 whitespace-nowrap uppercase tracking-widest"
             >
               <Plus className="w-4 h-4 stroke-[3]" /> YENİ EKLE
@@ -1227,13 +1280,13 @@ export function Definitions() {
                             </label>
                           </th>
                           <SortHeader label="Kod / ID" sortKey={
-                            (activeTab === 'machines' || activeTab === 'operations' || activeTab === 'routes' || activeTab === 'stations' || activeTab === 'work-centers' || activeTab === 'firms') ? 'code' :
+                            (activeTab === 'machines' || activeTab === 'operations' || activeTab === 'routes' || activeTab === 'stations' || activeTab === 'work-centers' || activeTab === 'firms' || activeTab === 'measurement-methods') ? 'code' :
                               activeTab === 'operators' ? 'employeeId' :
                                 activeTab === 'shifts' ? 'shiftCode' :
                                   (activeTab === 'warehouses' || activeTab === 'department-roles' || activeTab === 'event-reasons') ? 'id' :
                                     'productCode'
                           } />
-                          <SortHeader label="Tanım / İsim" sortKey={(activeTab === 'machines' || activeTab === 'operators' || activeTab === 'shifts' || activeTab === 'department-roles' || activeTab === 'stations' || activeTab === 'work-centers' || activeTab === 'warehouses' || activeTab === 'event-reasons' || activeTab === 'firms') ? 'name' : 'productName'} />
+                          <SortHeader label="Tanım / İsim" sortKey={(activeTab === 'machines' || activeTab === 'operators' || activeTab === 'shifts' || activeTab === 'department-roles' || activeTab === 'stations' || activeTab === 'work-centers' || activeTab === 'warehouses' || activeTab === 'event-reasons' || activeTab === 'firms' || activeTab === 'measurement-methods') ? 'name' : 'productName'} />
                           {activeTab === 'machines' && <SortHeader label="Marka" sortKey="brand" />}
                           {activeTab === 'machines' && <SortHeader label="Model" sortKey="model" />}
                           {activeTab === 'machines' && <SortHeader label="Kurulum" sortKey="installedDate" />}
@@ -1295,10 +1348,8 @@ export function Definitions() {
                               <SortHeader label="Tip" sortKey="type" />
                             </>
                           )}
-                          {activeTab === 'plan-types' && (
-                            <>
-                            </>
-                          )}
+                          {activeTab === 'measurement-tools' && <SortHeader label="Ölçüm Yöntemleri" sortKey="methods" />}
+                          {simpleDefinitionTabs.includes(activeTab) && <SortHeader label="Not / Açıklama" sortKey="notes" />}
 
                           <SortHeader label="Durum" sortKey="status" />
                           <th className="px-2 py-3 text-[10px] border-b border-theme font-black text-theme-muted text-center">İşlemler</th>
@@ -1318,6 +1369,10 @@ export function Definitions() {
                         renderRow={(item: any) => {
                           const isSelected = selectedIds.has(item.id);
                           const isEditingRow = isBulkEditing && isSelected;
+                          const methodNames = (item.methods || [])
+                            .map((link: any) => link.measurementMethod?.name || link.measurementMethod?.code)
+                            .filter(Boolean)
+                            .join(', ');
 
                           return (
                             <>
@@ -1337,8 +1392,8 @@ export function Definitions() {
                               <td className="px-2 py-3 border-b border-theme/30 text-sm font-black text-theme-primary leading-none">
                                 {isEditingRow ? (
                                   <input
-                                    value={localChanges[item.id]?.[(activeTab === 'machines' || activeTab === 'operations' || activeTab === 'routes' || activeTab === 'stations' || activeTab === 'work-centers' || activeTab === 'warehouses' || activeTab === 'event-reasons' || activeTab === 'event-groups' || activeTab === 'firms' || activeTab === 'plan-types') ? 'code' : activeTab === 'operators' ? 'employeeId' : activeTab === 'shifts' ? 'shiftCode' : (activeTab === 'department-roles') ? 'id' : 'productCode'] ?? (item.code || item.employeeId || item.shiftCode || item.productCode || (activeTab === 'department-roles' ? item.id : ''))}
-                                    onChange={(e) => updateLocalChanges(item.id, (activeTab === 'machines' || activeTab === 'operations' || activeTab === 'routes' || activeTab === 'stations' || activeTab === 'work-centers' || activeTab === 'warehouses' || activeTab === 'event-reasons' || activeTab === 'event-groups' || activeTab === 'firms' || activeTab === 'plan-types') ? 'code' : activeTab === 'operators' ? 'employeeId' : activeTab === 'shifts' ? 'shiftCode' : (activeTab === 'department-roles') ? 'id' : 'productCode', e.target.value)}
+                                    value={localChanges[item.id]?.[(activeTab === 'machines' || activeTab === 'operations' || activeTab === 'routes' || activeTab === 'stations' || activeTab === 'work-centers' || activeTab === 'warehouses' || activeTab === 'event-reasons' || activeTab === 'event-groups' || activeTab === 'firms' || activeTab === 'plan-types' || simpleDefinitionTabs.includes(activeTab)) ? 'code' : activeTab === 'operators' ? 'employeeId' : activeTab === 'shifts' ? 'shiftCode' : (activeTab === 'department-roles') ? 'id' : 'productCode'] ?? (item.code || item.employeeId || item.shiftCode || item.productCode || (activeTab === 'department-roles' ? item.id : ''))}
+                                    onChange={(e) => updateLocalChanges(item.id, (activeTab === 'machines' || activeTab === 'operations' || activeTab === 'routes' || activeTab === 'stations' || activeTab === 'work-centers' || activeTab === 'warehouses' || activeTab === 'event-reasons' || activeTab === 'event-groups' || activeTab === 'firms' || activeTab === 'plan-types' || simpleDefinitionTabs.includes(activeTab)) ? 'code' : activeTab === 'operators' ? 'employeeId' : activeTab === 'shifts' ? 'shiftCode' : (activeTab === 'department-roles') ? 'id' : 'productCode', e.target.value)}
                                     className="settings-inline-input text-theme-primary"
                                   />
                                 ) : (item.code || item.employeeId || item.shiftCode || item.productCode || (activeTab === 'department-roles' ? item.id.slice(0, 8) : item.id.slice(0, 8)))}
@@ -1346,8 +1401,8 @@ export function Definitions() {
                               <td className="px-2 py-3 border-b border-theme/30 text-xs text-theme-main font-bold whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">
                                 {isEditingRow ? (
                                   <input
-                                    value={localChanges[item.id]?.[(activeTab === 'machines' || activeTab === 'operations' || activeTab === 'routes' || activeTab === 'stations' || activeTab === 'work-centers' || activeTab === 'warehouses' || activeTab === 'event-groups' || activeTab === 'firms') ? 'name' : activeTab === 'operators' ? 'fullName' : activeTab === 'shifts' ? 'shiftName' : activeTab === 'department-roles' ? 'name' : activeTab === 'plan-types' ? 'typeName' : 'productName'] ?? (item.name || item.fullName || item.shiftName || item.productName || item.typeName || '')}
-                                    onChange={(e) => updateLocalChanges(item.id, (activeTab === 'machines' || activeTab === 'operations' || activeTab === 'routes' || activeTab === 'stations' || activeTab === 'work-centers' || activeTab === 'warehouses' || activeTab === 'event-groups' || activeTab === 'firms') ? 'name' : activeTab === 'operators' ? 'fullName' : activeTab === 'shifts' ? 'shiftName' : activeTab === 'department-roles' ? 'name' : activeTab === 'plan-types' ? 'typeName' : 'productName', e.target.value)}
+                                    value={localChanges[item.id]?.[(activeTab === 'machines' || activeTab === 'operations' || activeTab === 'routes' || activeTab === 'stations' || activeTab === 'work-centers' || activeTab === 'warehouses' || activeTab === 'event-groups' || activeTab === 'firms' || simpleDefinitionTabs.includes(activeTab)) ? 'name' : activeTab === 'operators' ? 'fullName' : activeTab === 'shifts' ? 'shiftName' : activeTab === 'department-roles' ? 'name' : activeTab === 'plan-types' ? 'typeName' : 'productName'] ?? (item.name || item.fullName || item.shiftName || item.productName || item.typeName || '')}
+                                    onChange={(e) => updateLocalChanges(item.id, (activeTab === 'machines' || activeTab === 'operations' || activeTab === 'routes' || activeTab === 'stations' || activeTab === 'work-centers' || activeTab === 'warehouses' || activeTab === 'event-groups' || activeTab === 'firms' || simpleDefinitionTabs.includes(activeTab)) ? 'name' : activeTab === 'operators' ? 'fullName' : activeTab === 'shifts' ? 'shiftName' : activeTab === 'department-roles' ? 'name' : activeTab === 'plan-types' ? 'typeName' : 'productName', e.target.value)}
                                     className="settings-inline-input"
                                   />
                                 ) : (item.name || item.fullName || item.shiftName || item.productName || item.typeName)}
@@ -1651,6 +1706,21 @@ export function Definitions() {
                                 </>
                               )}
 
+                              {activeTab === 'measurement-tools' && (
+                                <td
+                                  className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap overflow-hidden text-ellipsis max-w-[260px]"
+                                  title={methodNames || undefined}
+                                >
+                                  {methodNames || '-'}
+                                </td>
+                              )}
+
+                              {simpleDefinitionTabs.includes(activeTab) && (
+                                <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">
+                                  {isEditingRow ? <input value={localChanges[item.id]?.notes ?? (item.notes || '')} onChange={e => updateLocalChanges(item.id, 'notes', e.target.value)} className="settings-inline-input" /> : (item.notes || '-')}
+                                </td>
+                              )}
+
                               <td className="px-2 py-3 border-b border-theme/30">
                                 <span
                                   onClick={() => !isEditingRow && handleToggleStatus(item)}
@@ -1815,34 +1885,38 @@ export function Definitions() {
             className="absolute inset-0 bg-theme-base/60 backdrop-blur-md animate-in fade-in duration-300"
             onClick={() => setShowAddForm(false)}
           />
-          <div className="relative w-full max-w-4xl bg-theme-surface border border-theme rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh]">
+          <div className="relative w-full max-w-4xl bg-theme-card border border-theme rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh]">
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-theme bg-theme-base/20 backdrop-blur-sm sticky top-0 z-10">
+            <div className="flex items-center justify-between p-4 border-b border-theme backdrop-blur-sm sticky top-0 z-10">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-theme-primary/10 rounded-2xl flex items-center justify-center text-theme-primary shadow-inner">
-                  {isEditing ? <Edit className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
+                <div className="w-10 h-10 bg-theme-primary/10 rounded-xl flex items-center justify-center text-theme-primary shadow-inner">
+                  {isEditing ? <Edit className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
                 </div>
                 <div>
-                  <h3 className="text-lg font-black text-theme-main leading-tight tracking-tight">
+                  <h3 className="text-md font-black text-theme-main leading-tight tracking-tight">
                     {isEditing ? 'KAYDI DÜZENLE' : 'YENİ KAYIT EKLE'}
                   </h3>
-                  <p className="text-xs font-bold text-theme-dim uppercase tracking-widest mt-0.5">
+                  <p className="text-xs font-medium text-theme-dim mt-0">
                     {(() => {
                       const titles: Record<string, string> = {
-                        machines: 'MAKİNE TANIMI',
-                        operators: 'OPERATÖR TANIMI',
-                        'department-roles': 'DEPARTMAN ROL TANIMI',
-                        'work-centers': 'İŞ MERKEZİ TANIMI',
-                        warehouses: 'DEPO TANIMI',
-                        shifts: 'VARDİYA TANIMI',
-                        products: 'ÜRÜN TANIMI',
-                        firms: 'FİRMA TANIMI',
-                        operations: 'OPERASYON TANIMI',
-                        stations: 'İSTASYON TANIMI',
-                        'event-groups': 'OLAY GRUBU TANIMI',
-                        'event-reasons': 'OLAY SEBEBİ TANIMI'
+                        machines: 'Makine Tanımı',
+                        operators: 'Operatör Tanımı',
+                        'department-roles': 'Departman Rol Tanımı',
+                        'work-centers': 'İş Merkezi Tanımı',
+                        warehouses: 'Depo Tanımı',
+                        shifts: 'Vardiya Tanımı',
+                        products: 'Ürün Tanımı',
+                        firms: 'Firma Tanımı',
+                        operations: 'Operasyon Tanımı',
+                        stations: 'İstasyon Tanımı',
+                        'event-groups': 'Olay Grubu Tanımı',
+                        'event-reasons': 'Olay Sebebi Tanımı',
+                        'measurement-methods': 'Ölçüm Yöntemi Tanımı',
+                        'measurement-tools': 'Ölçüm Aracı Tanımı',
+                        'equipment': 'Ekipman Tanımı',
+                        'consumption-types': 'Tüketim Tipi Tanımı'
                       };
-                      return titles[activeTab] || 'SİSTEM TANIMI';
+                      return titles[activeTab] || 'Sistem Tanımı';
                     })()}
                   </p>
                 </div>
@@ -1857,25 +1931,25 @@ export function Definitions() {
 
             {/* Body */}
             <form onSubmit={handleSave} className="flex-1 overflow-y-auto custom-scrollbar flex flex-col">
-              <div className="p-8">
+              <div className="p-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {activeTab === 'machines' && (
                     <>
-                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">MAKİNE KODU</label><input required value={formData.code || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, code: e.target.value })} /></div>
-                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">ADI</label><input required value={formData.name || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
-                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">MARKA</label><input value={formData.brand || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, brand: e.target.value })} /></div>
-                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">MODEL</label><input value={formData.model || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, model: e.target.value })} /></div>
-                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">KURULUM TARİHİ</label><input value={formData.installedDate ? String(formData.installedDate).slice(0, 10) : ''} type="date" className="form-input h-11" onChange={(e) => setFormData({ ...formData, installedDate: e.target.value || null })} /></div>
-                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">VARDİYA KAPASİTESİ (Adet)</label><input value={formData.capacityPerShift ?? ''} type="number" className="form-input h-11" onChange={(e) => setFormData({ ...formData, capacityPerShift: e.target.value === '' ? null : Number(e.target.value) })} /></div>
-                      <div className="space-y-2 md:col-span-2 lg:col-span-3"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">NOTLAR</label><input value={formData.notes || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, notes: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Makine Kodu</label><input required value={formData.code || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, code: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Adı</label><input required value={formData.name || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Marka</label><input value={formData.brand || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, brand: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Model</label><input value={formData.model || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, model: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Kurulum Tarihi</label><input value={formData.installedDate ? String(formData.installedDate).slice(0, 10) : ''} type="date" className="form-input h-10" onChange={(e) => setFormData({ ...formData, installedDate: e.target.value || null })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Vardiya Kapasitesi (Adet)</label><input value={formData.capacityPerShift ?? ''} type="number" className="form-input h-10" onChange={(e) => setFormData({ ...formData, capacityPerShift: e.target.value === '' ? null : Number(e.target.value) })} /></div>
+                      <div className="space-y-2 md:col-span-2 lg:col-span-3"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">NOTLAR</label><input value={formData.notes || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, notes: e.target.value })} /></div>
                     </>
                   )}
                   {activeTab === 'operators' && (
                     <>
-                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">SİCİL NO</label><input required value={formData.employeeId || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })} /></div>
-                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">AD SOYAD</label><input required value={formData.fullName || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, fullName: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Sicil No</label><input required value={formData.employeeId || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Ad Soyad</label><input required value={formData.fullName || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, fullName: e.target.value })} /></div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">DEPARTMAN</label>
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Departman</label>
                         <CustomSelect
                           options={departments.map(d => ({ id: d.id, label: d.name }))}
                           value={formData.departmentId || ''}
@@ -1886,7 +1960,7 @@ export function Definitions() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">GÖREV / ROL</label>
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Görev / Rol</label>
                         <CustomSelect
                           options={roles
                             .filter(r => !formData.departmentId || r.departmentId === formData.departmentId)
@@ -1897,9 +1971,9 @@ export function Definitions() {
                           disabled={!formData.departmentId}
                         />
                       </div>
-                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">İŞE GİRİŞ TARİHİ</label><input value={formData.hireDate ? String(formData.hireDate).slice(0, 10) : ''} type="date" className="form-input h-11" onChange={(e) => setFormData({ ...formData, hireDate: e.target.value || null })} /></div>
-                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">TECRÜBE (Yıl)</label><input value={formData.experienceYears ?? ''} type="number" className="form-input h-11" onChange={(e) => setFormData({ ...formData, experienceYears: e.target.value === '' ? null : Number(e.target.value) })} /></div>
-                      <div className="space-y-2 md:col-span-2 lg:col-span-3"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">SERTİFİKALAR</label><input value={formData.certifications || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, certifications: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">İşe Giriş Tarihi</label><input value={formData.hireDate ? String(formData.hireDate).slice(0, 10) : ''} type="date" className="form-input h-10" onChange={(e) => setFormData({ ...formData, hireDate: e.target.value || null })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Tecrübe (Yıl)</label><input value={formData.experienceYears ?? ''} type="number" className="form-input h-10" onChange={(e) => setFormData({ ...formData, experienceYears: e.target.value === '' ? null : Number(e.target.value) })} /></div>
+                      <div className="space-y-2 md:col-span-2 lg:col-span-3"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Sertifikalar</label><input value={formData.certifications || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, certifications: e.target.value })} /></div>
                     </>
                   )}
                   {activeTab === 'department-roles' && (
@@ -1913,9 +1987,9 @@ export function Definitions() {
                           placeholder="Departman Seçin"
                         />
                       </div>
-                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">GÖREV / ROL ADI</label><input required value={formData.name || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Görev / Rol Adı</label><input required value={formData.name || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">DURUM</label>
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Durum</label>
                         <CustomSelect
                           options={[{ id: 'active', label: 'Aktif' }, { id: 'passive', label: 'Pasif' }]}
                           value={formData.status || 'active'}
@@ -1926,10 +2000,10 @@ export function Definitions() {
                   )}
                   {activeTab === 'work-centers' && (
                     <>
-                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">İŞ MERKEZİ KODU</label><input required value={formData.code || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, code: e.target.value })} /></div>
-                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">İŞ MERKEZİ ADI</label><input required value={formData.name || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">İş Merkezi Kodu</label><input required value={formData.code || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, code: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">İş Merkezi Adı</label><input required value={formData.name || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">LOKASYON</label>
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Lokasyon</label>
                         <CustomSelect
                           options={companyLocations.map(l => ({ id: l.id, label: l.name }))}
                           value={formData.locationId || ''}
@@ -1942,15 +2016,15 @@ export function Definitions() {
                   {activeTab === 'warehouses' && (
                     <>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">DEPO KODU</label>
-                        <input value={formData.code || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, code: e.target.value })} placeholder="örn. DP-01" />
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Depo Kodu</label>
+                        <input value={formData.code || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, code: e.target.value })} placeholder="örn. DP-01" />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">DEPO ADI</label>
-                        <input required value={formData.name || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="örn. MAMÜL DEPO" />
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Depo Adı</label>
+                        <input required value={formData.name || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="örn. MAMÜL DEPO" />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">DEPO TİPİ</label>
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Depo Tipi</label>
                         <CustomSelect
                           options={[
                             { id: 'general', label: 'Genel Depo' },
@@ -1966,7 +2040,7 @@ export function Definitions() {
                         />
                       </div>
                       <div className="space-y-2 md:col-span-2">
-                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">LOKASYON BAĞLANTISI</label>
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Lokasyon Bağlantısı</label>
                         <CustomSelect
                           options={companyLocations.map(l => ({ id: l.id, label: l.name }))}
                           value={formData.locationId || ''}
@@ -1975,7 +2049,7 @@ export function Definitions() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">BİRİM BAĞLANTISI</label>
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Birim Bağlantısı</label>
                         <CustomSelect
                           options={flatUnitOptions}
                           value={formData.unitId || ''}
@@ -1987,22 +2061,22 @@ export function Definitions() {
                   )}
                   {activeTab === 'shifts' && (
                     <>
-                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">VARDİYA KODU</label><input required value={formData.shiftCode || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, shiftCode: e.target.value })} /></div>
-                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">VARDİYA ADI</label><input required value={formData.shiftName || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, shiftName: e.target.value })} /></div>
-                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">BAŞLANGIÇ (HH:MM)</label><input required value={formData.startTime || ''} className="form-input h-11" placeholder="06:00" onChange={(e) => setFormData({ ...formData, startTime: e.target.value })} /></div>
-                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">BİTİŞ (HH:MM)</label><input required value={formData.endTime || ''} className="form-input h-11" placeholder="14:00" onChange={(e) => setFormData({ ...formData, endTime: e.target.value })} /></div>
-                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">SÜRE (DK)</label><input required value={formData.durationMinutes || ''} type="number" className="form-input h-11" onChange={(e) => setFormData({ ...formData, durationMinutes: parseInt(e.target.value) })} /></div>
-                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">RENK KODU</label><input value={formData.colorCode || ''} className="form-input h-11" placeholder="#45B7D1" onChange={(e) => setFormData({ ...formData, colorCode: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Vardiya Kodu</label><input required value={formData.shiftCode || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, shiftCode: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Vardiya Adı</label><input required value={formData.shiftName || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, shiftName: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Başlangıç (HH:MM)</label><input required value={formData.startTime || ''} className="form-input h-10" placeholder="06:00" onChange={(e) => setFormData({ ...formData, startTime: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Bitiş (HH:MM)</label><input required value={formData.endTime || ''} className="form-input h-10" placeholder="14:00" onChange={(e) => setFormData({ ...formData, endTime: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Süre (DK)</label><input required value={formData.durationMinutes || ''} type="number" className="form-input h-10" onChange={(e) => setFormData({ ...formData, durationMinutes: parseInt(e.target.value) })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Renk Kodu</label><input value={formData.colorCode || ''} className="form-input h-10" placeholder="#45B7D1" onChange={(e) => setFormData({ ...formData, colorCode: e.target.value })} /></div>
                     </>
                   )}
                   {activeTab === 'products' && (
                     <>
-                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">ÜRÜN KODU</label><input required value={formData.productCode || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, productCode: e.target.value })} /></div>
-                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">ÜRÜN ADI</label><input required value={formData.productName || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, productName: e.target.value })} /></div>
-                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">MARKA</label><input value={formData.brand || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, brand: e.target.value })} /></div>
-                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">ÜRÜN GRUBU</label><input value={formData.productGroup || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, productGroup: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Ürün Kodu</label><input required value={formData.productCode || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, productCode: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Ürün Adı</label><input required value={formData.productName || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, productName: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Marka</label><input value={formData.brand || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, brand: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Ürün Grubu</label><input value={formData.productGroup || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, productGroup: e.target.value })} /></div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">TAKİP SİSTEMİ</label>
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Takip Sistemi</label>
                         <CustomSelect
                           options={[
                             { id: 'LOT', label: 'Lot Takibi' },
@@ -2015,7 +2089,7 @@ export function Definitions() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">STOK TİPİ</label>
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Stok Tipi</label>
                         <CustomSelect
                           options={[
                             'Hammadde', 'Sarf Malzeme', 'Yarımamül', 'Mamül', 'Ölçüm Aracı',
@@ -2027,27 +2101,27 @@ export function Definitions() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">STD. ÜRETİM ADETİ</label>
-                        <input type="number" value={formData.defaultProductionQty || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, defaultProductionQty: Number(e.target.value) })} />
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Std. Üretim Adedi</label>
+                        <input type="number" value={formData.defaultProductionQty || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, defaultProductionQty: Number(e.target.value) })} />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">HEDEF DEPO</label>
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Hedef Depo</label>
                         <CustomSelect
                           options={warehouses.map(w => ({ id: w.id, label: w.name }))}
                           value={formData.targetWarehouseId || ''}
                           onChange={(val) => setFormData({ ...formData, targetWarehouseId: val })}
                         />
                       </div>
-                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">ÜRÜN SINIFI</label><input value={formData.productClass || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, productClass: e.target.value })} /></div>
-                      <div className="space-y-2 md:col-span-2 lg:col-span-3"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">AÇIKLAMA</label><input value={formData.description || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, description: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Ürün Sınıfı</label><input value={formData.productClass || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, productClass: e.target.value })} /></div>
+                      <div className="space-y-2 md:col-span-2 lg:col-span-3"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Açıklama</label><input value={formData.description || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, description: e.target.value })} /></div>
                     </>
                   )}
                   {activeTab === 'firms' && (
                     <>
-                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">FİRMA KODU</label><input value={formData.code || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, code: e.target.value })} placeholder="örn. FRM-001" /></div>
-                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">FİRMA ADI</label><input required value={formData.name || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Firma Kodu</label><input value={formData.code || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, code: e.target.value })} placeholder="örn. FRM-001" /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Firma Adı</label><input required value={formData.name || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">FİRMA TİPİ</label>
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Firma Tipi</label>
                         <CustomSelect
                           options={[
                             { id: 'general', label: 'Genel' },
@@ -2062,14 +2136,14 @@ export function Definitions() {
                           searchable={false}
                         />
                       </div>
-                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">VERGİ DAİRESİ</label><input value={formData.taxOffice || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, taxOffice: e.target.value })} /></div>
-                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">VERGİ NO</label><input value={formData.taxNumber || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, taxNumber: e.target.value })} /></div>
-                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">TELEFON</label><input value={formData.phone || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, phone: e.target.value })} /></div>
-                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">E-POSTA</label><input type="email" value={formData.email || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, email: e.target.value })} /></div>
-                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">YETKİLİ</label><input value={formData.contactName || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, contactName: e.target.value })} /></div>
-                      <div className="space-y-2 md:col-span-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">ADRES</label><input value={formData.address || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, address: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Vergi Dairesi</label><input value={formData.taxOffice || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, taxOffice: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Vergi No</label><input value={formData.taxNumber || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, taxNumber: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Telefon</label><input value={formData.phone || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, phone: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">E-Posta</label><input type="email" value={formData.email || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, email: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Yetkili</label><input value={formData.contactName || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, contactName: e.target.value })} /></div>
+                      <div className="space-y-2 md:col-span-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Adres</label><input value={formData.address || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, address: e.target.value })} /></div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">DURUM</label>
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Durum</label>
                         <CustomSelect
                           options={[{ id: 'active', label: 'Aktif' }, { id: 'passive', label: 'Pasif' }]}
                           value={formData.status || 'active'}
@@ -2077,15 +2151,15 @@ export function Definitions() {
                           searchable={false}
                         />
                       </div>
-                      <div className="space-y-2 md:col-span-2 lg:col-span-3"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">NOTLAR</label><input value={formData.notes || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, notes: e.target.value })} /></div>
+                      <div className="space-y-2 md:col-span-2 lg:col-span-3"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">NOTLAR</label><input value={formData.notes || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, notes: e.target.value })} /></div>
                     </>
                   )}
                   {activeTab === 'operations' && (
                     <>
-                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">OPERASYON KODU</label><input required value={formData.code || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, code: e.target.value })} /></div>
-                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">OPERASYON ADI</label><input required value={formData.name || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Operasyon Kodu</label><input required value={formData.code || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, code: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Operasyon Adı</label><input required value={formData.name || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">İŞ MERKEZİ / BİRİM</label>
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">İş Merkezi / Birim</label>
                         <CustomSelect
                           options={companyUnits.map(u => ({ id: u.id, label: u.name, subLabel: companyLocations.find(l => l.id === u.locationId)?.name }))}
                           value={formData.unitId || ''}
@@ -2094,7 +2168,7 @@ export function Definitions() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">İSTASYON</label>
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">İstasyon</label>
                         <CustomSelect
                           options={stations.filter(s => s.unitId === (formData.unitId || '')).map(s => ({ id: s.id, label: s.name, subLabel: s.code }))}
                           value={formData.stationId || ''}
@@ -2103,15 +2177,15 @@ export function Definitions() {
                           disabled={!formData.unitId}
                         />
                       </div>
-                      <div className="space-y-2 md:col-span-2 lg:col-span-3"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">AÇIKLAMA</label><input value={formData.description || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, description: e.target.value })} /></div>
+                      <div className="space-y-2 md:col-span-2 lg:col-span-3"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">AÇIKLAMA</label><input value={formData.description || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, description: e.target.value })} /></div>
                     </>
                   )}
                   {activeTab === 'stations' && (
                     <>
-                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">İSTASYON KODU</label><input required value={formData.code || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, code: e.target.value })} /></div>
-                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">İSTASYON ADI</label><input required value={formData.name || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">İstasyon Kodu</label><input required value={formData.code || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, code: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">İstasyon Adı</label><input required value={formData.name || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">İŞ MERKEZİ / BİRİM</label>
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">İş Merkezi / Birim</label>
                         <CustomSelect
                           options={companyUnits.map(u => ({ id: u.id, label: u.name, subLabel: companyLocations.find(l => l.id === u.locationId)?.name }))}
                           value={formData.unitId || ''}
@@ -2123,10 +2197,10 @@ export function Definitions() {
                   )}
                   {activeTab === 'event-groups' && (
                     <>
-                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">GRUP KODU</label><input value={formData.code || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, code: e.target.value })} placeholder="örn. CNC-G" /></div>
-                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">GRUP ADI</label><input required value={formData.name || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="örn. CNC Kaynaklı" /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Grup Kodu</label><input value={formData.code || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, code: e.target.value })} placeholder="örn. CNC-G" /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Grup Adı</label><input required value={formData.name || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="örn. CNC Kaynaklı" /></div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">DURUM</label>
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Durum</label>
                         <CustomSelect
                           options={[{ id: 'active', label: 'Aktif' }, { id: 'passive', label: 'Pasif' }]}
                           value={formData.status || 'active'}
@@ -2137,10 +2211,10 @@ export function Definitions() {
                   )}
                   {activeTab === 'event-reasons' && (
                     <>
-                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">OLAY KODU</label><input value={formData.code || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, code: e.target.value })} placeholder="örn. RED-01" /></div>
-                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">OLAY SEBEBİ</label><input required value={formData.name || ''} className="form-input h-11" onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Olay Kodu</label><input value={formData.code || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, code: e.target.value })} placeholder="örn. RED-01" /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Olay Sebebi</label><input required value={formData.name || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">OLAY GRUBU</label>
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Olay Grubu</label>
                         <CustomSelect
                           options={eventGroups.map(g => ({ id: g.id, label: g.name, subLabel: g.code }))}
                           value={formData.groupId || ''}
@@ -2149,7 +2223,7 @@ export function Definitions() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">OLAY TİPİ</label>
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Olay Tipi</label>
                         <CustomSelect
                           options={[
                             { id: 'RED', label: 'RED' },
@@ -2163,7 +2237,7 @@ export function Definitions() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">DURUM</label>
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Durum</label>
                         <CustomSelect
                           options={[{ id: 'active', label: 'Aktif' }, { id: 'passive', label: 'Pasif' }]}
                           value={formData.status || 'active'}
@@ -2172,11 +2246,52 @@ export function Definitions() {
                       </div>
                     </>
                   )}
+                  {(simpleDefinitionTabs.includes(activeTab) || activeTab === 'measurement-methods') && (
+                    <>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Kod</label>
+                        <input required value={formData.code || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, code: e.target.value })} placeholder="örn. KOD-001" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Ad / Tanım</label>
+                        <input required value={formData.name || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Durum</label>
+                        <CustomSelect
+                          options={[{ id: 'active', label: 'Aktif' }, { id: 'passive', label: 'Pasif' }]}
+                          value={formData.status || 'active'}
+                          onChange={(val) => setFormData({ ...formData, status: val })}
+                        />
+                      </div>
+                      {activeTab === 'measurement-tools' && (
+                        <div className="space-y-2 md:col-span-2 lg:col-span-3">
+                          <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Ölçüm Yöntemleri</label>
+                          <CustomSelect
+                            options={measurementMethodOptions}
+                            value={formData.measurementMethodIds || []}
+                            onChange={(val) => setFormData({ ...formData, measurementMethodIds: Array.isArray(val) ? val : [] })}
+                            isMulti
+                            fullWidth
+                            placeholder="Ölçüm yöntemi seçin"
+                          />
+                        </div>
+                      )}
+                      <div className="space-y-2 md:col-span-2 lg:col-span-3">
+                        <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Notlar / Açıklama</label>
+                        <textarea
+                          value={formData.notes || ''}
+                          className="form-input min-h-[100px] py-3"
+                          onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 
               {/* Footer */}
-              <div className="p-6 border-t border-theme bg-theme-base/20 backdrop-blur-sm flex justify-end gap-3 sticky bottom-0 z-10 mt-auto">
+              <div className="p-4 border-t border-theme backdrop-blur-sm flex justify-end gap-3 sticky bottom-0 z-10 mt-auto">
                 <button
                   type="button"
                   onClick={() => setShowAddForm(false)}

@@ -12,7 +12,7 @@ router.get('/', authenticateToken, async (req: AuthRequest, res) => {
     const types = await prisma.workPlanType.findMany({
       where: { companyId },
       include: { operation: { select: { id: true, name: true, code: true } } },
-      orderBy: { name: 'asc' }
+      orderBy: [{ displayOrder: 'asc' }, { createdAt: 'asc' }]
     });
     res.json(types);
   } catch (error) {
@@ -25,8 +25,15 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
     const companyId = getCompanyId(req);
     if (!companyId) return res.status(400).json({ error: 'Company ID missing' });
 
+    const lastItem = await prisma.workPlanType.findFirst({
+      where: { companyId },
+      orderBy: { displayOrder: 'desc' },
+      select: { displayOrder: true }
+    });
+    const nextOrder = (lastItem?.displayOrder ?? -1) + 1;
+
     const type = await prisma.workPlanType.create({
-      data: { ...req.body, companyId }
+      data: { ...req.body, companyId, displayOrder: nextOrder }
     });
     res.json(type);
   } catch (error) {

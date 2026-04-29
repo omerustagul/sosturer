@@ -16,7 +16,7 @@ router.get('/', authenticateToken, async (req: AuthRequest, res) => {
         unit: { select: { name: true } },
         station: { select: { name: true, code: true } }
       },
-      orderBy: { displayOrder: 'asc' }
+      orderBy: [{ displayOrder: 'asc' }, { createdAt: 'asc' }]
     });
     res.json(operations);
   } catch (error) {
@@ -29,8 +29,15 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
     const companyId = getCompanyId(req);
     if (!companyId) return res.status(400).json({ error: 'Company ID missing' });
 
+    const lastItem = await prisma.operation.findFirst({
+      where: { companyId },
+      orderBy: { displayOrder: 'desc' },
+      select: { displayOrder: true }
+    });
+    const nextOrder = (lastItem?.displayOrder ?? -1) + 1;
+
     const op = await prisma.operation.create({
-      data: { ...req.body, companyId }
+      data: { ...req.body, companyId, displayOrder: req.body.displayOrder || nextOrder }
     });
     res.json(op);
   } catch (error) {

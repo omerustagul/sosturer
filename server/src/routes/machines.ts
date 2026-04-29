@@ -13,7 +13,7 @@ router.get('/', async (req: AuthRequest, res) => {
 
     const machines = await prisma.machine.findMany({
       where: { companyId },
-      orderBy: [{ displayOrder: 'asc' }, { createdAt: 'desc' }],
+      orderBy: [{ displayOrder: 'asc' }, { createdAt: 'asc' }],
     });
     res.json(machines);
   } catch (error) { 
@@ -32,7 +32,17 @@ router.get('/:id', async (req: AuthRequest, res) => {
 
 router.post('/', async (req: AuthRequest, res) => {
   try {
-    const machine = await prisma.machine.create({ data: { ...req.body, companyId: getCompanyId(req) } });
+    const companyId = getCompanyId(req);
+    const lastItem = await prisma.machine.findFirst({
+      where: { companyId: companyId as string },
+      orderBy: { displayOrder: 'desc' },
+      select: { displayOrder: true }
+    });
+    const nextOrder = (lastItem?.displayOrder ?? -1) + 1;
+
+    const machine = await prisma.machine.create({ 
+      data: { ...req.body, companyId: companyId as string, displayOrder: nextOrder } 
+    });
     res.status(201).json(machine);
   } catch (error) {
     console.error('Error creating machine:', error);
