@@ -193,7 +193,7 @@ export function WorkPlanList() {
         {/* Pagination Footer */}
         <div className="p-4 border-t border-theme flex flex-col md:flex-row justify-between items-center bg-theme-base/10 gap-4">
           <div className="flex items-center gap-3">
-            <span className="text-[10px] font-black text-theme-muted uppercase tracking-widest">GÖSTERİLEN:</span>
+            <span className="text-[10px] font-black text-theme-muted">GÖSTERİLEN:</span>
             <select
               value={pageSize}
               onChange={(e) => setPageSize(Number(e.target.value))}

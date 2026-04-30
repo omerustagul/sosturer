@@ -19,9 +19,9 @@ import { RecipeModal } from '../components/planning/RecipeModal';
 import { RecipeDetailModal } from '../components/planning/RecipeDetailModal';
 import { notify } from '../store/notificationStore';
 
-type TabType = 'machines' | 'operators' | 'shifts' | 'products' | 'firms' | 'work-centers' | 'stations' | 'warehouses' | 'department-roles' | 'import' | 'operations' | 'routes' | 'event-reasons' | 'event-groups' | 'plan-types' | 'consumption-types' | 'measurement-tools' | 'equipment' | 'measurement-methods';
+type TabType = 'machines' | 'personnel' | 'shifts' | 'products' | 'firms' | 'work-centers' | 'stations' | 'warehouses' | 'department-roles' | 'import' | 'operations' | 'routes' | 'event-reasons' | 'event-groups' | 'plan-types' | 'consumption-types' | 'measurement-tools' | 'equipment' | 'measurement-methods' | 'sterile-process-types';
 
-const simpleDefinitionTabs = ['consumption-types', 'measurement-tools', 'equipment', 'measurement-methods', 'plan-types'];
+const simpleDefinitionTabs = ['consumption-types', 'measurement-tools', 'equipment', 'measurement-methods', 'plan-types', 'sterile-process-types'];
 
 
 export function Definitions() {
@@ -32,7 +32,7 @@ export function Definitions() {
   const tabs = [
     { id: '_group_base', label: 'TEMEL TANIMLAR', isGroupHeader: true, icon: LayoutGrid },
     { id: 'machines', label: 'Makineler', icon: Factory, indent: true },
-    { id: 'operators', label: 'Personeller', icon: Users, indent: true },
+    { id: 'personnel', label: 'Personeller', icon: Users, indent: true },
     { id: 'shifts', label: 'Vardiyalar', icon: Clock, indent: true },
     { id: 'products', label: 'Stok Kartları', icon: Package, indent: true },
     { id: 'firms', label: 'Firmalar', icon: Handshake, indent: true },
@@ -50,6 +50,7 @@ export function Definitions() {
     { id: 'event-groups', label: 'Olay Grupları', icon: Layers, indent: true },
     { id: 'event-reasons', label: 'Olay Sebepleri', icon: AlertCircle, indent: true },
     { id: 'plan-types', label: 'Planlama Türleri', icon: ClipboardList, indent: true },
+    { id: 'sterile-process-types', label: 'Steril İşlem Türleri', icon: ShieldCheck, indent: true },
     { id: '_group_quality', label: 'KALİTE TANIMLARI', isGroupHeader: true, icon: ShieldCheck },
     { id: 'measurement-methods', label: 'Ölçüm Yöntemleri', icon: Activity, indent: true },
     { id: '_group_tools', label: 'SİSTEM ARAÇLARI', isGroupHeader: true, icon: LayoutGrid },
@@ -144,6 +145,7 @@ export function Definitions() {
   // const API_URL = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3005/api`;
 
   const getEndpoint = () => {
+    if (activeTab === 'personnel') return '/operators';
     if (activeTab === 'work-centers') return '/departments';
     if (activeTab === 'warehouses') return '/inventory/warehouses';
     if (activeTab === 'routes') return '/production-routes';
@@ -346,7 +348,7 @@ export function Definitions() {
           item.brand?.toLowerCase().includes(lowerSearch) ||
           item.model?.toLowerCase().includes(lowerSearch)
         );
-      } else if (activeTab === 'operators') {
+      } else if (activeTab === 'personnel') {
         return (
           item.employeeId?.toLowerCase().includes(lowerSearch) ||
           item.fullName?.toLowerCase().includes(lowerSearch) ||
@@ -808,7 +810,7 @@ export function Definitions() {
 
       {showFilters && (
         <div className="shrink-0 modern-glass-card p-4 rounded-xl border border-theme-primary/10 flex flex-wrap gap-4 animate-in slide-in-from-top-2 duration-300">
-          {['machines', 'operators', 'work-centers', 'stations', 'department-roles', 'operations', 'plan-types'].includes(activeTab) && (
+          {['machines', 'personnel', 'work-centers', 'stations', 'department-roles', 'operations', 'plan-types'].includes(activeTab) && (
             <div className="flex-1 min-w-[200px]">
               <label className="text-[10px] font-black text-theme-dim mb-1.5 block uppercase ml-1">Departman Filtresi</label>
               <CustomSelect options={[{ id: '', label: 'Tüm Departmanlar' }, ...departments.map(d => ({ id: d.id, label: d.name }))]}
@@ -826,7 +828,7 @@ export function Definitions() {
                 placeholder="Seçiniz..." />
             </div>
           )}
-          {activeTab === 'operators' && (
+          {activeTab === 'personnel' && (
             <div className="flex-1 min-w-[200px]">
               <label className="text-[10px] font-black text-theme-dim mb-1.5 block uppercase ml-1">Rol Filtresi</label>
               <CustomSelect options={[{ id: '', label: 'Tüm Roller' }, ...roles.map(r => ({ id: r.id, label: r.name }))]}
@@ -848,15 +850,15 @@ export function Definitions() {
             <div className="flex-1 min-w-[200px]">
               <label className="text-[10px] font-black text-theme-dim mb-1.5 block uppercase ml-1">Depo Tipi</label>
               <CustomSelect options={[
-                  { id: '', label: 'Tüm Tipler' },
-                  { id: 'general', label: 'Genel Depo' },
-                  { id: 'raw', label: 'Hammadde' },
-                  { id: 'finished', label: 'Mamül' },
-                  { id: 'semifinished', label: 'Yarı Mamül' },
-                  { id: 'consumable', label: 'Sarf Malzeme' },
-                  { id: 'scrap', label: 'Fire / Hurda' },
-                  { id: 'workcenter', label: 'İş Merkezi' },
-                ]}
+                { id: '', label: 'Tüm Tipler' },
+                { id: 'general', label: 'Genel Depo' },
+                { id: 'raw', label: 'Hammadde' },
+                { id: 'finished', label: 'Mamül' },
+                { id: 'semifinished', label: 'Yarı Mamül' },
+                { id: 'consumable', label: 'Sarf Malzeme' },
+                { id: 'scrap', label: 'Fire / Hurda' },
+                { id: 'workcenter', label: 'İş Merkezi' },
+              ]}
                 value={typeFilter}
                 onChange={setTypeFilter}
                 placeholder="Seçiniz..." />
@@ -875,14 +877,14 @@ export function Definitions() {
             <div className="flex-1 min-w-[200px]">
               <label className="text-[10px] font-black text-theme-dim mb-1.5 block uppercase ml-1">Firma Tipi</label>
               <CustomSelect options={[
-                  { id: '', label: 'Tüm Tipler' },
-                  { id: 'general', label: 'Genel' },
-                  { id: 'supplier', label: 'Tedarikçi' },
-                  { id: 'customer', label: 'Müşteri' },
-                  { id: 'logistics', label: 'Lojistik' },
-                  { id: 'customs', label: 'Gümrük' },
-                  { id: 'consignment', label: 'Konsinye' }
-                ]}
+                { id: '', label: 'Tüm Tipler' },
+                { id: 'general', label: 'Genel' },
+                { id: 'supplier', label: 'Tedarikçi' },
+                { id: 'customer', label: 'Müşteri' },
+                { id: 'logistics', label: 'Lojistik' },
+                { id: 'customs', label: 'Gümrük' },
+                { id: 'consignment', label: 'Konsinye' }
+              ]}
                 value={typeFilter}
                 onChange={setTypeFilter}
                 placeholder="Seçiniz..." />
@@ -937,7 +939,7 @@ export function Definitions() {
                       { id: 'production_records', label: 'Üretim Kayıtları' },
                       { id: 'products', label: 'Stok Kartları' },
                       { id: 'machines', label: 'Makineler' },
-                      { id: 'operators', label: 'Personeller' },
+                      { id: 'personnel', label: 'Personeller' },
                       { id: 'departments', label: 'İş Merkezleri' },
                       { id: 'department_roles', label: 'Roller / Görevler' },
                       { id: 'shifts', label: 'Vardiyalar' },
@@ -1247,7 +1249,7 @@ export function Definitions() {
                     <table className="w-full text-left border-collapse resizable-table density-aware-table">
                       <thead className="sticky top-0 z-20 bg-theme-base/95 backdrop-blur-md">
                         <tr>
-                          <th className="w-2 px-1 py-3 border-b border-theme" />
+                          <th className="w-1 px-0 py-3 border-b border-theme" />
                           <th className="w-12 px-2 py-3 border-b border-theme text-center">
                             <label className="relative flex items-center cursor-pointer group justify-center">
                               <input
@@ -1263,12 +1265,12 @@ export function Definitions() {
                           </th>
                           <SortHeader label="Kod / ID" sortKey={
                             (activeTab === 'machines' || activeTab === 'operations' || activeTab === 'routes' || activeTab === 'stations' || activeTab === 'work-centers' || activeTab === 'firms' || activeTab === 'measurement-methods') ? 'code' :
-                              activeTab === 'operators' ? 'employeeId' :
+                              activeTab === 'personnel' ? 'employeeId' :
                                 activeTab === 'shifts' ? 'shiftCode' :
                                   (activeTab === 'warehouses' || activeTab === 'department-roles' || activeTab === 'event-reasons') ? 'id' :
                                     'productCode'
                           } />
-                          <SortHeader label="Tanım / İsim" sortKey={(activeTab === 'machines' || activeTab === 'operators' || activeTab === 'shifts' || activeTab === 'department-roles' || activeTab === 'stations' || activeTab === 'work-centers' || activeTab === 'warehouses' || activeTab === 'event-reasons' || activeTab === 'firms' || activeTab === 'measurement-methods') ? 'name' : 'productName'} />
+                          <SortHeader label="Tanım / İsim" sortKey={(activeTab === 'machines' || activeTab === 'personnel' || activeTab === 'shifts' || activeTab === 'department-roles' || activeTab === 'stations' || activeTab === 'work-centers' || activeTab === 'warehouses' || activeTab === 'event-reasons' || activeTab === 'firms' || activeTab === 'measurement-methods') ? 'name' : 'productName'} />
                           {activeTab === 'machines' && <SortHeader label="Marka" sortKey="brand" />}
                           {activeTab === 'machines' && <SortHeader label="Model" sortKey="model" />}
                           {activeTab === 'machines' && <SortHeader label="Kurulum" sortKey="installedDate" />}
@@ -1277,11 +1279,11 @@ export function Definitions() {
 
                           {activeTab === 'department-roles' && <SortHeader label="Departman Adı" sortKey="department.name" />}
 
-                          {activeTab === 'operators' && <SortHeader label="Departman" sortKey="department" />}
-                          {activeTab === 'operators' && <SortHeader label="Görev / Rol" sortKey="role" />}
-                          {activeTab === 'operators' && <SortHeader label="İşe Giriş" sortKey="hireDate" />}
-                          {activeTab === 'operators' && <SortHeader label="Tecrübe" sortKey="experienceYears" />}
-                          {activeTab === 'operators' && <SortHeader label="Sertifika" sortKey="certifications" />}
+                          {activeTab === 'personnel' && <SortHeader label="Departman" sortKey="department" />}
+                          {activeTab === 'personnel' && <SortHeader label="Görev / Rol" sortKey="role" />}
+                          {activeTab === 'personnel' && <SortHeader label="İşe Giriş" sortKey="hireDate" />}
+                          {activeTab === 'personnel' && <SortHeader label="Tecrübe" sortKey="experienceYears" />}
+                          {activeTab === 'personnel' && <SortHeader label="Sertifika" sortKey="certifications" />}
 
                           {activeTab === 'shifts' && <SortHeader label="Başlangıç" sortKey="startTime" />}
                           {activeTab === 'shifts' && <SortHeader label="Bitiş" sortKey="endTime" />}
@@ -1296,6 +1298,7 @@ export function Definitions() {
                               <SortHeader label="Açıklama" sortKey="description" />
                               <SortHeader label="Birim" sortKey="unitOfMeasure" />
                               <SortHeader label="Kategori" sortKey="category" />
+                              <SortHeader label="Steril" sortKey="isSterileProduct" />
                             </>
                           )}
 
@@ -1310,7 +1313,12 @@ export function Definitions() {
                           )}
 
                           {(activeTab === 'operations' || activeTab === 'stations') && <SortHeader label="İş Merkezi / Birim" sortKey="unitId" />}
-                          {activeTab === 'operations' && <SortHeader label="İstasyon" sortKey="stationId" />}
+                          {activeTab === 'operations' && (
+                            <>
+                              <SortHeader label="İstasyon" sortKey="stationId" />
+                              <SortHeader label="Steril" sortKey="isSterileOperation" />
+                            </>
+                          )}
                           {activeTab === 'routes' && <th className="px-2 py-3 text-[10px] border-b border-theme font-black text-theme-muted text-center uppercase">Adım Sayısı</th>}
 
                           {activeTab === 'warehouses' && (
@@ -1331,12 +1339,12 @@ export function Definitions() {
                             </>
                           )}
                           {activeTab === 'measurement-tools' && <SortHeader label="Ölçüm Yöntemleri" sortKey="methods" />}
-                           {(activeTab === 'measurement-tools' || activeTab === 'equipment') && (
-                             <>
-                               <SortHeader label="Marka" sortKey="brand" />
-                               <SortHeader label="Model" sortKey="model" />
-                             </>
-                           )}
+                          {(activeTab === 'measurement-tools' || activeTab === 'equipment') && (
+                            <>
+                              <SortHeader label="Marka" sortKey="brand" />
+                              <SortHeader label="Model" sortKey="model" />
+                            </>
+                          )}
 
                           {simpleDefinitionTabs.includes(activeTab) && <SortHeader label="Not / Açıklama" sortKey="notes" />}
 
@@ -1381,8 +1389,8 @@ export function Definitions() {
                               <td className="px-2 py-3 border-b border-theme/30 text-sm font-black text-theme-primary leading-none">
                                 {isEditingRow ? (
                                   <input
-                                    value={localChanges[item.id]?.[(activeTab === 'machines' || activeTab === 'operations' || activeTab === 'routes' || activeTab === 'stations' || activeTab === 'work-centers' || activeTab === 'warehouses' || activeTab === 'event-reasons' || activeTab === 'event-groups' || activeTab === 'firms' || activeTab === 'plan-types' || simpleDefinitionTabs.includes(activeTab)) ? 'code' : activeTab === 'operators' ? 'employeeId' : activeTab === 'shifts' ? 'shiftCode' : (activeTab === 'department-roles') ? 'id' : 'productCode'] ?? (item.code || item.employeeId || item.shiftCode || item.productCode || (activeTab === 'department-roles' ? item.id : ''))}
-                                    onChange={(e) => updateLocalChanges(item.id, (activeTab === 'machines' || activeTab === 'operations' || activeTab === 'routes' || activeTab === 'stations' || activeTab === 'work-centers' || activeTab === 'warehouses' || activeTab === 'event-reasons' || activeTab === 'event-groups' || activeTab === 'firms' || activeTab === 'plan-types' || simpleDefinitionTabs.includes(activeTab)) ? 'code' : activeTab === 'operators' ? 'employeeId' : activeTab === 'shifts' ? 'shiftCode' : (activeTab === 'department-roles') ? 'id' : 'productCode', e.target.value)}
+                                    value={localChanges[item.id]?.[(activeTab === 'machines' || activeTab === 'operations' || activeTab === 'routes' || activeTab === 'stations' || activeTab === 'work-centers' || activeTab === 'warehouses' || activeTab === 'event-reasons' || activeTab === 'event-groups' || activeTab === 'firms' || activeTab === 'plan-types' || simpleDefinitionTabs.includes(activeTab)) ? 'code' : activeTab === 'personnel' ? 'employeeId' : activeTab === 'shifts' ? 'shiftCode' : (activeTab === 'department-roles') ? 'id' : 'productCode'] ?? (item.code || item.employeeId || item.shiftCode || item.productCode || (activeTab === 'department-roles' ? item.id : ''))}
+                                    onChange={(e) => updateLocalChanges(item.id, (activeTab === 'machines' || activeTab === 'operations' || activeTab === 'routes' || activeTab === 'stations' || activeTab === 'work-centers' || activeTab === 'warehouses' || activeTab === 'event-reasons' || activeTab === 'event-groups' || activeTab === 'firms' || activeTab === 'plan-types' || simpleDefinitionTabs.includes(activeTab)) ? 'code' : activeTab === 'personnel' ? 'employeeId' : activeTab === 'shifts' ? 'shiftCode' : (activeTab === 'department-roles') ? 'id' : 'productCode', e.target.value)}
                                     className="settings-inline-input text-theme-primary"
                                   />
                                 ) : (item.code || item.employeeId || item.shiftCode || item.productCode || (activeTab === 'department-roles' ? item.id.slice(0, 8) : item.id.slice(0, 8)))}
@@ -1390,8 +1398,8 @@ export function Definitions() {
                               <td className="px-2 py-3 border-b border-theme/30 text-xs text-theme-main font-bold whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">
                                 {isEditingRow ? (
                                   <input
-                                    value={localChanges[item.id]?.[(activeTab === 'machines' || activeTab === 'operations' || activeTab === 'routes' || activeTab === 'stations' || activeTab === 'work-centers' || activeTab === 'warehouses' || activeTab === 'event-groups' || activeTab === 'firms' || simpleDefinitionTabs.includes(activeTab)) ? 'name' : activeTab === 'operators' ? 'fullName' : activeTab === 'shifts' ? 'shiftName' : activeTab === 'department-roles' ? 'name' : activeTab === 'plan-types' ? 'typeName' : 'productName'] ?? (item.name || item.fullName || item.shiftName || item.productName || item.typeName || '')}
-                                    onChange={(e) => updateLocalChanges(item.id, (activeTab === 'machines' || activeTab === 'operations' || activeTab === 'routes' || activeTab === 'stations' || activeTab === 'work-centers' || activeTab === 'warehouses' || activeTab === 'event-groups' || activeTab === 'firms' || simpleDefinitionTabs.includes(activeTab)) ? 'name' : activeTab === 'operators' ? 'fullName' : activeTab === 'shifts' ? 'shiftName' : activeTab === 'department-roles' ? 'name' : activeTab === 'plan-types' ? 'typeName' : 'productName', e.target.value)}
+                                    value={localChanges[item.id]?.[(activeTab === 'machines' || activeTab === 'operations' || activeTab === 'routes' || activeTab === 'stations' || activeTab === 'work-centers' || activeTab === 'warehouses' || activeTab === 'event-groups' || activeTab === 'firms' || simpleDefinitionTabs.includes(activeTab)) ? 'name' : activeTab === 'personnel' ? 'fullName' : activeTab === 'shifts' ? 'shiftName' : activeTab === 'department-roles' ? 'name' : activeTab === 'plan-types' ? 'typeName' : 'productName'] ?? (item.name || item.fullName || item.shiftName || item.productName || item.typeName || '')}
+                                    onChange={(e) => updateLocalChanges(item.id, (activeTab === 'machines' || activeTab === 'operations' || activeTab === 'routes' || activeTab === 'stations' || activeTab === 'work-centers' || activeTab === 'warehouses' || activeTab === 'event-groups' || activeTab === 'firms' || simpleDefinitionTabs.includes(activeTab)) ? 'name' : activeTab === 'personnel' ? 'fullName' : activeTab === 'shifts' ? 'shiftName' : activeTab === 'department-roles' ? 'name' : activeTab === 'plan-types' ? 'typeName' : 'productName', e.target.value)}
                                     className="settings-inline-input"
                                   />
                                 ) : (item.name || item.fullName || item.shiftName || item.productName || item.typeName)}
@@ -1417,7 +1425,7 @@ export function Definitions() {
                                 </>
                               )}
 
-                              {activeTab === 'operators' && (
+                              {activeTab === 'personnel' && (
                                 <>
                                   <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap">
                                     {isEditingRow ? (
@@ -1507,6 +1515,11 @@ export function Definitions() {
                                   <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap">
                                     {isEditingRow ? <input value={localChanges[item.id]?.category ?? (item.category || '')} onChange={e => updateLocalChanges(item.id, 'category', e.target.value)} className="settings-inline-input" /> : (item.category || '-')}
                                   </td>
+                                  <td className="px-2 py-3 border-b border-theme/30">
+                                    {isEditingRow ? (
+                                      <input type="checkbox" checked={localChanges[item.id]?.isSterileProduct ?? (item.isSterileProduct || false)} onChange={e => updateLocalChanges(item.id, 'isSterileProduct', e.target.checked)} className="w-4 h-4" />
+                                    ) : (item.isSterileProduct ? <span className="text-theme-primary font-bold">EVET</span> : '-')}
+                                  </td>
                                 </>
                               )}
 
@@ -1551,30 +1564,38 @@ export function Definitions() {
                               )}
 
                               {(activeTab === 'operations' || activeTab === 'stations') && (
-                                <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap">
-                                  {isEditingRow ? (
-                                    <CustomSelect variant="inline"
-                                      options={companyUnits.map(u => ({ id: u.id, label: u.name }))}
-                                      value={localChanges[item.id]?.unitId ?? (item.unitId || '')}
-                                      onChange={(val) => {
-                                        updateLocalChanges(item.id, 'unitId', val);
-                                        updateLocalChanges(item.id, 'stationId', '');
-                                      }} />
-                                  ) : (item.unit?.name || '-')}
-                                </td>
-                              )}
-
-                              {activeTab === 'operations' && (
-                                <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap">
-                                  {isEditingRow ? (
-                                    <CustomSelect variant="inline"
-                                      options={stations.filter(s => s.unitId === (localChanges[item.id]?.unitId ?? item.unitId)).map(s => ({ id: s.id, label: s.name }))}
-                                      value={localChanges[item.id]?.stationId ?? (item.stationId || '')}
-                                      onChange={(val) => updateLocalChanges(item.id, 'stationId', val)}
-                                      disabled={!(localChanges[item.id]?.unitId ?? item.unitId)}
-                                      placeholder={(localChanges[item.id]?.unitId ?? item.unitId) ? "Seç" : "Önce Birim"} />
-                                  ) : (item.station?.name || '-')}
-                                </td>
+                                <>
+                                  <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap">
+                                    {isEditingRow ? (
+                                      <CustomSelect variant="inline"
+                                        options={companyUnits.map(u => ({ id: u.id, label: u.name }))}
+                                        value={localChanges[item.id]?.unitId ?? (item.unitId || '')}
+                                        onChange={(val) => {
+                                          updateLocalChanges(item.id, 'unitId', val);
+                                          updateLocalChanges(item.id, 'stationId', '');
+                                        }} />
+                                    ) : (item.unit?.name || '-')}
+                                  </td>
+                                  {activeTab === 'operations' && (
+                                    <>
+                                      <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap">
+                                        {isEditingRow ? (
+                                          <CustomSelect variant="inline"
+                                            options={stations.filter(s => s.unitId === (localChanges[item.id]?.unitId ?? item.unitId)).map(s => ({ id: s.id, label: s.name }))}
+                                            value={localChanges[item.id]?.stationId ?? (item.stationId || '')}
+                                            onChange={(val) => updateLocalChanges(item.id, 'stationId', val)}
+                                            disabled={!(localChanges[item.id]?.unitId ?? item.unitId)}
+                                            placeholder={(localChanges[item.id]?.unitId ?? item.unitId) ? "Seç" : "Önce Birim"} />
+                                        ) : (item.station?.name || '-')}
+                                      </td>
+                                      <td className="px-2 py-3 border-b border-theme/30">
+                                        {isEditingRow ? (
+                                          <input type="checkbox" checked={localChanges[item.id]?.isSterileOperation ?? (item.isSterileOperation || false)} onChange={e => updateLocalChanges(item.id, 'isSterileOperation', e.target.checked)} className="w-4 h-4" />
+                                        ) : (item.isSterileOperation ? <span className="text-theme-primary font-bold">EVET</span> : '-')}
+                                      </td>
+                                    </>
+                                  )}
+                                </>
                               )}
 
                               {activeTab === 'routes' && (
@@ -1644,8 +1665,6 @@ export function Definitions() {
                                 </td>
                               )}
 
-
-
                               {activeTab === 'event-reasons' && (
                                 <>
                                   <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap">
@@ -1682,18 +1701,18 @@ export function Definitions() {
                                 </td>
                               )}
 
-                                                             {(activeTab === 'measurement-tools' || activeTab === 'equipment') && (
-                                 <>
-                                   <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap text-start">
-                                     {isEditingRow ? <input value={localChanges[item.id]?.brand ?? (item.brand || '')} onChange={e => updateLocalChanges(item.id, 'brand', e.target.value)} className="settings-inline-input" /> : (item.brand || '-')}
-                                   </td>
-                                   <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap text-start">
-                                     {isEditingRow ? <input value={localChanges[item.id]?.model ?? (item.model || '')} onChange={e => updateLocalChanges(item.id, 'model', e.target.value)} className="settings-inline-input" /> : (item.model || '-')}
-                                   </td>
-                                 </>
-                               )}
+                              {(activeTab === 'measurement-tools' || activeTab === 'equipment') && (
+                                <>
+                                  <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap text-start">
+                                    {isEditingRow ? <input value={localChanges[item.id]?.brand ?? (item.brand || '')} onChange={e => updateLocalChanges(item.id, 'brand', e.target.value)} className="settings-inline-input" /> : (item.brand || '-')}
+                                  </td>
+                                  <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap text-start">
+                                    {isEditingRow ? <input value={localChanges[item.id]?.model ?? (item.model || '')} onChange={e => updateLocalChanges(item.id, 'model', e.target.value)} className="settings-inline-input" /> : (item.model || '-')}
+                                  </td>
+                                </>
+                              )}
 
-                               {simpleDefinitionTabs.includes(activeTab) && (
+                              {simpleDefinitionTabs.includes(activeTab) && (
                                 <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">
                                   {isEditingRow ? <input value={localChanges[item.id]?.notes ?? (item.notes || '')} onChange={e => updateLocalChanges(item.id, 'notes', e.target.value)} className="settings-inline-input" /> : (item.notes || '-')}
                                 </td>
@@ -1747,7 +1766,7 @@ export function Definitions() {
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] font-black text-theme-dim whitespace-nowrap">Sayfada Görüntülenen:</span>
                     <div className="min-w-fit">
-                      <CustomSelect fullWidth={false} options={[ { id: 20, label: '20' }, { id: 50, label: '50' }, { id: 250, label: '250' }, { id: 500, label: '500' }, { id: 1000, label: '1000' }, { id: 999999, label: 'Tümü' } ]} value={pageSize} onChange={value => { setPageSize(Number(value)); setCurrentPage(0); }} searchable={false} />
+                      <CustomSelect fullWidth={false} options={[{ id: 20, label: '20' }, { id: 50, label: '50' }, { id: 250, label: '250' }, { id: 500, label: '500' }, { id: 1000, label: '1000' }, { id: 999999, label: 'Tümü' }]} value={pageSize} onChange={value => { setPageSize(Number(value)); setCurrentPage(0); }} searchable={false} />
                     </div>
                   </div>
                   <div className="h-4 w-px bg-theme hidden md:block" />
@@ -1760,7 +1779,7 @@ export function Definitions() {
                   <button
                     onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
                     disabled={currentPage === 0}
-                    className="p-3 rounded-xl bg-theme-base border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+                    className="w-9 h-9 p-2 rounded-xl bg-theme-base border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
                   >
                     <ChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
                   </button>
@@ -1778,7 +1797,7 @@ export function Definitions() {
                   <button
                     onClick={() => setCurrentPage(prev => Math.min(pageCount - 1, prev + 1))}
                     disabled={currentPage >= pageCount - 1}
-                    className="p-3 rounded-xl bg-theme-base border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+                    className="w-9 h-9 p-2 rounded-xl bg-theme-base border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
                   >
                     <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
                   </button>
@@ -1863,7 +1882,7 @@ export function Definitions() {
                     {(() => {
                       const titles: Record<string, string> = {
                         machines: 'Makine Tanımı',
-                        operators: 'Operatör Tanımı',
+                        personnel: 'Operatör Tanımı',
                         'department-roles': 'Departman Rol Tanımı',
                         'work-centers': 'İş Merkezi Tanımı',
                         warehouses: 'Depo Tanımı',
@@ -1877,7 +1896,8 @@ export function Definitions() {
                         'measurement-methods': 'Ölçüm Yöntemi Tanımı',
                         'measurement-tools': 'Ölçüm Aracı Türü Tanımı',
                         'equipment': 'Ekipman Tanımı',
-                        'consumption-types': 'Tüketim Tipi Tanımı'
+                        'consumption-types': 'Tüketim Tipi Tanımı',
+                        'sterile-process-types': 'Steril İşlem Türü Tanımı'
                       };
                       return titles[activeTab] || 'Sistem Tanımı';
                     })()}
@@ -1907,7 +1927,7 @@ export function Definitions() {
                       <div className="space-y-2 md:col-span-2 lg:col-span-3"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">NOTLAR</label><input value={formData.notes || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, notes: e.target.value })} /></div>
                     </>
                   )}
-                  {activeTab === 'operators' && (
+                  {activeTab === 'personnel' && (
                     <>
                       <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Sicil No</label><input required value={formData.employeeId || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })} /></div>
                       <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Ad Soyad</label><input required value={formData.fullName || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, fullName: e.target.value })} /></div>
@@ -1923,8 +1943,8 @@ export function Definitions() {
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Görev / Rol</label>
                         <CustomSelect options={roles
-                            .filter(r => !formData.departmentId || r.departmentId === formData.departmentId)
-                            .map(r => ({ id: r.id, label: r.name, subLabel: r.department?.name }))}
+                          .filter(r => !formData.departmentId || r.departmentId === formData.departmentId)
+                          .map(r => ({ id: r.id, label: r.name, subLabel: r.department?.name }))}
                           value={formData.roleId || ''}
                           onChange={(val) => setFormData({ ...formData, roleId: val })}
                           placeholder="Görev Seçin"
@@ -1979,14 +1999,14 @@ export function Definitions() {
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Depo Tipi</label>
                         <CustomSelect options={[
-                            { id: 'general', label: 'Genel Depo' },
-                            { id: 'raw', label: 'Hammadde' },
-                            { id: 'finished', label: 'Mamül' },
-                            { id: 'semifinished', label: 'Yarı Mamül' },
-                            { id: 'consumable', label: 'Sarf Malzeme' },
-                            { id: 'scrap', label: 'Fire / Hurda' },
-                            { id: 'workcenter', label: 'İş Merkezi' },
-                          ]}
+                          { id: 'general', label: 'Genel Depo' },
+                          { id: 'raw', label: 'Hammadde' },
+                          { id: 'finished', label: 'Mamül' },
+                          { id: 'semifinished', label: 'Yarı Mamül' },
+                          { id: 'consumable', label: 'Sarf Malzeme' },
+                          { id: 'scrap', label: 'Fire / Hurda' },
+                          { id: 'workcenter', label: 'İş Merkezi' },
+                        ]}
                           value={formData.type || 'general'}
                           onChange={(val) => setFormData({ ...formData, type: val })} />
                       </div>
@@ -2025,21 +2045,21 @@ export function Definitions() {
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Takip Sistemi</label>
                         <CustomSelect options={[
-                            { id: 'LOT', label: 'Lot Takibi' },
-                            { id: 'SERIAL', label: 'Seri No Takibi' },
-                            { id: 'BOTH', label: 'Lot ve Seri Takibi' },
-                            { id: 'NONE', label: 'Takip Yok' }
-                          ]}
+                          { id: 'LOT', label: 'Lot Takibi' },
+                          { id: 'SERIAL', label: 'Seri No Takibi' },
+                          { id: 'BOTH', label: 'Lot ve Seri Takibi' },
+                          { id: 'NONE', label: 'Takip Yok' }
+                        ]}
                           value={formData.trackingType || 'NONE'}
                           onChange={(val) => setFormData({ ...formData, trackingType: val })} />
                       </div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Stok Tipi</label>
                         <CustomSelect options={[
-                            'Hammadde', 'Sarf Malzeme', 'Yarımamül', 'Mamül', 'Ölçüm Aracı',
-                            'Ekipman', 'Kalıp', 'Yardımcı Malzeme', 'Tüketim Malzemesi',
-                            'Ambalaj', 'Yedek Parça'
-                          ].map(s => ({ id: s, label: s }))}
+                          'Hammadde', 'Sarf Malzeme', 'Yarımamül', 'Mamül', 'Ölçüm Aracı',
+                          'Ekipman', 'Kalıp', 'Yardımcı Malzeme', 'Tüketim Malzemesi',
+                          'Ambalaj', 'Yedek Parça'
+                        ].map(s => ({ id: s, label: s }))}
                           value={formData.stockType || ''}
                           onChange={(val) => setFormData({ ...formData, stockType: val })} />
                       </div>
@@ -2054,6 +2074,12 @@ export function Definitions() {
                           onChange={(val) => setFormData({ ...formData, targetWarehouseId: val })} />
                       </div>
                       <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Ürün Sınıfı</label><input value={formData.productClass || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, productClass: e.target.value })} /></div>
+                      <div className="space-y-2 flex flex-col justify-end">
+                        <div className="flex items-center gap-2 mb-2">
+                          <input type="checkbox" id="isSterileProduct" checked={formData.isSterileProduct || false} onChange={e => setFormData({ ...formData, isSterileProduct: e.target.checked })} className="w-5 h-5 rounded border-theme text-theme-primary" />
+                          <label htmlFor="isSterileProduct" className="text-[10px] font-black text-theme-muted uppercase cursor-pointer">STERİL ÜRÜN</label>
+                        </div>
+                      </div>
                       <div className="space-y-2 md:col-span-2 lg:col-span-3"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Açıklama</label><input value={formData.description || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, description: e.target.value })} /></div>
                     </>
                   )}
@@ -2064,13 +2090,13 @@ export function Definitions() {
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Firma Tipi</label>
                         <CustomSelect options={[
-                            { id: 'general', label: 'Genel' },
-                            { id: 'supplier', label: 'Tedarikçi' },
-                            { id: 'customer', label: 'Müşteri' },
-                            { id: 'logistics', label: 'Lojistik' },
-                            { id: 'customs', label: 'Gümrük' },
-                            { id: 'consignment', label: 'Konsinye' }
-                          ]}
+                          { id: 'general', label: 'Genel' },
+                          { id: 'supplier', label: 'Tedarikçi' },
+                          { id: 'customer', label: 'Müşteri' },
+                          { id: 'logistics', label: 'Lojistik' },
+                          { id: 'customs', label: 'Gümrük' },
+                          { id: 'consignment', label: 'Konsinye' }
+                        ]}
                           value={formData.type || 'general'}
                           onChange={(val) => setFormData({ ...formData, type: val })}
                           searchable={false} />
@@ -2109,6 +2135,12 @@ export function Definitions() {
                           onChange={(val) => setFormData({ ...formData, stationId: val })}
                           placeholder={formData.unitId ? "İstasyon Seçin" : "Önce İş Merkezi Seçin"}
                           disabled={!formData.unitId} />
+                      </div>
+                      <div className="space-y-2 flex flex-col justify-end">
+                        <div className="flex items-center gap-2 mb-2">
+                          <input type="checkbox" id="isSterileOperation" checked={formData.isSterileOperation || false} onChange={e => setFormData({ ...formData, isSterileOperation: e.target.checked })} className="w-5 h-5 rounded border-theme text-theme-primary" />
+                          <label htmlFor="isSterileOperation" className="text-[10px] font-black text-theme-muted uppercase cursor-pointer">STERİL İŞLEM</label>
+                        </div>
                       </div>
                       <div className="space-y-2 md:col-span-2 lg:col-span-3"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">AÇIKLAMA</label><input value={formData.description || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, description: e.target.value })} /></div>
                     </>
@@ -2152,11 +2184,11 @@ export function Definitions() {
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Olay Tipi</label>
                         <CustomSelect options={[
-                            { id: 'RED', label: 'RED' },
-                            { id: 'NUMUNE', label: 'NUMUNE' },
-                            { id: 'TEKRAR_ISLEM', label: 'TEKRAR İŞLEM' },
-                            { id: 'SARTLI_KABUL', label: 'ŞARTLI KABUL' }
-                          ]}
+                          { id: 'RED', label: 'RED' },
+                          { id: 'NUMUNE', label: 'NUMUNE' },
+                          { id: 'TEKRAR_ISLEM', label: 'TEKRAR İŞLEM' },
+                          { id: 'SARTLI_KABUL', label: 'ŞARTLI KABUL' }
+                        ]}
                           value={formData.type || ''}
                           onChange={(val) => setFormData({ ...formData, type: val })}
                           placeholder="Tip Seçin" />

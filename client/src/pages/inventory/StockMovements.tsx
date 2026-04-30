@@ -223,9 +223,9 @@ export function StockMovements() {
             <div className="space-y-1">
               <span className="text-[10px] font-black text-theme-dim uppercase tracking-widest">Depo</span>
               <CustomSelect options={[
-                  { id: 'all', label: 'Tüm Depolar' },
-                  ...warehouses.map((warehouse) => ({ id: warehouse.id, label: warehouse.name, subLabel: warehouse.type }))
-                ]}
+                { id: 'all', label: 'Tüm Depolar' },
+                ...warehouses.map((warehouse) => ({ id: warehouse.id, label: warehouse.name, subLabel: warehouse.type }))
+              ]}
                 value={filters.warehouseId}
                 onChange={(value) => updateFilter('warehouseId', String(value || 'all'))}
                 searchable={true} />
@@ -328,7 +328,7 @@ export function StockMovements() {
                         {(() => {
                           const isKg = unit.toLowerCase() === 'kilogram' || unit.toLowerCase() === 'kg';
                           if (isKg && move.quantity > 0 && move.quantity < 1) {
-                             return (move.quantity * 1000).toLocaleString(undefined, { maximumFractionDigits: 4 });
+                            return (move.quantity * 1000).toLocaleString(undefined, { maximumFractionDigits: 4 });
                           }
                           return move.quantity.toLocaleString(undefined, { maximumFractionDigits: 4 });
                         })()}
@@ -339,7 +339,7 @@ export function StockMovements() {
                         {(() => {
                           const isKg = unit.toLowerCase() === 'kilogram' || unit.toLowerCase() === 'kg';
                           if (isKg && move.quantity > 0 && move.quantity < 1) {
-                             return 'Gram';
+                            return 'Gram';
                           }
                           return unit;
                         })()}
@@ -367,7 +367,7 @@ export function StockMovements() {
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-black text-theme-dim whitespace-nowrap">Sayfada Görüntülenen:</span>
               <div className="min-w-fit">
-                <CustomSelect fullWidth={false} options={[ { id: 20, label: '20' }, { id: 50, label: '50' }, { id: 250, label: '250' }, { id: 500, label: '500' }, { id: 1000, label: '1000' }, { id: 999999, label: 'Tümü' } ]} value={pageSize} onChange={(value) => { setPageSize(Number(value)); setCurrentPage(0); }} searchable={false} />
+                <CustomSelect fullWidth={false} options={[{ id: 20, label: '20' }, { id: 50, label: '50' }, { id: 250, label: '250' }, { id: 500, label: '500' }, { id: 1000, label: '1000' }, { id: 999999, label: 'Tümü' }]} value={pageSize} onChange={(value) => { setPageSize(Number(value)); setCurrentPage(0); }} searchable={false} />
               </div>
             </div>
             <div className="h-4 w-px bg-theme hidden md:block" />
@@ -380,7 +380,7 @@ export function StockMovements() {
             <button
               onClick={() => setCurrentPage((prev) => Math.max(0, prev - 1))}
               disabled={currentPage === 0}
-              className="p-3 rounded-xl bg-theme-base border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+              className="w-9 h-9 p-2 rounded-xl bg-theme-base border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
             >
               <ChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
             </button>
@@ -398,7 +398,7 @@ export function StockMovements() {
             <button
               onClick={() => setCurrentPage((prev) => Math.min(pageCount - 1, prev + 1))}
               disabled={currentPage >= pageCount - 1}
-              className="p-3 rounded-xl bg-theme-base border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+              className="w-9 h-9 p-2 rounded-xl bg-theme-base border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
             >
               <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
             </button>

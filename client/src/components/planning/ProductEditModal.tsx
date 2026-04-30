@@ -425,6 +425,18 @@ export function ProductEditModal({
                   <label className="text-[10px] font-black text-theme-muted uppercase tracking-widest">AÇIKLAMA</label>
                   <textarea value={formData.description || ''} className="form-input min-h-[100px]" onChange={e => setFormData({ ...formData, description: e.target.value })} />
                 </div>
+                <div className="flex items-center gap-2 pt-2">
+                  <input
+                    type="checkbox"
+                    id="isSterileProduct"
+                    checked={formData.isSterileProduct || false}
+                    onChange={e => setFormData({ ...formData, isSterileProduct: e.target.checked })}
+                    className="w-4 h-4 rounded-lg border-1 border-theme-border bg-theme-base/20 text-theme-primary focus:ring-theme-primary/30 transition-all cursor-pointer"
+                  />
+                  <label htmlFor="isSterileProduct" className="text-xs font-bold text-theme-main cursor-pointer mt-0.5">
+                    Steril Ürün
+                  </label>
+                </div>
               </div>
             )}
 

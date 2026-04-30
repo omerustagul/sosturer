@@ -735,7 +735,6 @@ router.put('/stock-vouchers/:id', authenticateToken, async (req: AuthRequest, re
             });
           }
         }
-      }
       } else if (voucherNo && voucherNo !== oldVoucher.voucherNo) {
         // If ONLY voucherNo changed and status is accepted, update referenceId in movements
         if (oldVoucher.controlStatus === 'accepted') {

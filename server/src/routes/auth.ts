@@ -294,11 +294,11 @@ router.put('/company', authenticateToken, requireAdmin, async (req: AuthRequest,
 // ==========================================
 // COMPANY USERS - Şirketteki kullanıcıları listele (sadece admin)
 // ==========================================
-router.get('/company/users', authenticateToken, requireAdmin, async (req: AuthRequest, res: Response): Promise<any> => {
+router.get('/company/users', authenticateToken, async (req: AuthRequest, res: Response): Promise<any> => {
   try {
     const users = await prisma.user.findMany({
       where: { companyId: req.user.companyId },
-      select: { id: true, email: true, fullName: true, role: true, status: true, createdAt: true, avatarUrl: true }
+      select: { id: true, email: true, fullName: true, role: true, status: true, createdAt: true, avatarUrl: true, operatorId: true, operator: { select: { fullName: true, employeeId: true, role: { select: { name: true } } } } }
     });
     res.json(users);
   } catch (error) {
@@ -311,7 +311,7 @@ router.get('/company/users', authenticateToken, requireAdmin, async (req: AuthRe
 // ==========================================
 router.post('/company/users', authenticateToken, requireAdmin, async (req: AuthRequest, res: Response): Promise<any> => {
   try {
-    const { email, password, fullName, role = 'user' } = req.body;
+    const { email, password, fullName, role = 'user', operatorId } = req.body;
     if (!email || !password || !fullName) {
       return res.status(400).json({ error: 'E-posta, şifre ve ad soyad zorunludur' });
     }
@@ -324,16 +324,16 @@ router.post('/company/users', authenticateToken, requireAdmin, async (req: AuthR
       }
       const updated = await prisma.user.update({
         where: { id: existing.id },
-        data: { companyId: req.user.companyId, role },
-        select: { id: true, email: true, fullName: true, role: true, status: true }
+        data: { companyId: req.user.companyId, role, operatorId },
+        select: { id: true, email: true, fullName: true, role: true, status: true, operatorId: true }
       });
       return res.json({ message: 'Mevcut kullanıcı şirketinize eklendi', user: updated });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = await prisma.user.create({
-      data: { email, password: hashedPassword, fullName, role, companyId: req.user.companyId },
-      select: { id: true, email: true, fullName: true, role: true, status: true }
+      data: { email, password: hashedPassword, fullName, role, companyId: req.user.companyId, operatorId },
+      select: { id: true, email: true, fullName: true, role: true, status: true, operatorId: true }
     });
     res.status(201).json({ message: 'Kullanıcı başarıyla oluşturuldu ve şirkete eklendi', user: newUser });
   } catch (error) {
@@ -348,7 +348,7 @@ router.post('/company/users', authenticateToken, requireAdmin, async (req: AuthR
 router.put('/company/users/:userId', authenticateToken, requireAdmin, async (req: AuthRequest, res: Response): Promise<any> => {
   try {
     const { userId } = req.params;
-    const { role, status } = req.body;
+    const { role, status, operatorId } = req.body;
 
     // Kullanıcının bu şirkete ait olduğunu doğrula
     const target = await prisma.user.findUnique({ where: { id: userId as string } });
@@ -363,8 +363,8 @@ router.put('/company/users/:userId', authenticateToken, requireAdmin, async (req
 
     const updated = await prisma.user.update({
       where: { id: userId as string },
-      data: { ...(role && { role }), ...(status && { status }) },
-      select: { id: true, email: true, fullName: true, role: true, status: true }
+      data: { ...(role && { role }), ...(status && { status }), ...(operatorId !== undefined && { operatorId }) },
+      select: { id: true, email: true, fullName: true, role: true, status: true, operatorId: true }
     });
     res.json(updated);
   } catch (error) {

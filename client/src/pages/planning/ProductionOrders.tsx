@@ -17,13 +17,7 @@ export function ProductionOrders() {
   const [orders, setOrders] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [formData, setFormData] = useState<any>({
-    productId: '',
-    lotNumber: '',
-    quantity: '',
-    startDate: new Date().toISOString().slice(0, 10)
-  });
+
   const [searchTerm, setSearchTerm] = useState('');
   const [showStarredOnly, setShowStarredOnly] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
@@ -199,50 +193,26 @@ export function ProductionOrders() {
     return true;
   });
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await api.post('/production-orders', formData);
-      setShowAddForm(false);
-      setFormData({ productId: '', lotNumber: '', quantity: '', startDate: new Date().toISOString().slice(0, 10) });
-      fetchData();
-    } catch (e: any) {
-      alert(e?.response?.data?.error || 'Kayıt başarısız.');
-    }
-  };
+
 
   return (
     <div className="p-4 lg:p-6 space-y-8 animate-in fade-in duration-500">
 
-      {showAddForm && (
-        <div className="modern-glass-card p-6 animate-in slide-in-from-top-4 duration-300">
-          <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-theme-muted uppercase tracking-widest">ÜRÜN SEÇİMİ</label>
-              <CustomSelect
-                options={products.map(p => ({ id: p.id, label: p.productCode, subLabel: p.productName }))}
-                value={formData.productId}
-                onChange={val => setFormData({ ...formData, productId: val })}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-theme-muted uppercase tracking-widest">LOT / SERİ NO (OTOMATİK)</label>
-              <div className="relative">
-                <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-theme-muted" />
-                <input value={formData.lotNumber} onChange={e => setFormData({ ...formData, lotNumber: e.target.value })} className="form-input pl-10" placeholder="Boş bırakırsanız otomatik üretilir" />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-theme-muted uppercase tracking-widest">ÜRETİM MİKTARI</label>
-              <input required type="number" value={formData.quantity} onChange={e => setFormData({ ...formData, quantity: e.target.value })} className="form-input" placeholder="0" />
-            </div>
-            <div className="flex gap-3">
-              <button type="button" onClick={() => setShowAddForm(false)} className="flex-1 px-4 py-3 text-xs font-black text-theme-dim border-2 border-theme rounded-xl hover:bg-theme-main/5">İPTAL</button>
-              <button type="submit" className="flex-1 px-4 py-3 bg-theme-primary text-white rounded-xl font-black text-xs shadow-xl shadow-theme-primary/20 hover:bg-theme-primary-hover">OLUŞTUR</button>
-            </div>
-          </form>
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-black text-theme-main tracking-tight uppercase">ÜRETİM EMİRLERİ</h1>
+          <p className="text-xs font-bold text-theme-muted uppercase tracking-widest mt-1">Aktif ve planlanan üretim süreçleri</p>
         </div>
-      )}
+        <button
+          onClick={() => navigate('/production-orders/new')}
+          className="px-6 py-3 bg-theme-primary text-white rounded-xl font-black text-xs tracking-[0.2em] transition-all flex items-center gap-2 shadow-xl shadow-theme-primary/20 hover:bg-theme-primary-hover active:scale-95"
+        >
+          <Plus className="w-4 h-4 mb-0.5" /> YENİ ÜRETİM EMRİ
+        </button>
+      </div>
+
+
 
       <div className="modern-glass-card p-0 overflow-hidden">
         <div className="p-4 border-b border-theme bg-theme-base/20 flex flex-col gap-4">
@@ -515,11 +485,16 @@ export function ProductionOrders() {
                       </td>
                       <td className="px-3 py-4 max-w-[200px]">
                         <div className="space-y-0 overflow-hidden w-full">
-                          <Tooltip content={order.product.productCode} position="top" className="w-full text-left inline-block">
-                            <span className="text-sm font-black text-theme-primary truncate block">{order.product.productCode}</span>
+                          <Tooltip content={order.productCodeSnap || order.product.productCode} position="top" className="w-full text-left inline-block">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-black text-theme-primary truncate block">{order.productCodeSnap || order.product.productCode}</span>
+                              {order.product.isSterileProduct && (
+                                <span className="bg-theme-success/10 text-theme-success text-[8px] font-black px-1.5 py-0.5 rounded border border-theme-success/20 animate-pulse">STERİL</span>
+                              )}
+                            </div>
                           </Tooltip>
-                          <Tooltip content={order.product.productName} position="top" className="w-full text-left inline-block mt-0">
-                            <span className="text-xs font-bold text-theme-muted truncate block">{order.product.productName}</span>
+                          <Tooltip content={order.productNameSnap || order.product.productName} position="top" className="w-full text-left inline-block mt-0">
+                            <span className="text-xs font-bold text-theme-muted truncate block">{order.productNameSnap || order.product.productName}</span>
                           </Tooltip>
                         </div>
                       </td>

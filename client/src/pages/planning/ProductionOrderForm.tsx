@@ -8,7 +8,7 @@ import {
   ClipboardList, Calendar, Trash2, Check, CheckCircle2,
   AlertCircle, History, Clock, UserCircle,
   Play, RotateCcw, Copy, CopyPlus, X,
-  User as UserIcon, Type, Timer
+  User as UserIcon, Type, Timer, Map as MapIcon
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { createPortal } from 'react-dom';
@@ -34,6 +34,7 @@ export function ProductionOrderForm() {
   // Master Data
   const [products, setProducts] = useState<any[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
+  const [routes, setRoutes] = useState<any[]>([]);
 
   // Form State
   const [formData, setFormData] = useState<any>({
@@ -47,7 +48,9 @@ export function ProductionOrderForm() {
     endDate: '',
     expiryDate: '',
     sterilizationDate: '',
-    productionDate: ''
+    productionDate: '',
+    routeId: '',
+    status: 'planned'
   });
 
   const isCompleted = formData.status === 'completed';
@@ -145,18 +148,20 @@ export function ProductionOrderForm() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [pRes, wRes, oRes, sRes, erRes] = await Promise.all([
+      const [pRes, wRes, oRes, sRes, erRes, rRes] = await Promise.all([
         api.get('/products'),
         api.get('/inventory/warehouses'),
         api.get('/operators'),
         api.get('/shifts'),
-        api.get('/production-event-reasons')
+        api.get('/production-event-reasons'),
+        api.get('/production-routes')
       ]);
       setProducts(pRes || []);
       setWarehouses(wRes || []);
       setOperators(oRes || []);
       setShifts(sRes || []);
       setEventReasons(erRes || []);
+      setRoutes(rRes || []);
 
 
       if (isEditing) {
@@ -448,15 +453,20 @@ export function ProductionOrderForm() {
   const handleProductChange = (productId: string) => {
     const product = products.find(p => p.id === productId);
     if (product) {
+      const defaultRouteId = product.routeId || product.route?.id || '';
+      
       setFormData({
         ...formData,
         productId,
         quantity: product.defaultProductionQty || 0,
-        targetWarehouseId: product.targetWarehouseId || ''
+        targetWarehouseId: product.targetWarehouseId || '',
+        routeId: defaultRouteId
       });
-      // Fetch default recipe for this product
-      if (product.route?.steps) {
-        setSteps(product.route.steps.map((r: any) => ({
+
+      // Update steps based on the default route
+      const defaultRoute = routes.find(r => r.id === defaultRouteId) || product.route;
+      if (defaultRoute?.steps) {
+        setSteps(defaultRoute.steps.map((r: any) => ({
           operationId: r.operationId,
           operation: r.operation,
           sequence: r.sequence,
@@ -479,6 +489,21 @@ export function ProductionOrderForm() {
 
       // Initialize machine as empty (User must select manually)
       setAssignedMachines([{ machineId: '', unitTimeSeconds: 0 }]);
+    }
+  };
+
+  const handleRouteChange = (routeId: string) => {
+    const route = routes.find(r => r.id === routeId);
+    if (route) {
+      setFormData((prev: any) => ({ ...prev, routeId }));
+      if (route.steps) {
+        setSteps(route.steps.map((r: any) => ({
+          operationId: r.operationId,
+          operation: r.operation,
+          sequence: r.sequence,
+          status: 'pending'
+        })));
+      }
     }
   };
 
@@ -754,7 +779,7 @@ export function ProductionOrderForm() {
           {/* Configuration Card */}
           <div className="lg:col-span-9">
             <div className="modern-glass-card p-6 h-full">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                 {/* Product & Qty */}
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 pb-2 border-b border-theme/50 mb-2">
@@ -790,7 +815,7 @@ export function ProductionOrderForm() {
                       <input
                         value={formData.lotNumber}
                         disabled
-                        className="form-input h-10 text-xs bg-theme-base/20 font-black tracking-tighter"
+                        className="form-input h-10 text-xs bg-theme-base/20 font-black"
                         placeholder="Otomatik"
                       />
                     </div>
@@ -830,6 +855,34 @@ export function ProductionOrderForm() {
                   </div>
                 </div>
 
+                {/* Recipe / Route Selection */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 pb-2 border-b border-theme/50 mb-2">
+                    <MapIcon className="w-4 h-4 text-theme-primary" />
+                    <h3 className="text-sm font-black text-theme-main">Reçete ve Rota</h3>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-theme-muted uppercase">ÜRETİM REÇETESİ / ROTA</label>
+                    <CustomSelect
+                      options={routes.map(r => ({
+                        id: r.id,
+                        label: r.code || 'KODSUZ',
+                        subLabel: r.name
+                      }))}
+                      value={formData.routeId}
+                      disabled={formData.status !== 'planned'}
+                      onChange={handleRouteChange}
+                      placeholder="Reçete Seçin"
+                      className={formData.status !== 'planned' ? 'opacity-70 grayscale-[0.5]' : ''}
+                    />
+                    {formData.status !== 'planned' && (
+                      <p className="text-[8px] font-bold text-theme-muted italic">
+                        * Üretim başladığı için reçete değiştirilemez.
+                      </p>
+                    )}
+                  </div>
+                </div>
+
                 {/* Tracking Info */}
                 <div className="flex flex-col justify-center">
                   <div className="p-5 bg-theme-primary/5 border border-theme-primary/10 rounded-2xl space-y-4 shadow-inner">
@@ -840,9 +893,12 @@ export function ProductionOrderForm() {
                       <span className="text-[10px] font-black">ÜRETİM TAKİBİ</span>
                     </div>
                     <div className="space-y-1">
-                      <p className="text-[10px] text-theme-muted font-black">TAKİP TİPİ</p>
-                      <p className="text-sm text-theme-main font-black tracking-widest bg-theme-surface/50 p-2 rounded-xl border border-theme/30 inline-block">
-                        {products.find(p => p.id === formData.productId)?.trackingType || 'BELİRTİLMEMİŞ'}
+                      <p className="text-[10px] text-theme-muted font-black">ÜRÜN BİLGİSİ</p>
+                      <p className="text-sm text-theme-main font-black tracking-widest bg-theme-surface/50 p-2 rounded-xl border border-theme/30 inline-block w-full">
+                        {formData.productCodeSnap || products.find(p => p.id === formData.productId)?.productCode || 'Seçilmedi'}
+                      </p>
+                      <p className="text-[10px] text-theme-dim font-bold truncate">
+                        {formData.productNameSnap || products.find(p => p.id === formData.productId)?.productName}
                       </p>
                     </div>
                   </div>

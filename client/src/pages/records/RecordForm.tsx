@@ -236,7 +236,7 @@ export function RecordForm() {
               <Download className="w-4 h-4 text-emerald-400" />
             </div>
             <div className="text-left">
-              <p className="text-[10px] font-black uppercase tracking-widest leading-none mb-1">Toplu Veri mi Var</p>
+              <p className="text-[10px] font-black leading-none mb-1">Toplu Veri mi Var</p>
               <p className="text-xs font-bold text-emerald-300">EXCEL İLE İÇERİ AKTAR</p>
             </div>
           </button>

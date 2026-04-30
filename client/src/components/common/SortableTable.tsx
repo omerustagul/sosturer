@@ -51,7 +51,7 @@ export function SortableRow({ id, children, className, onClick }: SortableRowPro
       className={cn(className, isDragging && 'bg-theme-primary/10')}
       onClick={onClick}
     >
-      <td className="w-2 px-1 py-3 border-b border-theme/30">
+      <td className="w-1 px-0 py-3 border-b border-theme/30">
         <button
           {...attributes}
           {...listeners}

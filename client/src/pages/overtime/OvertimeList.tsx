@@ -212,8 +212,8 @@ export function OvertimeList() {
                           <div style="font-weight: 900; color: #3b82f6; line-height: 1.1;">${item.operator?.fullName || '-'}</div>
                           <div style="font-size: 7px; color: #64748b; margin-top: 2px; font-weight: 700;">${item.product?.productCode || 'N/A'}</div>
                           <div style="font-size: 8px; color: #10b981; font-weight: 900; margin-top: 2px;">${item.targetQuantity ? item.targetQuantity + ' Adet' : ''}</div>
-                          ${item.backupMachine ? `<div style="font-size: 6px; color: #94a3b8; font-style: italic;">Yedek: ${item.backupMachine.code}</div>` : ''}
-                        ` : '<span style="opacity: 0.1;">-</span>'}
+                          ${item.backupMachine ? `<div style="font-size: 6px; color: #ffa600ff; font-style: italic;">Yedek: ${item.backupMachine.code}</div>` : ''}
+                        ` : '<span style="opacity: 0.3;">-</span>'}
                       </td>
                     `;
       }).join('')}
@@ -309,12 +309,16 @@ export function OvertimeList() {
       document.body.appendChild(element);
 
       element.innerHTML = `
-        <div style="padding: 30px; background: #fff; font-family: 'Inter', system-ui, -apple-system, sans-serif; color: #1e293b; width: 1200px;">
+        <div style="padding: 30px; background: #fff; font-family: 'Inter', system-ui, -apple-system, sans-serif; color: #1e293b; width: 1200px; box-sizing: border-box;">
+          <style>
+            * { box-sizing: border-box !important; margin: 0; padding: 0; }
+            p, div, h1, h2 { line-height: 1.2 !important; }
+          </style>
           <!-- Top Header -->
           <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 25px;">
             <div>
-              <h1 style="margin: 0; font-size: 20px; font-weight: 800; color: #000; text-transform: uppercase;">MESAİ / VARDİYA PLANLAMA ÇİZELGESİ</h1>
-              <p style="margin: 4px 0 0 0; font-size: 13px; font-weight: 600; color: #1e293b; opacity: 0.8;">
+              <h1 style="margin: 0; font-size: 20px; letter-spacing: 0.1px; font-weight: 800; color: #000;">Mesai ve Vardiya Planlama Çizelgesi</h1>
+              <p style="margin: 4px 0 0 0; font-size: 12px; font-weight: 600; color: #1e293b; opacity: 0.8;">
                 ${new Date(selectedPlan.startDate).toLocaleDateString('tr-TR')} - ${new Date(selectedPlan.endDate).toLocaleDateString('tr-TR')} ${selectedPlan.planName} | ${selectedPlan.shift?.shiftName || ''}
               </p>
             </div>
@@ -328,8 +332,8 @@ export function OvertimeList() {
           <div style="display: flex; gap: 12px; align-items: flex-start;">
             ${dates.map(date => {
         const dayItems = selectedPlan.items.filter(i => new Date(i.date).toISOString().split('T')[0] === date);
-        const machines = dayItems.filter(i => i.machine);
-        const personnel = dayItems.filter(i => !i.machine);
+        const machines = dayItems.filter(i => i.machine || i.backupMachine);
+        const personnel = dayItems.filter(i => !i.machine && !i.backupMachine);
         const uniqueOpsCount = [...new Set(dayItems.map(i => i.operator?.fullName))].length;
 
         return `
@@ -340,29 +344,9 @@ export function OvertimeList() {
                     <p style="margin: 2px 0 0 0; font-size: 15px; font-weight: 800; color: #000;">${new Date(date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}</p>
                   </div>
 
-                  <!-- Black Action Bar -->
-                  <div style="background: #1a1a1a; margin: 0 8px 12px 8px; padding: 8px; border-radius: 6px; text-align: center;">
-                    <p style="margin: 0; font-size: 9px; font-weight: 800; color: #fff; text-transform: uppercase; letter-spacing: 1px;">TOPLAM: ${uniqueOpsCount} PERSONEL</p>
-                  </div>
-
-                  <!-- Machines Section -->
-                  <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 8px;">
-                    <div style="height: 1px; flex: 1; background: #f1f5f9; margin: 0 5px;"></div>
-                    <p style="margin: 0; font-size: 7px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 1.5px;">MAKİNELER</p>
-                    <div style="height: 1px; flex: 1; background: #f1f5f9; margin: 0 5px;"></div>
-                  </div>
-
-                  <div style="padding: 0 8px; display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px;">
-                    ${machines.map(m => `
-                      <div style="background: #fff; border: 1px solid #f1f5f9; border-radius: 8px; padding: 10px; position: relative; ${m.backupMachine ? 'border: 1px dashed #f59e0b; background: #fffbeb;' : ''}">
-                        ${m.backupMachine ? `<div style="position: absolute; right: 4px; top: 4px; background: #f59e0b; color: white; padding: 2px 4px; border-radius: 3px; font-size: 6px; font-weight: 900; letter-spacing: 0.5px;">YEDEK</div>` : ''}
-                        <p style="margin: 0; font-size: 11px; font-weight: 800; color: #000;">${m.machine?.code || 'MAKİNE'}</p>
-                        <p style="margin: 2px 0 0 0; font-size: 11px; font-weight: 800; color: #3b82f6;">${m.operator?.fullName || 'Belirtilmedi'}</p>
-                        <p style="margin: 4px 0 0 0; font-size: 9px; font-weight: 600; color: #64748b;">Hedeflenen Üretim Adeti: <span style="font-weight: 800; color: #000;">${m.targetQuantity || '—'}</span></p>
-                        ${m.product ? `<p style="margin: 2px 0 0 0; font-size: 8px; font-weight: 700; color: #94a3b8;">Ürün: ${m.product.productCode}</p>` : ''}
-                      </div>
-                    `).join('')}
-                    ${machines.length === 0 ? '<p style="text-align:center; font-size:9px; color:#cbd5e1; font-style:italic; padding: 10px;">Görev Yok</p>' : ''}
+                  <!-- Blue Action Bar -->
+                  <div style="background: #0f172a; margin: 0 8px 12px 8px; height: 34px; border-radius: 6px; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.1); overflow: hidden;">
+                    <p style="margin: 0; font-size: 10px; font-weight: 800; color: #fff; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; justify-content: center;">Toplam: ${uniqueOpsCount} Personel</p>
                   </div>
 
                   <!-- Personnel Section -->
@@ -372,14 +356,45 @@ export function OvertimeList() {
                     <div style="height: 1px; flex: 1; background: #f1f5f9; margin: 0 5px;"></div>
                   </div>
 
-                  <div style="padding: 0 8px; display: flex; flex-direction: column; gap: 4px; padding-bottom: 12px;">
+                  <div style="padding: 0 8px; display: flex; flex-direction: column; gap: 2px; padding-bottom: 12px; margin-bottom: 4px;">
                     ${personnel.map(p => `
-                      <div style="padding: 8px 10px; background: #f8fafc; border-radius: 6px; border: 1px solid #f1f5f9;">
-                         <p style="margin: 0; font-size: 8px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;">${p.operator?.department?.name || 'GENEL'}</p>
-                         <p style="margin: 2px 0 0 0; font-size: 10px; font-weight: 800; color: #000;">${p.operator?.fullName}</p>
+                      <div style="padding: 0 10px; background: #f8fafc; border-radius: 6px; border: 1px solid #f1f5f9; display: flex; flex-direction: column; justify-content: center; min-height: 44px; overflow: hidden;">
+                         <p style="margin: 0; font-size: 8px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.2;">${p.operator?.department?.name || 'GENEL'}</p>
+                         <p style="margin: 2px 0 0 0; font-size: 10px; font-weight: 800; color: #000; line-height: 1.2;">${p.operator?.fullName}</p>
                       </div>
                     `).join('')}
                     ${personnel.length === 0 ? '<p style="text-align:center; font-size:9px; color:#cbd5e1; font-style:italic; padding: 10px;">Görev Yok</p>' : ''}
+                  </div>
+
+                  <!-- Machines Section -->
+                  <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 8px;">
+                    <div style="height: 1px; flex: 1; background: #f1f5f9; margin: 0 5px;"></div>
+                    <p style="margin: 0; font-size: 7px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 1.5px;">MAKİNELER</p>
+                    <div style="height: 1px; flex: 1; background: #f1f5f9; margin: 0 5px;"></div>
+                  </div>
+
+                  <div style="padding: 0 8px; display: flex; flex-direction: column; gap: 8px; margin-bottom: 1px;">
+                    ${machines.map(m => {
+          const isBackup = (m.notes || '').includes('[YEDEK]');
+          return `
+                        <div style="position: relative; display: flex; flex-direction: column; justify-content: center; min-height: 68px; border-radius: 8px; padding: 0 12px; overflow: hidden;
+                          ${isBackup
+              ? 'background: #f8fafc; border: 1px dashed #94a3b8; opacity: 0.8;'
+              : 'background: #fff; border: 1px solid #f1f5f9; box-shadow: 0 2px 5px rgba(0,0,0,0.03);'}">
+                          
+                          ${isBackup ? `
+                            <div style="position: absolute; right: 8px; top: 8px; background: #475569; color: #fff; padding: 0 10px; height: 20px; border-radius: 4px; font-size: 8px; font-weight: 900; letter-spacing: 1.5px; text-transform: uppercase; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 1px solid rgba(255,255,255,0.1);">
+                              YEDEK
+                            </div>
+                          ` : ''}
+
+                          <p style="margin: 0; font-size: 11px; font-weight: 900; color: ${isBackup ? '#475569' : '#000'}; line-height: 1.2;">${m.machine?.code || 'MAKİNE'}</p>
+                          <p style="margin: 2px 0 0 0; font-size: 11px; font-weight: 800; color: ${isBackup ? '#64748b' : '#3b82f6'}; line-height: 1.2;">${m.product?.productCode || 'Ürün Belirtilmedi'}</p>
+                          <p style="margin: 2px 0 0 0; font-size: 8px; font-weight: 700; color: #94a3b8; line-height: 1.2;">${m.operator?.fullName || 'Personel Belirtilmedi'}</p>
+                        </div>
+                      `;
+        }).join('')}
+                    ${machines.length === 0 ? '<p style="text-align:center; font-size:9px; color:#cbd5e1; font-style:italic; padding: 10px;">Görev Yok</p>' : ''}
                   </div>
                 </div>
               `;
@@ -395,9 +410,9 @@ export function OvertimeList() {
             <div style="text-align: right; display: flex; align-items: center; gap: 15px;">
               <div style="text-align: right;">
                 <p style="margin: 0; font-size: 15px; font-weight: 800; color: #1e293b;">${company?.name || 'Medisolaris Sağlık Hizmetleri Ltd. Şti.'}</p>
-                <p style="margin: 2px 0 0 0; font-size: 10px; font-weight: 600; color: #94a3b8; letter-spacing: 0.2px;">SOSTURER | Smart Manufacturing System</p>
+                <p style="margin: 3px 0 0 0; font-size: 10px; font-weight: 600; color: #94a3b8; letter-spacing: 0.2px;">SOSTURER | Smart Manufacturing System</p>
               </div>
-              <img src="/logo/logo.png" alt="Logo" style="width: 44px; height: 44px;" />
+              <img src="/logo.png" alt="Logo" style="height: 45px; object-fit: contain;" />
             </div>
           </div>
         </div>
@@ -701,9 +716,9 @@ export function OvertimeList() {
                         </button>
                         <div className="w-40 h-9 flex items-center justify-center rounded-xl">
                           <CustomSelect options={Object.entries(statusConfig).map(([val, cfg]) => ({
-                              id: val,
-                              label: cfg.label
-                            }))}
+                            id: val,
+                            label: cfg.label
+                          }))}
                             value={plan.status}
                             onChange={(val) => updateStatus(plan.id, val)}
                             searchable={false} />
@@ -728,7 +743,7 @@ export function OvertimeList() {
               <div className="flex items-center gap-2">
                 <span className="text-[11px] font-black text-theme-dim whitespace-nowrap">Sayfada Görüntülenen:</span>
                 <div className="min-w-fit">
-                  <CustomSelect fullWidth={false} options={[ { id: 20, label: '20' }, { id: 50, label: '50' }, { id: 250, label: '250' }, { id: 500, label: '500' }, { id: 1000, label: '1000' }, { id: 999999, label: 'Tümü' } ]} value={pageSize} onChange={value => handlePageSizeChange(Number(value))} searchable={false} />
+                  <CustomSelect fullWidth={false} options={[{ id: 20, label: '20' }, { id: 50, label: '50' }, { id: 250, label: '250' }, { id: 500, label: '500' }, { id: 1000, label: '1000' }, { id: 999999, label: 'Tümü' }]} value={pageSize} onChange={value => handlePageSizeChange(Number(value))} searchable={false} />
                 </div>
               </div>
               <div className="h-4 w-px bg-theme hidden md:block" />
@@ -741,7 +756,7 @@ export function OvertimeList() {
               <button
                 onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
                 disabled={currentPage === 0}
-                className="p-3 rounded-xl bg-theme-base border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+                className="w-9 h-9 p-2 rounded-xl bg-theme-base border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
               >
                 <ChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
               </button>
@@ -759,7 +774,7 @@ export function OvertimeList() {
               <button
                 onClick={() => setCurrentPage(prev => Math.min(pageCount - 1, prev + 1))}
                 disabled={currentPage >= pageCount - 1}
-                className="p-3 rounded-xl bg-theme-base border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+                className="w-9 h-9 p-2 rounded-xl bg-theme-base border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
               >
                 <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
               </button>

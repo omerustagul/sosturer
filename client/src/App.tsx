@@ -11,6 +11,9 @@ const RecordForm = lazy(() => import('./pages/records/RecordForm').then((m) => (
 const BulkRecordEntry = lazy(() => import('./pages/records/BulkRecordEntry').then((m) => ({ default: m.BulkRecordEntry })));
 
 const ReportsList = lazy(() => import('./pages/ReportsList'));
+const DefinitionsDashboard = lazy(() => import('./pages/dashboards/DefinitionsDashboard').then(m => ({ default: m.DefinitionsDashboard })));
+const ReportsDashboard = lazy(() => import('./pages/dashboards/ReportsDashboard').then(m => ({ default: m.ReportsDashboard })));
+const ManagementDashboard = lazy(() => import('./pages/dashboards/ManagementDashboard').then(m => ({ default: m.ManagementDashboard })));
 const ReportsMachines = lazy(() => import('./pages/reports/ReportsMachines').then((m) => ({ default: m.ReportsMachines })));
 const ReportsProducts = lazy(() => import('./pages/reports/ReportsProducts').then((m) => ({ default: m.ReportsProducts })));
 const ReportsOperators = lazy(() => import('./pages/reports/ReportsOperators').then((m) => ({ default: m.ReportsOperators })));
@@ -42,6 +45,7 @@ const MeasurementTools = lazy(() => import('./pages/production/TraceabilityAsset
 const MeasurementToolDetail = lazy(() => import('./pages/production/TraceabilityAssets').then((m) => ({ default: m.MeasurementToolDetail })));
 const EquipmentTracking = lazy(() => import('./pages/production/TraceabilityAssets').then((m) => ({ default: m.EquipmentTracking })));
 const EquipmentDetail = lazy(() => import('./pages/production/TraceabilityAssets').then((m) => ({ default: m.EquipmentDetail })));
+const SterileOperations = lazy(() => import('./pages/production/SterileOperations').then((m) => ({ default: m.SterileOperations })));
 
 const InventoryDashboard = lazy(() => import('./pages/inventory/InventoryDashboard').then((m) => ({ default: m.InventoryDashboard })));
 const StockMovements = lazy(() => import('./pages/inventory/StockMovements').then((m) => ({ default: m.StockMovements })));
@@ -92,13 +96,16 @@ function App() {
                 <Route path="records/bulk" element={<BulkRecordEntry />} />
                 <Route path="records/edit/:id" element={<RecordForm />} />
                 <Route path="reports" element={<ReportsList />} />
+                <Route path="reports/dashboard" element={<ReportsDashboard />} />
                 <Route path="reports/machines" element={<ReportsMachines />} />
                 <Route path="reports/products" element={<ReportsProducts />} />
                 <Route path="reports/operators" element={<ReportsOperators />} />
                 <Route path="reports/general" element={<ReportsGeneral />} />
                 <Route path="analytics" element={<Analytics />} />
                 <Route path="definitions" element={<Definitions />} />
+                <Route path="definitions/dashboard" element={<DefinitionsDashboard />} />
                 <Route path="definitions/:tab" element={<Definitions />} />
+                <Route path="management/dashboard" element={<ManagementDashboard />} />
                 <Route path="settings" element={<AppSettings />} />
                 <Route path="profile" element={<Profile />} />
                 <Route path="users" element={<CompanyUsers />} />
@@ -131,6 +138,7 @@ function App() {
                 <Route path="production/measurement-tools/:id" element={<MeasurementToolDetail />} />
                 <Route path="production/equipment" element={<EquipmentTracking />} />
                 <Route path="production/equipment/:id" element={<EquipmentDetail />} />
+                <Route path="production/sterile-operations" element={<ProtectedRoute><SterileOperations /></ProtectedRoute>} />
               </Route>
             </Routes>
           </Suspense>

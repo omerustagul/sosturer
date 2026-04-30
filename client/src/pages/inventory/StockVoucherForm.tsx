@@ -3,9 +3,7 @@ import type { ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import {
-  ArrowRightLeft,
   CalendarClock,
-  CheckCircle2,
   ChevronLeft,
   FileText,
   Package,
@@ -225,7 +223,7 @@ export function StockVoucherForm() {
     setLines((prev) => prev.map((line) => {
       if (line.clientId !== clientId) return line;
       const nextLine = { ...line, ...patch };
-      
+
       // Handle item change
       if (patch.productId || patch.toolTypeId || patch.equipmentTypeId) {
         if (nextLine.itemType === 'PRODUCT' && patch.productId) {
@@ -235,7 +233,7 @@ export function StockVoucherForm() {
           nextLine.unit = 'Adet'; // Default for tools/equipment
         }
       }
-      
+
       // Handle itemType change
       if (patch.itemType) {
         nextLine.productId = '';
@@ -643,7 +641,7 @@ export function StockVoucherForm() {
               className="h-11 px-6 rounded-xl bg-theme-primary text-white hover:bg-theme-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 text-xs font-black uppercase tracking-widest shadow-lg shadow-theme-primary/20"
             >
               {saving ? <RefreshCw size={16} className="animate-spin" /> : <Save size={16} />}
-              {isEditing ? 'Güncelle' : 'Kaydet'}
+              {isEditing ? 'Güncelle' : 'Oluştur'}
             </button>
           </div>
         </div>

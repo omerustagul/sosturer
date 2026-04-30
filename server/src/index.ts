@@ -46,6 +46,8 @@ import measurementToolRoutes from './routes/measurementTools';
 import measurementDeviceRoutes from './routes/measurementDevices';
 import equipmentRoutes from './routes/equipment';
 import measurementMethodRoutes from './routes/measurementMethods';
+import sterileProcessTypeRoutes from './routes/sterileProcessTypes';
+import sterileProcessRoutes from './routes/sterileProcesses';
 import { authenticateToken } from './middleware/auth';
 import { startScheduler } from './services/scheduler';
 
@@ -128,6 +130,8 @@ app.use('/api/measurement-tools', measurementToolRoutes);
 app.use('/api/measurement-devices', measurementDeviceRoutes);
 app.use('/api/equipment', equipmentRoutes);
 app.use('/api/measurement-methods', measurementMethodRoutes);
+app.use('/api/sterile-process-types', sterileProcessTypeRoutes);
+app.use('/api/sterile-processes', sterileProcessRoutes);
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 const clientDistPath = path.resolve(__dirname, '../../client/dist');

@@ -253,8 +253,8 @@ export function ConsumptionTransactions() {
               ))}
               {filteredTransactions.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="px-6 py-24 text-center">
-                    <div className="flex flex-col items-center gap-2 opacity-25">
+                  <td colSpan={9} className="text-center">
+                    <div className="flex flex-col items-center gap-2 opacity-25 p-20">
                       <Package size={34} />
                       <p className="text-sm font-black">Tüketim işlemi bulunamadı</p>
                     </div>
@@ -281,7 +281,7 @@ export function ConsumptionTransactions() {
             <button
               onClick={() => setCurrentPage((prev) => Math.max(0, prev - 1))}
               disabled={currentPage === 0}
-              className="p-3 rounded-xl bg-theme-base border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+              className="w-9 h-9 p-2 rounded-xl bg-theme-base border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
             >
               <ChevronLeft size={16} />
             </button>
@@ -293,7 +293,7 @@ export function ConsumptionTransactions() {
             <button
               onClick={() => setCurrentPage((prev) => Math.min(pageCount - 1, prev + 1))}
               disabled={currentPage >= pageCount - 1}
-              className="p-3 rounded-xl bg-theme-base border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+              className="w-9 h-9 p-2 rounded-xl bg-theme-base border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
             >
               <ChevronRight size={16} />
             </button>

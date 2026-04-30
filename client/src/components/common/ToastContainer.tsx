@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { useNotificationStore } from '../../store/notificationStore';
 import { CheckCircle2, AlertCircle, AlertTriangle, Info, X } from 'lucide-react';
 
@@ -18,8 +19,8 @@ export function ToastContainer() {
     info: 'border-theme-primary/20 bg-theme-primary/5'
   };
 
-  return (
-    <div className="fixed top-6 right-6 z-[9999] flex flex-col gap-3 max-w-sm w-full pointer-events-none">
+  return createPortal(
+    <div className="fixed top-6 right-6 z-[99999] flex flex-col gap-3 max-w-sm w-full pointer-events-none">
       {notifications.map((n) => (
         <div 
           key={n.id}
@@ -40,6 +41,7 @@ export function ToastContainer() {
           </button>
         </div>
       ))}
-    </div>
+    </div>,
+    document.body
   );
 }

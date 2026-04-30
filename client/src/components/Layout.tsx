@@ -68,7 +68,7 @@ const SidebarNavItem = memo(({ item, collapsed, isMobile, isActive, openDropdown
             {item.children.map((child: any) => {
               const isChildActive = location.pathname === child.path;
               return (
-                <Link key={child.path} to={child.path} className={`flex items-center gap-2 p-2 rounded-xl text-[10.5px] font-black transition-all shrink-0 ${isChildActive ? 'text-theme-primary bg-theme-primary/5 border border-theme-primary/20' : 'text-theme-muted hover:text-theme-main hover:bg-theme-main/5'}`}>
+                <Link key={child.path} to={child.path} className={`flex items-center gap-2 p-2 rounded-xl border-2 font-bold text-[11.5px] transition-all shrink-0 ${isChildActive ? 'text-theme-primary bg-theme-primary/5 border-theme-primary' : 'text-theme-muted hover:text-theme-main hover:bg-theme-main/5 border-transparent'}`}>
                   <child.icon className="w-3.5 h-3.5" />
                   {child.label}
                 </Link>
@@ -88,7 +88,7 @@ const SidebarNavItem = memo(({ item, collapsed, isMobile, isActive, openDropdown
     >
       <Link
         to={item.path}
-        className={`group relative flex items-center h-10 w-full gap-2 p-1 rounded-xl cursor-pointer transition-all duration-200 overflow-hidden shrink-0 ${isActive ? 'bg-theme-primary/10 border border-theme-primary/30 text-theme-primary shadow-[0_8px_20px_-6px_var(--primary-glow)]' : 'text-theme-muted hover:bg-theme-main/5 hover:text-theme-main'} ${collapsed ? 'justify-center' : 'px-3'}`}
+        className={`group relative flex items-center h-10 w-full gap-2 p-1 rounded-xl border-2 cursor-pointer transition-all duration-200 overflow-hidden shrink-0 ${isActive ? 'bg-theme-primary/10 border-theme-primary text-theme-primary shadow-[0_8px_20px_-6px_var(--primary-glow)]' : 'text-theme-muted hover:bg-theme-main/5 hover:text-theme-main border-transparent'} ${collapsed ? 'justify-center' : 'px-3'}`}
       >
         <item.icon className={`shrink-0 transition-transform duration-200 group-hover:scale-110 w-4 h-4 ${isActive ? 'text-theme-primary' : ''}`} />
         {!collapsed && <span className="font-bold text-[10.5px] uppercase whitespace-nowrap overflow-hidden transition-all duration-300 mt-1">{item.label}</span>}
@@ -141,8 +141,8 @@ const SidebarContent = memo(({
         <div className="mb-2 flex flex-col gap-1 animate-dropdown-switcher">
           {([
             { key: 'ana', label: 'Ana Menü', icon: LayoutDashboard, color: 'text-blue-600', activeBg: 'bg-blue-500/20', borderColor: 'border-blue-500/50', glow: 'shadow-[0_0_15px_-2px_rgba(59,130,246,0.2)]', inactiveBg: 'bg-blue-500/10' },
-            { key: 'tanim', label: 'Tanım Menüsü', icon: BookOpen, color: 'text-amber-500', activeBg: 'bg-amber-500/20', borderColor: 'border-amber-500/50', glow: 'shadow-[0_0_15px_-2px_rgba(245,158,11,0.2)]', inactiveBg: 'bg-amber-500/10' },
-            { key: 'rapor', label: 'Rapor Menüsü', icon: FileChartPie, color: 'text-emerald-500', activeBg: 'bg-emerald-500/20', borderColor: 'border-emerald-500/50', glow: 'shadow-[0_0_15px_-2px_rgba(16,185,129,0.2)]', inactiveBg: 'bg-emerald-500/10' },
+            { key: 'tanim', label: 'Tanımlar', icon: BookOpen, color: 'text-amber-500', activeBg: 'bg-amber-500/20', borderColor: 'border-amber-500/50', glow: 'shadow-[0_0_15px_-2px_rgba(245,158,11,0.2)]', inactiveBg: 'bg-amber-500/10' },
+            { key: 'rapor', label: 'Raporlar', icon: FileChartPie, color: 'text-emerald-500', activeBg: 'bg-emerald-500/20', borderColor: 'border-emerald-500/50', glow: 'shadow-[0_0_15px_-2px_rgba(16,185,129,0.2)]', inactiveBg: 'bg-emerald-500/10' },
             { key: 'yonetim', label: 'Yönetim Paneli', icon: ShieldCheck, color: 'text-indigo-500', activeBg: 'bg-indigo-500/20', borderColor: 'border-indigo-500/50', glow: 'shadow-[0_0_15px_-2px_rgba(99,102,241,0.2)]', inactiveBg: 'bg-indigo-500/10' },
           ] as const).map(({ key, label, icon: Icon, color, activeBg, borderColor, glow, inactiveBg }) => (
             <Tooltip
@@ -179,13 +179,13 @@ const SidebarContent = memo(({
 
       {/* Trigger Card */}
       <Tooltip
-        content={collapsed ? (activeMenu === 'ana' ? 'Ana Menü' : activeMenu === 'tanim' ? 'Tanım Menüsü' : activeMenu === 'rapor' ? 'Rapor Menüsü' : 'Yönetim Paneli') : ""}
+        content={collapsed ? (activeMenu === 'ana' ? 'Ana Menü' : activeMenu === 'tanim' ? 'Tanımlar' : activeMenu === 'rapor' ? 'Raporlar' : 'Yönetim Paneli') : ""}
         position="right"
         className="w-full"
       >
         <button
           onClick={() => setMenuSwitcherOpen(!menuSwitcherOpen)}
-          className={`w-full flex items-center justify-center h-11 gap-2 p-2.5 rounded-xl border transition-all duration-500 group relative overflow-hidden
+          className={`w-full flex items-center justify-center h-13 gap-2 p-3   rounded-xl border transition-all duration-500 group relative overflow-hidden
             ${activeMenu === 'ana' ? 'bg-blue-500/10 border-blue-500/30 hover:bg-blue-500/20 shadow-lg shadow-blue-500/10'
               : activeMenu === 'tanim' ? 'bg-amber-500/10 border-amber-500/30 hover:bg-amber-500/20 shadow-lg shadow-amber-500/10'
                 : activeMenu === 'rapor' ? 'bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/20 shadow-lg shadow-emerald-500/10'
@@ -200,13 +200,13 @@ const SidebarContent = memo(({
           {!collapsed && (
             <>
               <div className="flex flex-col items-start flex-1 min-w-0">
-                <span className="text-[8px] font-black uppercase tracking-widest text-theme-muted leading-none">Aktif Menü</span>
-                <span className={`text-[10px] font-black uppercase truncate leading-tight mt-0.5
+                <span className="text-[9px] font-black text-theme-muted leading-none">Aktif Menü</span>
+                <span className={`text-[11px] font-black uppercase truncate leading-tight mt-0.5
                   ${activeMenu === 'ana' ? 'text-blue-400'
                     : activeMenu === 'tanim' ? 'text-amber-400'
                       : activeMenu === 'rapor' ? 'text-emerald-400'
                         : 'text-indigo-400'}`}>
-                  {activeMenu === 'ana' ? 'Ana Menü' : activeMenu === 'tanim' ? 'Tanım Menüsü' : activeMenu === 'rapor' ? 'Rapor Menüsü' : 'Yönetim Paneli'}
+                  {activeMenu === 'ana' ? 'Ana Menü' : activeMenu === 'tanim' ? 'Tanımlar' : activeMenu === 'rapor' ? 'Raporlar' : 'Yönetim Paneli'}
                 </span>
               </div>
               <ChevronUp className={`w-3.5 h-3.5 shrink-0 text-theme-muted transition-transform duration-300 ${menuSwitcherOpen ? 'rotate-180' : ''}`} />
@@ -272,6 +272,14 @@ export function Layout() {
     localStorage.setItem('activeMenu', menu);
     setMenuSwitcherOpen(false);
     setOpenDropdown(null);
+
+    // Navigate to respective dashboard
+    switch (menu) {
+      case 'ana': navigate('/'); break;
+      case 'tanim': navigate('/definitions/dashboard'); break;
+      case 'rapor': navigate('/reports/dashboard'); break;
+      case 'yonetim': navigate('/management/dashboard'); break;
+    }
   };
 
   const checkUnreadNotifications = async () => {
@@ -343,6 +351,132 @@ export function Layout() {
     }
   };
 
+  const menuGroups = useMemo(() => ({
+    ana: [
+      { icon: Bolt, label: 'KONTROL PANELİ', path: '/' },
+      {
+        icon: Factory, label: 'ÜRETİM', path: '/records_menu', isDropdown: true,
+        children: [
+          { icon: DiamondPlus, label: 'Yeni Üretim Kaydı', path: '/records/new' },
+          { icon: Logs, label: 'Üretim Kayıtları', path: '/records' },
+          { icon: ListOrdered, label: 'Üretim Emirleri', path: '/production-orders' },
+          { icon: ClipboardList, label: 'Tüketim İşlemleri', path: '/production/consumption-transactions' },
+          { icon: Activity, label: 'Ölçüm Cihazları', path: '/production/measurement-tools' },
+          { icon: Wrench, label: 'Ekipmanlar', path: '/production/equipment' },
+          { icon: ShieldCheck, label: 'Steril İşlemler', path: '/production/sterile-operations' },
+        ]
+      },
+      {
+        icon: Warehouse, label: 'STOK YÖNETİMİ', path: '/inventory', isDropdown: true,
+        children: [
+          { icon: Package, label: 'Depo Durumu', path: '/inventory/dashboard' },
+          { icon: FileText, label: 'Stok Fişleri', path: '/inventory/stock-vouchers' },
+          { icon: History, label: 'Stok Hareketleri', path: '/inventory/movements' },
+        ]
+      },
+      {
+        icon: ShoppingCart, label: 'SATIŞ YÖNETİMİ', path: '/sales', isDropdown: true,
+        children: [
+          { icon: ShoppingCart, label: 'Siparişler', path: '/sales/orders' },
+          { icon: User, label: 'Müşteri/Bayi', path: '/sales/customers' },
+        ]
+      },
+      {
+        icon: LayoutGrid, label: 'PLANLAMA (MRP)', path: '/planning', isDropdown: true,
+        children: [
+          { icon: Logs, label: 'Çalışma Planı', path: '/planning/work-plans' },
+          { icon: GanttChart, label: 'Üretim Planı', path: '/planning/production' },
+          { icon: User, label: 'Personel Planı', path: '/planning/personnel' },
+          { icon: Settings, label: 'Üretim Tanımları', path: '/planning/definitions' },
+          { icon: Boxes, label: 'Malzeme Planı', path: '/planning/mrp' },
+          { icon: Wrench, label: 'Bakım Planı', path: '/planning/maintenance' },
+        ]
+      },
+      {
+        icon: CalendarRange, label: 'MESAİ PLANI', path: '/overtime', isDropdown: true,
+        children: [
+          { icon: DiamondPlus, label: 'Mesai Planla', path: '/overtime/create' },
+          { icon: TextAlignStart, label: 'Mesai Listesi', path: '/overtime/list' },
+          { icon: FileChartPie, label: 'Mesai Raporları', path: '/overtime/reports' },
+        ]
+      },
+    ],
+    tanim: [
+      { icon: LayoutGrid, label: 'KONTROL PANELİ', path: '/definitions/dashboard' },
+      {
+        icon: Database, label: 'TEMEL TANIMLAR', path: '/definitions/base', isDropdown: true,
+        children: [
+          { icon: Factory, label: 'Makineler', path: '/definitions/machines' },
+          { icon: Users, label: 'Personeller', path: '/definitions/personnel' },
+          { icon: Clock, label: 'Vardiyalar', path: '/definitions/shifts' },
+          { icon: Package, label: 'Stok Kartları', path: '/definitions/products' },
+          { icon: Handshake, label: 'Firmalar', path: '/definitions/firms' },
+        ]
+      },
+      {
+        icon: Building2, label: 'DEPARTMANLAR', path: '/definitions/dept', isDropdown: true,
+        children: [
+          { icon: Building2, label: 'İş Merkezleri', path: '/definitions/work-centers' },
+          { icon: List, label: 'İstasyonlar', path: '/definitions/stations' },
+          { icon: Warehouse, label: 'Depolar', path: '/definitions/warehouses' },
+          { icon: Settings, label: 'Roller / Görevler', path: '/definitions/department-roles' },
+        ]
+      },
+      {
+        icon: Workflow, label: 'ÜRETİM TANIMLARI', path: '/definitions/prod', isDropdown: true,
+        children: [
+          { icon: Workflow, label: 'Operasyonlar', path: '/definitions/operations' },
+          { icon: Map, label: 'Reçeteler', path: '/definitions/routes' },
+          { icon: ClipboardList, label: 'Planlama Türleri', path: '/definitions/plan-types' },
+          { icon: ClipboardList, label: 'Tüketim Tipleri', path: '/definitions/consumption-types' },
+          { icon: Activity, label: 'Ölçüm Aracı Türleri', path: '/definitions/measurement-tools' },
+          { icon: Wrench, label: 'Ekipmanlar', path: '/definitions/equipment' },
+          { icon: Layers, label: 'Olay Grupları', path: '/definitions/event-groups' },
+          { icon: AlertCircle, label: 'Olay Sebepleri', path: '/definitions/event-reasons' },
+          { icon: ShieldCheck, label: 'Steril İşlem Türleri', path: '/definitions/sterile-process-types' },
+        ]
+      },
+      {
+        icon: ShieldCheck, label: 'KALİTE TANIMLARI', path: '/definitions/quality', isDropdown: true,
+        children: [
+          { icon: Activity, label: 'Ölçüm Yöntemleri', path: '/definitions/measurement-methods' },
+        ]
+      },
+      {
+        icon: FileUp, label: 'SİSTEM ARAÇLARI', path: '/definitions/tools', isDropdown: true,
+        children: [
+          { icon: FileUp, label: 'Veri Aktarımı', path: '/definitions/import' },
+        ]
+      },
+    ],
+    rapor: [
+      { icon: LayoutGrid, label: 'KONTROL PANELİ', path: '/reports/dashboard' },
+      { icon: ChartArea, label: 'ANALİZ', path: '/analytics' },
+      {
+        icon: FileChartPie, label: 'RAPORLAMA', path: '/reports', isDropdown: true,
+        children: [
+          { icon: BarChart3, label: 'Raporlar', path: '/reports/general' },
+          { icon: Airplay, label: 'Makine Raporu', path: '/reports/machines' },
+          { icon: Package, label: 'Ürün Raporu', path: '/reports/products' },
+          { icon: FileUser, label: 'Personel Raporu', path: '/reports/operators' },
+        ]
+      },
+    ],
+    yonetim: [
+      { icon: LayoutGrid, label: 'KONTROL PANELİ', path: '/management/dashboard' },
+      {
+        icon: ShieldCheck, label: 'AYARLAR', path: '/management', isDropdown: true,
+        children: [
+          ...(user?.role === 'admin' || user?.role === 'superadmin' ? [
+            { icon: Building2, label: 'Şirket Yönetimi', path: '/company' },
+            { icon: User, label: 'Kullanıcılar', path: '/users' },
+          ] : []),
+          { icon: Settings, label: 'Ayarlar', path: '/settings' },
+        ]
+      }
+    ],
+  }), [user?.role]);
+
   useEffect(() => {
     checkUnreadNotifications();
     fetchWorkStatus();
@@ -361,7 +495,19 @@ export function Layout() {
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
-  }, [location.pathname]);
+
+    // Persist dropdown state based on path
+    const currentPath = location.pathname;
+    const currentGroupItems = menuGroups[activeMenu];
+
+    const activeDropdown = currentGroupItems.find((item: any) =>
+      item.isDropdown && item.children.some((child: any) => child.path === currentPath)
+    );
+
+    if (activeDropdown) {
+      setOpenDropdown(activeDropdown.label);
+    }
+  }, [location.pathname, activeMenu, menuGroups]);
 
   useEffect(() => {
     if (!user) return;
@@ -392,127 +538,6 @@ export function Layout() {
     setIsCollapsed(newState);
     localStorage.setItem('sidebarCollapsed', String(newState));
   };
-
-  const menuGroups = useMemo(() => ({
-    ana: [
-      { icon: Bolt, label: 'KONTROL PANELİ', path: '/' },
-      {
-        icon: Factory, label: 'ÜRETİM', path: '/records_menu', isDropdown: true,
-        children: [
-          { icon: DiamondPlus, label: 'Yeni Üretim Kaydı', path: '/records/new' },
-          { icon: Logs, label: 'Üretim Kayıtları', path: '/records' },
-          { icon: ListOrdered, label: 'Üretim Emirleri', path: '/production-orders' },
-          { icon: ClipboardList, label: 'Tüketim İşlemleri', path: '/production/consumption-transactions' },
-          { icon: Activity, label: 'Ölçüm Cihazları', path: '/production/measurement-tools' },
-          { icon: Wrench, label: 'Ekipmanlar', path: '/production/equipment' },
-        ]
-      },
-      {
-        icon: Warehouse, label: 'STOK YÖNETİMİ', path: '/inventory', isDropdown: true,
-        children: [
-          { icon: Package, label: 'Depo Durumu', path: '/inventory/dashboard' },
-          { icon: FileText, label: 'Stok Fişleri', path: '/inventory/stock-vouchers' },
-          { icon: History, label: 'Stok Hareketleri', path: '/inventory/movements' },
-        ]
-      },
-      {
-        icon: ShoppingCart, label: 'SATIŞ YÖNETİMİ', path: '/sales', isDropdown: true,
-        children: [
-          { icon: ShoppingCart, label: 'Siparişler', path: '/sales/orders' },
-          { icon: User, label: 'Müşteri/Bayi', path: '/sales/customers' },
-        ]
-      },
-      {
-        icon: LayoutGrid, label: 'PLANLAMA', path: '/planning', isDropdown: true,
-        children: [
-          { icon: Logs, label: 'Çalışma Planı', path: '/planning/work-plans' },
-          { icon: GanttChart, label: 'Üretim Planı', path: '/planning/production' },
-          { icon: User, label: 'Personel Planı', path: '/planning/personnel' },
-          { icon: Settings, label: 'Üretim Tanımları', path: '/planning/definitions' },
-          { icon: Boxes, label: 'Malzeme Planı (MRP)', path: '/planning/mrp' },
-          { icon: Wrench, label: 'Bakım Planı', path: '/planning/maintenance' },
-        ]
-      },
-      {
-        icon: CalendarRange, label: 'MESAİ PLANI', path: '/overtime', isDropdown: true,
-        children: [
-          { icon: DiamondPlus, label: 'Mesai Planla', path: '/overtime/create' },
-          { icon: TextAlignStart, label: 'Mesai Listesi', path: '/overtime/list' },
-          { icon: FileChartPie, label: 'Mesai Raporları', path: '/overtime/reports' },
-        ]
-      },
-    ],
-    tanim: [
-      {
-        icon: Database, label: 'TEMEL TANIMLAR', path: '/definitions/base', isDropdown: true,
-        children: [
-          { icon: Factory, label: 'Makineler', path: '/definitions/machines' },
-          { icon: Users, label: 'Personeller', path: '/definitions/operators' },
-          { icon: Clock, label: 'Vardiyalar', path: '/definitions/shifts' },
-          { icon: Package, label: 'Stok Kartları', path: '/definitions/products' },
-          { icon: Handshake, label: 'Firmalar', path: '/definitions/firms' },
-        ]
-      },
-      {
-        icon: Building2, label: 'DEPARTMANLAR', path: '/definitions/dept', isDropdown: true,
-        children: [
-          { icon: Building2, label: 'İş Merkezleri', path: '/definitions/work-centers' },
-          { icon: List, label: 'İstasyonlar', path: '/definitions/stations' },
-          { icon: Warehouse, label: 'Depolar', path: '/definitions/warehouses' },
-          { icon: Settings, label: 'Roller / Görevler', path: '/definitions/department-roles' },
-        ]
-      },
-      {
-        icon: Workflow, label: 'ÜRETİM TANIMLARI', path: '/definitions/prod', isDropdown: true,
-        children: [
-          { icon: Workflow, label: 'Operasyonlar', path: '/definitions/operations' },
-          { icon: Map, label: 'Reçeteler', path: '/definitions/routes' },
-          { icon: ClipboardList, label: 'Planlama Türleri', path: '/definitions/plan-types' },
-          { icon: ClipboardList, label: 'Tüketim Tipleri', path: '/definitions/consumption-types' },
-          { icon: Activity, label: 'Ölçüm Aracı Türleri', path: '/definitions/measurement-tools' },
-          { icon: Wrench, label: 'Ekipmanlar', path: '/definitions/equipment' },
-          { icon: Layers, label: 'Olay Grupları', path: '/definitions/event-groups' },
-          { icon: AlertCircle, label: 'Olay Sebepleri', path: '/definitions/event-reasons' },
-        ]
-      },
-      {
-        icon: ShieldCheck, label: 'KALİTE TANIMLARI', path: '/definitions/quality', isDropdown: true,
-        children: [
-          { icon: Activity, label: 'Ölçüm Yöntemleri', path: '/definitions/measurement-methods' },
-        ]
-      },
-      {
-        icon: FileUp, label: 'SİSTEM ARAÇLARI', path: '/definitions/tools', isDropdown: true,
-        children: [
-          { icon: FileUp, label: 'Veri Aktarımı', path: '/definitions/import' },
-        ]
-      },
-    ],
-    rapor: [
-      { icon: ChartArea, label: 'ANALİZ', path: '/analytics' },
-      {
-        icon: FileChartPie, label: 'RAPORLAMA', path: '/reports', isDropdown: true,
-        children: [
-          { icon: BarChart3, label: 'Raporlar', path: '/reports/general' },
-          { icon: Airplay, label: 'Makine Raporu', path: '/reports/machines' },
-          { icon: Package, label: 'Ürün Raporu', path: '/reports/products' },
-          { icon: FileUser, label: 'Personel Raporu', path: '/reports/operators' },
-        ]
-      },
-    ],
-    yonetim: [
-      {
-        icon: ShieldCheck, label: 'YÖNETİM PANELİ', path: '/management', isDropdown: true,
-        children: [
-          ...(user?.role === 'admin' || user?.role === 'superadmin' ? [
-            { icon: Building2, label: 'Şirket Yönetimi', path: '/company' },
-            { icon: User, label: 'Kullanıcılar', path: '/users' },
-          ] : []),
-          { icon: Settings, label: 'Ayarlar', path: '/settings' },
-        ]
-      }
-    ],
-  }), [user?.role]);
 
   const navItems = menuGroups[activeMenu];
 
@@ -562,7 +587,7 @@ export function Layout() {
                 <p className="text-xs font-bold text-theme-main group-hover:text-theme-primary transition-colors underline-offset-4 leading-none">{userFullName}</p>
                 <p className="text-[10px] font-bold text-theme-muted opacity-60 transition-colors">{userEmail}</p>
               </div>
-              <div className="w-9 h-9 sm:w-10 sm:h-10 bg-theme-base rounded-xl flex items-center justify-center text-xs font-bold border border-theme shadow-sm group-hover:shadow-theme-primary/10 group-hover:border-theme-primary/50 transition-all overflow-hidden group shadow-lg shrink-0">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 bg-theme-surface border border-theme rounded-xl flex items-center justify-center text-xs font-bold shadow-lg group-hover:shadow-theme-primary/10 group-hover:border-theme-primary/50 transition-all overflow-hidden group shadow-lg shrink-0">
                 {userAvatarUrl ? (
                   <img src={userAvatarUrl} className="w-full h-full object-cover" alt="User" />
                 ) : (
@@ -605,7 +630,7 @@ export function Layout() {
             <button
               ref={bellButtonRef}
               onClick={() => setIsNotificationOpen(!isNotificationOpen)}
-              className="relative h-9 w-9 sm:h-10 sm:w-10 p-2 rounded-xl bg-theme-main/5 text-theme-muted hover:text-theme-primary hover:bg-theme-primary/10 border border-theme transition-all active:scale-95 group shadow-lg"
+              className="relative h-9 w-9 sm:h-10 sm:w-10 p-2 rounded-xl bg-theme-surface text-theme-muted hover:text-theme-primary hover:bg-theme-primary/10 border border-theme transition-all active:scale-95 group shadow-lg"
             >
               <Bell className="w-4 h-4 sm:w-5 h-5 group-hover:scale-110 transition-transform" />
               {hasUnreadNotifications && (
@@ -615,7 +640,7 @@ export function Layout() {
 
             <button
               onClick={handleLogout}
-              className="hidden sm:flex h-10 w-10 p-2 rounded-xl bg-theme-main/5 text-theme-muted hover:text-rose-400 hover:bg-rose-500/10 border border-theme hover:border-rose-500/20 transition-all active:scale-95 group shadow-lg items-center justify-center"
+              className="hidden sm:flex h-10 w-10 p-2 rounded-xl bg-theme-surface text-theme-muted hover:text-rose-400 hover:bg-rose-500/10 border border-theme hover:border-rose-500/20 transition-all active:scale-95 group shadow-lg items-center justify-center"
             >
               <LogOut className="w-5 h-5 group-hover:scale-110 transition-transform" />
             </button>

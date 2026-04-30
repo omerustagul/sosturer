@@ -124,10 +124,6 @@ export function InventoryDashboard() {
     }
   };
 
-  const getWarehouseCount = (warehouseId: string | null) => {
-    if (!warehouseId) return stockLevels.length;
-    return stockLevels.filter((level) => level.warehouseId === warehouseId).length;
-  };
 
   if (loading) return <Loading size="lg" fullScreen />;
 
@@ -209,9 +205,9 @@ export function InventoryDashboard() {
             <div className="space-y-1">
               <span className="text-[10px] font-black text-theme-dim uppercase tracking-widest">Depo</span>
               <CustomSelect options={[
-                  { id: 'all', label: 'Tüm Depolar' },
-                  ...warehouses.map((warehouse) => ({ id: warehouse.id, label: warehouse.name, subLabel: warehouse.type }))
-                ]}
+                { id: 'all', label: 'Tüm Depolar' },
+                ...warehouses.map((warehouse) => ({ id: warehouse.id, label: warehouse.name, subLabel: warehouse.type }))
+              ]}
                 value={selectedWarehouseId || 'all'}
                 onChange={(value) => handleWarehouseSelect(value === 'all' || value === '' ? null : String(value))}
                 searchable={true} />
@@ -219,11 +215,11 @@ export function InventoryDashboard() {
             <div className="space-y-1">
               <span className="text-[10px] font-black text-theme-dim uppercase tracking-widest">Stok Durumu</span>
               <CustomSelect options={[
-                  { id: 'all', label: 'Tüm Stoklar' },
-                  { id: 'positive', label: 'Stokta Var' },
-                  { id: 'zero', label: 'Sıfır Stok' },
-                  { id: 'negative', label: 'Eksi Stok' }
-                ]}
+                { id: 'all', label: 'Tüm Stoklar' },
+                { id: 'positive', label: 'Stokta Var' },
+                { id: 'zero', label: 'Sıfır Stok' },
+                { id: 'negative', label: 'Eksi Stok' }
+              ]}
                 value={stockStatus}
                 onChange={(value) => {
                   setStockStatus(String(value || 'all'));
@@ -292,7 +288,7 @@ export function InventoryDashboard() {
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-black text-theme-dim whitespace-nowrap">Sayfada Görüntülenen:</span>
               <div className="min-w-fit">
-                <CustomSelect fullWidth={false} options={[ { id: 20, label: '20' }, { id: 50, label: '50' }, { id: 250, label: '250' }, { id: 500, label: '500' }, { id: 1000, label: '1000' }, { id: 999999, label: 'Tümü' } ]} value={pageSize} onChange={(value) => { setPageSize(Number(value)); setCurrentPage(0); }} searchable={false} />
+                <CustomSelect fullWidth={false} options={[{ id: 20, label: '20' }, { id: 50, label: '50' }, { id: 250, label: '250' }, { id: 500, label: '500' }, { id: 1000, label: '1000' }, { id: 999999, label: 'Tümü' }]} value={pageSize} onChange={(value) => { setPageSize(Number(value)); setCurrentPage(0); }} searchable={false} />
               </div>
             </div>
             <div className="h-4 w-px bg-theme hidden md:block" />
@@ -305,7 +301,7 @@ export function InventoryDashboard() {
             <button
               onClick={() => setCurrentPage((prev) => Math.max(0, prev - 1))}
               disabled={currentPage === 0}
-              className="p-3 rounded-xl bg-theme-base border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+              className="w-9 h-9 p-2 rounded-xl bg-theme-base border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
             >
               <ChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
             </button>
@@ -319,7 +315,7 @@ export function InventoryDashboard() {
             <button
               onClick={() => setCurrentPage((prev) => Math.min(pageCount - 1, prev + 1))}
               disabled={currentPage >= pageCount - 1}
-              className="p-3 rounded-xl bg-theme-base border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+              className="w-9 h-9 p-2 rounded-xl bg-theme-base border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
             >
               <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
             </button>

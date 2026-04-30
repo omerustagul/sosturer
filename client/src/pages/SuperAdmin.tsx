@@ -624,7 +624,7 @@ export function SuperAdmin() {
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] font-black text-theme-dim whitespace-nowrap">Sayfada Görüntülenen:</span>
                     <div className="min-w-fit">
-                      <CustomSelect fullWidth={false} options={[ { id: 20, label: '20' }, { id: 50, label: '50' }, { id: 250, label: '250' }, { id: 500, label: '500' }, { id: 1000, label: '1000' }, { id: 999999, label: 'Tümü' } ]} value={pageSize} onChange={value => { setPageSize(Number(value)); setCurrentPage(0); }} searchable={false} />
+                      <CustomSelect fullWidth={false} options={[{ id: 20, label: '20' }, { id: 50, label: '50' }, { id: 250, label: '250' }, { id: 500, label: '500' }, { id: 1000, label: '1000' }, { id: 999999, label: 'Tümü' }]} value={pageSize} onChange={value => { setPageSize(Number(value)); setCurrentPage(0); }} searchable={false} />
                     </div>
                   </div>
                   <div className="h-4 w-px bg-theme hidden md:block" />
@@ -639,7 +639,7 @@ export function SuperAdmin() {
                   <button
                     onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
                     disabled={currentPage === 0}
-                    className="p-3 rounded-xl bg-theme-base border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+                    className="w-9 h-9 p-2 rounded-xl bg-theme-base border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
                   >
                     <ChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
                   </button>
@@ -657,7 +657,7 @@ export function SuperAdmin() {
                   <button
                     onClick={() => setCurrentPage(prev => Math.min(pageCount - 1, prev + 1))}
                     disabled={currentPage >= pageCount - 1}
-                    className="p-3 rounded-xl bg-theme-base border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+                    className="w-9 h-9 p-2 rounded-xl bg-theme-base border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
                   >
                     <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
                   </button>
@@ -937,9 +937,9 @@ export function SuperAdmin() {
                 <div>
                   <label className="text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 block">ŞİRKET ATAMASI</label>
                   <CustomSelect options={[
-                      { id: '', label: 'Bağımsız (Şirketsiz)' },
-                      ...companies.map(c => ({ id: c.id, label: c.name }))
-                    ]}
+                    { id: '', label: 'Bağımsız (Şirketsiz)' },
+                    ...companies.map(c => ({ id: c.id, label: c.name }))
+                  ]}
                     value={userForm.companyId}
                     onChange={(val) => setUserForm({ ...userForm, companyId: val })}
                     searchable={true} />
@@ -947,10 +947,10 @@ export function SuperAdmin() {
                 <div>
                   <label className="text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 block">YETKİ SEVİYESİ</label>
                   <CustomSelect options={[
-                      { id: 'user', label: 'Kullanıcı' },
-                      { id: 'admin', label: 'Şirket Admini' },
-                      { id: 'superadmin', label: 'Sistem Admini' }
-                    ]}
+                    { id: 'user', label: 'Kullanıcı' },
+                    { id: 'admin', label: 'Şirket Admini' },
+                    { id: 'superadmin', label: 'Sistem Admini' }
+                  ]}
                     value={userForm.role}
                     onChange={(val) => setUserForm({ ...userForm, role: val })}
                     searchable={false} />
@@ -958,10 +958,10 @@ export function SuperAdmin() {
                 <div>
                   <label className="text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 block">HESAP DURUMU</label>
                   <CustomSelect options={[
-                      { id: 'active', label: 'Aktif' },
-                      { id: 'inactive', label: 'Pasif' },
-                      { id: 'archived', label: 'Arşivlendi' }
-                    ]}
+                    { id: 'active', label: 'Aktif' },
+                    { id: 'inactive', label: 'Pasif' },
+                    { id: 'archived', label: 'Arşivlendi' }
+                  ]}
                     value={userForm.status}
                     onChange={(val) => setUserForm({ ...userForm, status: val })}
                     searchable={false} />

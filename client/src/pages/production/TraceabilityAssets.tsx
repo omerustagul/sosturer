@@ -233,7 +233,7 @@ function AssetList({ kind }: { kind: AssetKind }) {
                       <div className="flex flex-col">
                         <span className="text-xs font-black text-theme-main">{asset.type?.name || asset.name}</span>
                         <span className="text-[10px] text-theme-muted font-bold">
-                          {asset.serialNo ? `S/N: ${asset.serialNo}` : ''} 
+                          {asset.serialNo ? `S/N: ${asset.serialNo}` : ''}
                           {asset.type?.brand ? ` [${asset.type.brand} ${asset.type.model || ''}]` : ''}
                         </span>
                       </div>
@@ -252,8 +252,8 @@ function AssetList({ kind }: { kind: AssetKind }) {
               })}
               {filteredAssets.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-6 py-24 text-center">
-                    <div className="flex flex-col items-center gap-2 opacity-25">
+                  <td colSpan={7} className="text-center">
+                    <div className="flex flex-col items-center gap-2 opacity-25 p-20">
                       <Icon size={34} />
                       <p className="text-sm font-black">{cfg.emptyText}</p>
                       <p className="text-xs font-bold">Yeni tanımlar /definitions sayfasından eklenebilir.</p>
@@ -329,10 +329,10 @@ function AddDeviceModal({ isOpen, onClose, types, onSubmit, data, setData, title
             </Field>
             <Field label="Seri Numarası (Stoktan)">
               <CustomSelect
-                options={lots.map(l => ({ 
-                  id: l.lotNumber, 
-                  label: l.lotNumber, 
-                  subLabel: `${l.quantity} Adet` 
+                options={lots.map(l => ({
+                  id: l.lotNumber,
+                  label: l.lotNumber,
+                  subLabel: `${l.quantity} Adet`
                 }))}
                 value={data.serialNo}
                 onChange={(val) => setData({ ...data, serialNo: String(val) })}
