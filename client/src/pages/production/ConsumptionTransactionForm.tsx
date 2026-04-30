@@ -186,7 +186,7 @@ export function ConsumptionTransactionForm() {
     return stockLots.map((lot) => ({
       id: lot.lotNumber || '',
       label: lot.lotNumber || 'Lotsuz',
-      subLabel: `${Number(lot.quantity || 0).toLocaleString('tr-TR')} ${selectedProduct?.unitOfMeasure || form.unit || ''}`.trim()
+      subLabel: `${Number(lot.quantity || 0).toLocaleString('tr-TR')} ${lot.product?.unitOfMeasure || selectedProduct?.unitOfMeasure || form.unit || ''}`.trim()
     }));
   }, [stockLots, selectedProduct, form.unit]);
 
@@ -342,7 +342,7 @@ export function ConsumptionTransactionForm() {
                   onChange={(event) => updateForm({ quantity: event.target.value })}
                   className="w-full h-10 bg-theme-base border border-theme rounded-xl px-3 text-xs font-black text-theme-main outline-none focus:border-theme-primary transition-all text-right"
                 />
-                <div className="w-32">
+                <div className="min-w-[176px]">
                   <CustomSelect options={unitOptions} value={form.unit} onChange={(value) => updateForm({ unit: String(value || '') })} searchable={false} />
                 </div>
               </div>

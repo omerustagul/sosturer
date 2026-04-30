@@ -68,9 +68,12 @@ model Company {
   measurementToolTypes    MeasurementToolType[]
   measurementDevices      MeasurementDevice[]
   measurementToolStatuses MeasurementToolStatus[]
-  equipment               Equipment[]
-  measurementMethods      MeasurementMethod[]
+  equipmentTypes          EquipmentType[]
+  equipmentDevices        EquipmentDevice[]
   equipmentStatuses       EquipmentStatus[]
+  measurementMethods      MeasurementMethod[]
+  stockLevels             StockLevel[]
+  stockMovements          StockMovement[]
 
   @@map("companies")
 }
@@ -546,37 +549,48 @@ model Warehouse {
 }
 
 model StockLevel {
-  id          String    @id @default(uuid())
-  companyId   String    @map("company_id")
-  productId   String    @map("product_id")
-  warehouseId String    @map("warehouse_id")
-  lotNumber   String    @default("") @map("lot_number")
-  quantity    Float     @default(0)
-  updatedAt   DateTime  @updatedAt @map("updated_at")
-  product     Product   @relation(fields: [productId], references: [id])
-  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+  id              String               @id @default(uuid())
+  companyId       String               @map("company_id")
+  productId       String?              @map("product_id")
+  toolTypeId      String?              @map("tool_type_id")
+  equipmentTypeId String?              @map("equipment_type_id")
+  warehouseId     String               @map("warehouse_id")
+  lotNumber       String               @default("") @map("lot_number")
+  quantity        Float                @default(0)
+  updatedAt       DateTime             @updatedAt @map("updated_at")
+  company         Company              @relation(fields: [companyId], references: [id])
+  product         Product?             @relation(fields: [productId], references: [id])
+  toolType        MeasurementToolType? @relation(fields: [toolTypeId], references: [id])
+  equipmentType   EquipmentType?       @relation(fields: [equipmentTypeId], references: [id])
+  warehouse       Warehouse            @relation(fields: [warehouseId], references: [id])
 
-  @@unique([productId, warehouseId, lotNumber])
+  @@unique([productId, toolTypeId, equipmentTypeId, warehouseId, lotNumber])
   @@map("stock_levels")
 }
 
 model StockMovement {
-  id              String     @id @default(uuid())
-  companyId       String     @map("company_id")
-  productId       String     @map("product_id")
-  fromWarehouseId String?    @map("from_warehouse_id")
-  toWarehouseId   String?    @map("to_warehouse_id")
-  lotNumber       String?    @map("lot_number")
+  id              String   @id @default(uuid())
+  companyId       String   @map("company_id")
+  productId       String?  @map("product_id")
+  toolTypeId      String?  @map("tool_type_id")
+  equipmentTypeId String?  @map("equipment_type_id")
+  fromWarehouseId String?  @map("from_warehouse_id")
+  toWarehouseId   String?  @map("to_warehouse_id")
+  lotNumber       String?  @map("lot_number")
   quantity        Float
   unit            String?
   notes           String?
   type            String // PRODUCTION, SALE, ADJUSTMENT, TRANSFER
-  referenceId     String?    @map("reference_id")
+  referenceId     String?  @map("reference_id")
   description     String?
-  createdAt       DateTime   @default(now()) @map("created_at")
-  product         Product    @relation(fields: [productId], references: [id])
-  fromWarehouse   Warehouse? @relation("from", fields: [fromWarehouseId], references: [id])
-  toWarehouse     Warehouse? @relation("to", fields: [toWarehouseId], references: [id])
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  company       Company              @relation(fields: [companyId], references: [id])
+  product       Product?             @relation(fields: [productId], references: [id])
+  toolType      MeasurementToolType? @relation(fields: [toolTypeId], references: [id])
+  equipmentType EquipmentType?       @relation(fields: [equipmentTypeId], references: [id])
+  fromWarehouse Warehouse?           @relation("from", fields: [fromWarehouseId], references: [id])
+  toWarehouse   Warehouse?           @relation("to", fields: [toWarehouseId], references: [id])
 
   @@map("stock_movements")
 }
@@ -636,17 +650,23 @@ model StockVoucher {
 }
 
 model StockVoucherItem {
-  id        String   @id @default(uuid())
-  voucherId String   @map("voucher_id")
-  productId String   @map("product_id")
-  lotNumber String   @default("") @map("lot_number")
-  quantity  Float
-  unit      String?
-  notes     String?
-  createdAt DateTime @default(now()) @map("created_at")
+  id              String   @id @default(uuid())
+  voucherId       String   @map("voucher_id")
+  itemType        String   @default("PRODUCT") // PRODUCT, TOOL, EQUIPMENT
+  productId       String?  @map("product_id")
+  toolTypeId      String?  @map("tool_type_id")
+  equipmentTypeId String?  @map("equipment_type_id")
+  lotNumber       String?  @map("lot_number")
+  quantity        Float
+  unit            String?
+  notes           String?
+  displayOrder    Int      @default(0) @map("display_order")
+  createdAt       DateTime @default(now()) @map("created_at")
 
-  voucher StockVoucher @relation(fields: [voucherId], references: [id], onDelete: Cascade)
-  product Product      @relation(fields: [productId], references: [id])
+  voucher       StockVoucher         @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+  product       Product?             @relation(fields: [productId], references: [id])
+  toolType      MeasurementToolType? @relation(fields: [toolTypeId], references: [id])
+  equipmentType EquipmentType?       @relation(fields: [equipmentTypeId], references: [id])
 
   @@map("stock_voucher_items")
 }
@@ -1123,9 +1143,12 @@ model MeasurementToolType {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  company Company                 @relation(fields: [companyId], references: [id])
-  devices MeasurementDevice[]
-  methods MeasurementToolMethod[]
+  company        Company                 @relation(fields: [companyId], references: [id])
+  devices        MeasurementDevice[]
+  methods        MeasurementToolMethod[]
+  stockMovements StockMovement[]
+  stockLevels    StockLevel[]
+  voucherItems   StockVoucherItem[]
 
   @@unique([companyId, name])
   @@map("measurement_tools")
@@ -1152,13 +1175,13 @@ model MeasurementDevice {
 }
 
 model MeasurementToolStatus {
-  id                  String    @id @default(uuid())
-  companyId           String    @map("company_id")
-  measurementDeviceId String    @map("measurement_device_id")
-  workCenterId        String?   @map("work_center_id")
-  validUntil          DateTime? @map("valid_until")
-  negativeTolerance   Float?    @map("negative_tolerance")
-  positiveTolerance   Float?    @map("positive_tolerance")
+  id                      String    @id @default(uuid())
+  companyId               String    @map("company_id")
+  measurementDeviceId     String    @map("measurement_device_id")
+  workCenterId            String?   @map("work_center_id")
+  validUntil              DateTime? @map("valid_until")
+  negativeTolerance       Float?    @map("negative_tolerance")
+  positiveTolerance       Float?    @map("positive_tolerance")
   certificate             String?
   certificateDocumentUrl  String?   @map("certificate_document_url")
   certificateDocumentName String?   @map("certificate_document_name")
@@ -1167,9 +1190,9 @@ model MeasurementToolStatus {
   createdBy               String?   @map("created_by")
   createdAt               DateTime  @default(now()) @map("created_at")
 
-  company Company           @relation(fields: [companyId], references: [id])
-  device  MeasurementDevice @relation(fields: [measurementDeviceId], references: [id], onDelete: Cascade)
-  workCenter Department?    @relation(fields: [workCenterId], references: [id])
+  company    Company           @relation(fields: [companyId], references: [id])
+  device     MeasurementDevice @relation(fields: [measurementDeviceId], references: [id], onDelete: Cascade)
+  workCenter Department?       @relation(fields: [workCenterId], references: [id])
 
   @@index([measurementDeviceId, createdAt])
   @@map("measurement_tool_statuses")
@@ -1187,12 +1210,11 @@ model MeasurementToolMethod {
   @@map("measurement_tool_methods")
 }
 
-model Equipment {
+model EquipmentType {
   id           String   @id @default(uuid())
   companyId    String   @map("company_id")
   code         String?
   name         String
-  serialNo     String?  @map("serial_no")
   brand        String?
   model        String?
   status       String   @default("active")
@@ -1201,11 +1223,34 @@ model Equipment {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  company  Company           @relation(fields: [companyId], references: [id])
-  statuses EquipmentStatus[]
+  company        Company            @relation(fields: [companyId], references: [id])
+  devices        EquipmentDevice[]
+  stockMovements StockMovement[]
+  stockLevels    StockLevel[]
+  voucherItems   StockVoucherItem[]
 
   @@unique([companyId, name])
-  @@map("equipment")
+  @@map("equipment_types")
+}
+
+model EquipmentDevice {
+  id           String   @id @default(uuid())
+  companyId    String   @map("company_id")
+  typeId       String   @map("type_id")
+  serialNo     String?  @map("serial_no")
+  code         String?
+  status       String   @default("active")
+  notes        String?
+  displayOrder Int      @default(0) @map("display_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  company  Company           @relation(fields: [companyId], references: [id])
+  type     EquipmentType     @relation(fields: [typeId], references: [id], onDelete: Cascade)
+  statuses EquipmentStatus[]
+
+  @@unique([companyId, code])
+  @@map("equipment_devices")
 }
 
 model EquipmentStatus {
@@ -1222,9 +1267,9 @@ model EquipmentStatus {
   createdBy         String?   @map("created_by")
   createdAt         DateTime  @default(now()) @map("created_at")
 
-  company    Company     @relation(fields: [companyId], references: [id])
-  equipment  Equipment   @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
-  workCenter Department? @relation(fields: [workCenterId], references: [id])
+  company    Company         @relation(fields: [companyId], references: [id])
+  device     EquipmentDevice @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  workCenter Department?     @relation(fields: [workCenterId], references: [id])
 
   @@index([equipmentId, createdAt])
   @@map("equipment_statuses")

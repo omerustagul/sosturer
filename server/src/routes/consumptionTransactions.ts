@@ -89,13 +89,12 @@ const validateReferences = async (tx: any, companyId: string, payload: any) => {
 };
 
 const applyStock = async (tx: any, companyId: string, transaction: any) => {
-  const currentLevel = await tx.stockLevel.findUnique({
+  const currentLevel = await tx.stockLevel.findFirst({
     where: {
-      productId_warehouseId_lotNumber: {
-        productId: transaction.productId,
-        warehouseId: transaction.warehouseId,
-        lotNumber: transaction.lotNumber || ''
-      }
+      companyId,
+      productId: transaction.productId,
+      warehouseId: transaction.warehouseId,
+      lotNumber: transaction.lotNumber || ''
     }
   });
 
@@ -105,8 +104,10 @@ const applyStock = async (tx: any, companyId: string, transaction: any) => {
 
   await tx.stockLevel.update({
     where: {
-      productId_warehouseId_lotNumber: {
+      productId_toolTypeId_equipmentTypeId_warehouseId_lotNumber: {
         productId: transaction.productId,
+        toolTypeId: null,
+        equipmentTypeId: null,
         warehouseId: transaction.warehouseId,
         lotNumber: transaction.lotNumber || ''
       }
@@ -133,8 +134,10 @@ const applyStock = async (tx: any, companyId: string, transaction: any) => {
 const reverseStock = async (tx: any, companyId: string, transaction: any) => {
   await tx.stockLevel.upsert({
     where: {
-      productId_warehouseId_lotNumber: {
+      productId_toolTypeId_equipmentTypeId_warehouseId_lotNumber: {
         productId: transaction.productId,
+        toolTypeId: null,
+        equipmentTypeId: null,
         warehouseId: transaction.warehouseId,
         lotNumber: transaction.lotNumber || ''
       }
@@ -143,6 +146,8 @@ const reverseStock = async (tx: any, companyId: string, transaction: any) => {
     create: {
       companyId,
       productId: transaction.productId,
+      toolTypeId: null,
+      equipmentTypeId: null,
       warehouseId: transaction.warehouseId,
       lotNumber: transaction.lotNumber || '',
       quantity: transaction.quantity

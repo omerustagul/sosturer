@@ -1331,6 +1331,13 @@ export function Definitions() {
                             </>
                           )}
                           {activeTab === 'measurement-tools' && <SortHeader label="Ölçüm Yöntemleri" sortKey="methods" />}
+                           {(activeTab === 'measurement-tools' || activeTab === 'equipment') && (
+                             <>
+                               <SortHeader label="Marka" sortKey="brand" />
+                               <SortHeader label="Model" sortKey="model" />
+                             </>
+                           )}
+
                           {simpleDefinitionTabs.includes(activeTab) && <SortHeader label="Not / Açıklama" sortKey="notes" />}
 
                           <SortHeader label="Durum" sortKey="status" />
@@ -1675,7 +1682,18 @@ export function Definitions() {
                                 </td>
                               )}
 
-                              {simpleDefinitionTabs.includes(activeTab) && (
+                                                             {(activeTab === 'measurement-tools' || activeTab === 'equipment') && (
+                                 <>
+                                   <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap text-start">
+                                     {isEditingRow ? <input value={localChanges[item.id]?.brand ?? (item.brand || '')} onChange={e => updateLocalChanges(item.id, 'brand', e.target.value)} className="settings-inline-input" /> : (item.brand || '-')}
+                                   </td>
+                                   <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap text-start">
+                                     {isEditingRow ? <input value={localChanges[item.id]?.model ?? (item.model || '')} onChange={e => updateLocalChanges(item.id, 'model', e.target.value)} className="settings-inline-input" /> : (item.model || '-')}
+                                   </td>
+                                 </>
+                               )}
+
+                               {simpleDefinitionTabs.includes(activeTab) && (
                                 <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">
                                   {isEditingRow ? <input value={localChanges[item.id]?.notes ?? (item.notes || '')} onChange={e => updateLocalChanges(item.id, 'notes', e.target.value)} className="settings-inline-input" /> : (item.notes || '-')}
                                 </td>
@@ -2161,6 +2179,18 @@ export function Definitions() {
                         <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Ad / Tanım</label>
                         <input required value={formData.name || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
                       </div>
+                      {(activeTab === 'measurement-tools' || activeTab === 'equipment') && (
+                        <>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Marka</label>
+                            <input value={formData.brand || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, brand: e.target.value })} />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Model</label>
+                            <input value={formData.model || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, model: e.target.value })} />
+                          </div>
+                        </>
+                      )}
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Durum</label>
                         <CustomSelect options={[{ id: 'active', label: 'Aktif' }, { id: 'passive', label: 'Pasif' }]}

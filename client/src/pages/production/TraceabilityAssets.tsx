@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { format } from 'date-fns';
-import { Activity, Building2, CalendarClock, ChevronLeft, ExternalLink, FileText, History, RefreshCw, Save, Search, Trash2, UploadCloud, Wrench, X } from 'lucide-react';
+import { Activity, Building2, CalendarClock, ExternalLink, FileText, History, RefreshCw, Save, Search, Trash2, UploadCloud, Wrench, X, ChevronLeft } from 'lucide-react';
 import { api } from '../../lib/api';
 import { CustomSelect } from '../../components/common/CustomSelect';
 import { Loading } from '../../components/common/Loading';
@@ -31,6 +31,7 @@ const operationStatuses = [
 const configByKind = {
   measurement: {
     endpoint: '/measurement-devices',
+    typesEndpoint: '/measurement-tools',
     listPath: '/production/measurement-tools',
     title: 'ÖLÇÜM CİHAZLARI',
     singleTitle: 'Ölçüm Cihazı',
@@ -39,7 +40,8 @@ const configByKind = {
     emptyText: 'Tanımlı ölçüm cihazı bulunamadı.'
   },
   equipment: {
-    endpoint: '/equipment',
+    endpoint: '/equipment/devices',
+    typesEndpoint: '/equipment',
     listPath: '/production/equipment',
     title: 'EKİPMANLAR',
     singleTitle: 'Ekipman',
@@ -130,21 +132,25 @@ function AssetList({ kind }: { kind: AssetKind }) {
 
   const fetchTypes = async () => {
     try {
-      const res = await api.get('/measurement-tools'); // This endpoint now returns Types
+      const res = await api.get(cfg.typesEndpoint);
       setTypes(Array.isArray(res) ? res : []);
     } catch (e) { }
   };
 
   const handleAddDevice = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!newDevice.typeId) {
+      notify.warning('Tip Seçin', 'Lütfen bir tür seçin.');
+      return;
+    }
     try {
-      await api.post('/measurement-devices', newDevice);
-      notify.success('Cihaz Eklendi', 'Yeni ölçüm cihazı başarıyla oluşturuldu.');
+      await api.post(cfg.endpoint, newDevice);
+      notify.success('Eklendi', `Yeni ${cfg.singleTitle.toLowerCase()} başarıyla oluşturuldu.`);
       setShowAddModal(false);
       setNewDevice({ typeId: '', serialNo: '', code: '', notes: '' });
       fetchData();
     } catch (err: any) {
-      notify.error('Hata', err.message || 'Cihaz eklenemedi.');
+      notify.error('Hata', err.message || 'Kayıt eklenemedi.');
     }
   };
 
@@ -160,20 +166,18 @@ function AssetList({ kind }: { kind: AssetKind }) {
           </h2>
           <p className="text-theme-main/80 text-[12px] mt-1 font-bold opacity-60">{cfg.description}</p>
         </div>
-        {kind === 'measurement' && (
-          <button
-            onClick={() => { fetchTypes(); setShowAddModal(true); }}
-            className="bg-theme-primary hover:bg-theme-primary-hover h-11 text-white px-8 rounded-xl text-xs font-black transition-all shadow-xl shadow-theme-primary/30 flex items-center gap-2.5 active:scale-95 uppercase tracking-widest"
-          >
-            <Activity className="w-4 h-4" /> YENİ CİHAZ EKLE
-          </button>
-        )}
+        <button
+          onClick={() => { fetchTypes(); setShowAddModal(true); }}
+          className="bg-theme-primary hover:bg-theme-primary-hover h-11 text-white px-8 rounded-xl text-xs font-black transition-all shadow-xl shadow-theme-primary/30 flex items-center gap-2.5 active:scale-95 uppercase tracking-widest"
+        >
+          <Icon className="w-4 h-4" /> YENİ {cfg.singleTitle.toUpperCase()} EKLE
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         <StatCard icon={Icon} label="Tanımlı Kayıt" value={assets.length.toLocaleString('tr-TR')} color="text-theme-primary" />
         <StatCard icon={Activity} label="Kullanılabilir" value={assets.filter((asset) => asset.statuses?.[0]?.operationStatus === 'available').length.toLocaleString('tr-TR')} color="text-theme-success" />
-        <StatCard icon={RefreshCw} label="Kalibrasyonda" value={assets.filter((asset) => asset.statuses?.[0]?.operationStatus === 'calibration').length.toLocaleString('tr-TR')} color="text-theme-warning" />
+        <StatCard icon={RefreshCw} label="Kalibrasyon/Bakım" value={assets.filter((asset) => asset.statuses?.[0]?.operationStatus === 'calibration').length.toLocaleString('tr-TR')} color="text-theme-warning" />
         <StatCard icon={X} label="Kullanım Dışı" value={assets.filter((asset) => asset.statuses?.[0]?.operationStatus === 'out_of_use').length.toLocaleString('tr-TR')} color="text-theme-danger" />
       </div>
 
@@ -216,7 +220,7 @@ function AssetList({ kind }: { kind: AssetKind }) {
                 <th className="px-6 py-4 text-[10px] font-black text-theme-dim">Geçerlilik</th>
                 <th className="px-6 py-4 text-[10px] font-black text-theme-dim">Tolerans</th>
                 <th className="px-6 py-4 text-[10px] font-black text-theme-dim">Durum</th>
-                <th className="px-6 py-4 text-[10px] font-black text-theme-dim">Son Kayıt</th>
+                <th className="px-6 py-4 text-[10px] font-black text-theme-dim text-center">İşlem</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-theme/20">
@@ -240,7 +244,9 @@ function AssetList({ kind }: { kind: AssetKind }) {
                       {latest ? `${latest.negativeTolerance ?? '-'} / +${latest.positiveTolerance ?? '-'}` : '-'}
                     </td>
                     <td className="px-6 py-5"><OperationStatusBadge status={latest?.operationStatus || 'none'} /></td>
-                    <td className="px-6 py-5 text-xs font-bold text-theme-muted whitespace-nowrap">{latest?.createdAt ? format(new Date(latest.createdAt), 'dd/MM/yyyy HH:mm') : '-'}</td>
+                    <td className="px-6 py-5 text-center">
+                      <button className="p-2 rounded-lg bg-theme-primary/10 text-theme-primary hover:bg-theme-primary/20 transition-all"><ExternalLink size={14} /></button>
+                    </td>
                   </tr>
                 );
               })}
@@ -266,50 +272,80 @@ function AssetList({ kind }: { kind: AssetKind }) {
         onSubmit={handleAddDevice}
         data={newDevice}
         setData={setNewDevice}
+        title={cfg.singleTitle}
+        icon={Icon}
+        kind={kind}
       />
     </div>
   );
 }
 
-function AddDeviceModal({ isOpen, onClose, types, onSubmit, data, setData }: any) {
+function AddDeviceModal({ isOpen, onClose, types, onSubmit, data, setData, title, icon: Icon, kind }: any) {
+  const [lots, setLots] = useState<any[]>([]);
+  const [loadingLots, setLoadingLots] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && data.typeId) {
+      setLoadingLots(true);
+      const param = kind === 'measurement' ? 'toolTypeId' : 'equipmentTypeId';
+      api.get(`/inventory/lots?${param}=${data.typeId}`)
+        .then(res => setLots(Array.isArray(res) ? res : []))
+        .catch(() => setLots([]))
+        .finally(() => setLoadingLots(false));
+    } else {
+      setLots([]);
+    }
+  }, [isOpen, data.typeId, kind]);
+
   if (!isOpen) return null;
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-theme-base/60 backdrop-blur-md animate-in fade-in duration-300">
       <div className="bg-theme-surface w-full max-w-lg rounded-3xl border border-theme shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
         <div className="p-6 border-b border-theme flex items-center justify-between bg-theme-base/10">
           <div className="flex items-center gap-3">
             <div className="p-3 bg-theme-primary/10 rounded-2xl">
-              <Activity className="w-5 h-5 text-theme-primary" />
+              <Icon className="w-5 h-5 text-theme-primary" />
             </div>
             <div>
-              <h3 className="text-lg font-black text-theme-main uppercase leading-none">YENİ ÖLÇÜM CİHAZI</h3>
-              <p className="text-[10px] text-theme-dim font-black uppercase tracking-widest mt-1 opacity-60">Fiziksel cihaz tanımlama</p>
+              <h3 className="text-lg font-black text-theme-main uppercase leading-none">YENİ {title.toUpperCase()}</h3>
+              <p className="text-[10px] text-theme-dim font-black uppercase tracking-widest mt-1 opacity-60">Fiziksel kayıt tanımlama</p>
             </div>
           </div>
           <button onClick={onClose} className="w-10 h-10 flex items-center justify-center rounded-xl bg-theme-base/10 text-theme-dim hover:bg-theme-primary hover:text-white transition-all"><X size={20} /></button>
         </div>
         <form onSubmit={onSubmit} className="p-6 space-y-5">
-          <Field label="Ölçüm Aracı Türü">
+          <Field label={`${title} Türü`}>
             <CustomSelect
               options={types.map((t: any) => ({ id: t.id, label: t.name, subLabel: `${t.code || ''} ${t.brand || ''}` }))}
               value={data.typeId}
-              onChange={(val) => setData({ ...data, typeId: String(val) })}
+              onChange={(val) => setData({ ...data, typeId: String(val), serialNo: '' })}
               placeholder="Tür seçin..."
             />
           </Field>
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Cihaz Kodu (Opsiyonel)">
+            <Field label="Kod (Opsiyonel)">
               <input value={data.code} onChange={e => setData({ ...data, code: e.target.value })} className="form-input h-11 text-xs" placeholder="Örn: MK-01" />
             </Field>
-            <Field label="Seri Numarası">
-              <input value={data.serialNo} onChange={e => setData({ ...data, serialNo: e.target.value })} className="form-input h-11 text-xs" placeholder="Cihaz üzerindeki S/N" />
+            <Field label="Seri Numarası (Stoktan)">
+              <CustomSelect
+                options={lots.map(l => ({ 
+                  id: l.lotNumber, 
+                  label: l.lotNumber, 
+                  subLabel: `${l.quantity} Adet` 
+                }))}
+                value={data.serialNo}
+                onChange={(val) => setData({ ...data, serialNo: String(val) })}
+                placeholder={loadingLots ? "Yükleniyor..." : "S/N Seçin"}
+                disabled={!data.typeId || loadingLots}
+              />
             </Field>
           </div>
           <Field label="Notlar">
             <textarea value={data.notes} onChange={e => setData({ ...data, notes: e.target.value })} className="form-input min-h-[80px] py-3 text-xs" placeholder="Ekstra bilgiler..." />
           </Field>
           <button type="submit" className="w-full h-12 bg-theme-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-theme-primary-hover transition-all shadow-xl shadow-theme-primary/20 flex items-center justify-center gap-2">
-            <Save size={18} /> CİHAZI KAYDET
+            <Save size={18} /> KAYDET
           </button>
         </form>
       </div>
@@ -374,8 +410,9 @@ function AssetDetail({ kind }: { kind: AssetKind }) {
 
   const deleteStatus = async (statusId: string) => {
     if (!window.confirm('Bu durum kaydını silmek istediğinize emin misiniz?')) return;
+    const basePath = kind === 'measurement' ? '/measurement-devices' : '/equipment';
     try {
-      await api.delete(`${cfg.endpoint}/statuses/${statusId}`);
+      await api.delete(`${basePath}/statuses/${statusId}`);
       notify.success('Silindi', 'Durum kaydı başarıyla silindi.');
       await fetchData();
     } catch (error: any) {
@@ -605,13 +642,6 @@ function AssetDetail({ kind }: { kind: AssetKind }) {
                   </td>
                 </tr>
               ))}
-              {(asset.statuses || []).length === 0 && (
-                <tr>
-                  <td colSpan={8} className="px-6 py-20 text-center opacity-30 italic text-sm">
-                    Henüz durum kaydı eklenmedi.
-                  </td>
-                </tr>
-              )}
             </tbody>
           </table>
         </div>
@@ -620,30 +650,25 @@ function AssetDetail({ kind }: { kind: AssetKind }) {
   );
 }
 
-function getOperationLabel(status: string) {
-  return operationStatuses.find((item) => item.id === status)?.label || '-';
-}
-
 function OperationStatusBadge({ status }: { status: string }) {
-  const config = status === 'available'
-    ? { label: 'Kullanılabilir', className: 'bg-theme-success/10 text-theme-success border-theme-success/20' }
-    : status === 'calibration'
-      ? { label: 'Kalibrasyonda', className: 'bg-theme-warning/10 text-theme-warning border-theme-warning/20' }
-      : status === 'out_of_use'
-        ? { label: 'Kullanım Dışı', className: 'bg-theme-danger/10 text-theme-danger border-theme-danger/20' }
-        : { label: 'Kayıt Yok', className: 'bg-theme-base/40 text-theme-dim border-theme' };
+  const config = operationStatuses.find((s) => s.id === status) || { label: status, color: 'theme-dim' };
+  const colorClass = status === 'available' ? 'theme-success' : status === 'calibration' ? 'theme-warning' : 'theme-danger';
 
   return (
-    <span className={`px-3 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest border inline-flex items-center ${config.className}`}>
+    <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border bg-${colorClass}/10 text-${colorClass} border-${colorClass}/20`}>
       {config.label}
     </span>
   );
 }
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
+function getOperationLabel(status?: string) {
+  return operationStatuses.find((s) => s.id === status)?.label || '-';
+}
+
+function Field({ label, children, disabled }: { label: string; children: ReactNode; disabled?: boolean }) {
   return (
-    <div className="space-y-1 min-w-0">
-      <span className="text-[10px] font-black text-theme-dim uppercase tracking-widest">{label}</span>
+    <div className={`space-y-1.5 min-w-0 ${disabled ? 'opacity-50 pointer-events-none' : ''}`}>
+      <span className="text-[10px] font-black text-theme-dim uppercase tracking-widest pl-1">{label}</span>
       {children}
     </div>
   );
@@ -651,7 +676,7 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 
 function StatCard({ icon: Icon, label, value, color }: any) {
   return (
-    <div className="modern-glass-card p-3 border-theme-primary/10 hover:border-theme-primary/30 transition-all duration-300 group">
+    <div className="modern-glass-card p-4 border-theme-primary/10 hover:border-theme-primary/30 transition-all duration-300 group">
       <div className="flex justify-between items-start mb-4">
         <div className={`p-3 rounded-2xl ${color.replace('text', 'bg')}/10 group-hover:scale-110 transition-transform`}>
           <Icon className={`${color} w-5 h-5`} />

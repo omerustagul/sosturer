@@ -1,16 +1,23 @@
 import { Router } from 'express';
 import prisma from '../lib/prisma';
-import { AuthRequest } from '../middleware/auth';
+import { AuthRequest, authenticateToken } from '../middleware/auth';
 
 const router = Router();
 const getCompanyId = (req: AuthRequest) => req.user?.companyId as string;
 
-const cleanEquipmentPayload = (body: any) => ({
+const cleanEquipmentTypePayload = (body: any) => ({
   code: body.code || null,
   name: body.name,
-  serialNo: body.serialNo || null,
   brand: body.brand || null,
   model: body.model || null,
+  notes: body.notes || null,
+  status: body.status || 'active'
+});
+
+const cleanDevicePayload = (body: any) => ({
+  typeId: body.typeId,
+  serialNo: body.serialNo || null,
+  code: body.code || null,
   notes: body.notes || null,
   status: body.status || 'active'
 });
@@ -30,108 +37,142 @@ const statusInclude = {
   workCenter: { select: { id: true, name: true, code: true } }
 };
 
-router.get('/', async (req: AuthRequest, res) => {
+// EQUIPMENT TYPE ROUTES (DEFINITIONS)
+router.get('/', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const companyId = getCompanyId(req);
     if (!companyId) return res.json([]);
-    const includeLatest = req.query.includeLatest === 'true';
 
-    const equipment = await (prisma as any).equipment.findMany({
+    const equipmentTypes = await (prisma as any).equipmentType.findMany({
       where: { companyId },
-      ...(includeLatest ? {
-        include: {
-          statuses: {
-            include: statusInclude,
-            orderBy: { createdAt: 'desc' },
-            take: 1
-          }
-        }
-      } : {}),
       orderBy: [{ displayOrder: 'asc' }, { createdAt: 'asc' }]
     });
-    res.json(equipment);
+    res.json(equipmentTypes);
   } catch (error) {
-    console.error('[Equipment] Fetch error:', error);
-    res.status(500).json({ error: 'Ekipmanlar getirilemedi' });
+    console.error('[EquipmentType] Fetch error:', error);
+    res.status(500).json({ error: 'Ekipman türleri getirilemedi' });
   }
 });
 
-router.get('/:id', async (req: AuthRequest, res) => {
+router.post('/', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const companyId = getCompanyId(req);
-    const equipment = await (prisma as any).equipment.findFirst({
-      where: { id: req.params.id, companyId },
-      include: {
-        statuses: {
-          include: statusInclude,
-          orderBy: { createdAt: 'desc' }
-        }
-      }
-    });
-    if (!equipment) return res.status(404).json({ error: 'Ekipman bulunamadi' });
-    res.json(equipment);
-  } catch (error) {
-    res.status(500).json({ error: 'Ekipman detayi getirilemedi' });
-  }
-});
+    if (!req.body.name) return res.status(400).json({ error: 'Ekipman adı zorunludur' });
 
-router.post('/', async (req: AuthRequest, res) => {
-  try {
-    const companyId = getCompanyId(req);
-    if (!companyId) return res.status(400).json({ error: 'Sirket ID eksik' });
-    if (!req.body.name) return res.status(400).json({ error: 'Ekipman adi zorunludur' });
-
-    const lastItem = await (prisma as any).equipment.findFirst({
+    const lastItem = await (prisma as any).equipmentType.findFirst({
       where: { companyId },
       orderBy: { displayOrder: 'desc' },
       select: { displayOrder: true }
     });
     const nextOrder = (lastItem?.displayOrder ?? -1) + 1;
 
-    const equipment = await (prisma as any).equipment.create({
-      data: { ...cleanEquipmentPayload(req.body), companyId, displayOrder: nextOrder }
+    const equipmentType = await (prisma as any).equipmentType.create({
+      data: { ...cleanEquipmentTypePayload(req.body), companyId, displayOrder: nextOrder }
     });
-    res.status(201).json(equipment);
+    res.status(201).json(equipmentType);
   } catch (error: any) {
-    res.status(400).json({ error: error.message || 'Ekipman olusturulamadi' });
+    res.status(400).json({ error: error.message || 'Ekipman türü oluşturulamadı' });
   }
 });
 
-router.put('/:id', async (req: AuthRequest, res) => {
+router.put('/:id', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const companyId = getCompanyId(req);
-    const existing = await (prisma as any).equipment.findFirst({
+    const equipmentType = await (prisma as any).equipmentType.update({
       where: { id: req.params.id, companyId },
-      select: { id: true }
+      data: cleanEquipmentTypePayload(req.body)
     });
-    if (!existing) return res.status(404).json({ error: 'Ekipman bulunamadi' });
-
-    const equipment = await (prisma as any).equipment.update({
-      where: { id: req.params.id },
-      data: cleanEquipmentPayload(req.body)
-    });
-    res.json(equipment);
+    res.json(equipmentType);
   } catch (error: any) {
-    res.status(400).json({ error: error.message || 'Ekipman guncellenemedi' });
+    res.status(400).json({ error: error.message || 'Ekipman türü güncellenemedi' });
   }
 });
 
-router.post('/:id/statuses', async (req: AuthRequest, res) => {
+router.delete('/:id', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const companyId = getCompanyId(req);
-    const equipment = await (prisma as any).equipment.findFirst({
+    await (prisma as any).equipmentType.deleteMany({ where: { id: req.params.id, companyId } });
+    res.status(204).send();
+  } catch (error) {
+    res.status(400).json({ error: 'Ekipman türü silinemedi' });
+  }
+});
+
+// EQUIPMENT DEVICE ROUTES (INSTANCES)
+router.get('/devices', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const companyId = getCompanyId(req);
+    const devices = await (prisma as any).equipmentDevice.findMany({
+      where: { companyId },
+      include: {
+        type: true,
+        statuses: {
+          include: statusInclude,
+          orderBy: { createdAt: 'desc' },
+          take: 1
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json(devices);
+  } catch (error) {
+    res.status(500).json({ error: 'Ekipmanlar getirilemedi' });
+  }
+});
+
+router.post('/devices', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const companyId = getCompanyId(req);
+    const lastItem = await (prisma as any).equipmentDevice.findFirst({
+      where: { companyId },
+      orderBy: { displayOrder: 'desc' },
+      select: { displayOrder: true }
+    });
+    const nextOrder = (lastItem?.displayOrder ?? -1) + 1;
+
+    const device = await (prisma as any).equipmentDevice.create({
+      data: { ...cleanDevicePayload(req.body), companyId, displayOrder: nextOrder },
+      include: { type: true }
+    });
+    res.status(201).json(device);
+  } catch (error: any) {
+    res.status(400).json({ error: error.message || 'Ekipman oluşturulamadı' });
+  }
+});
+
+router.put('/devices/:id', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const companyId = getCompanyId(req);
+    const device = await (prisma as any).equipmentDevice.update({
+      where: { id: req.params.id, companyId },
+      data: cleanDevicePayload(req.body),
+      include: { type: true }
+    });
+    res.json(device);
+  } catch (error: any) {
+    res.status(400).json({ error: error.message || 'Ekipman güncellenemedi' });
+  }
+});
+
+router.delete('/devices/:id', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const companyId = getCompanyId(req);
+    await (prisma as any).equipmentDevice.deleteMany({ where: { id: req.params.id, companyId } });
+    res.status(204).send();
+  } catch (error) {
+    res.status(400).json({ error: 'Ekipman silinemedi' });
+  }
+});
+
+// DEVICE STATUS ROUTES
+router.post('/devices/:id/statuses', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const companyId = getCompanyId(req);
+    const device = await (prisma as any).equipmentDevice.findFirst({
       where: { id: req.params.id, companyId },
       select: { id: true }
     });
-    if (!equipment) return res.status(404).json({ error: 'Ekipman bulunamadi' });
-
-    if (req.body.workCenterId) {
-      const workCenter = await prisma.department.findFirst({
-        where: { id: req.body.workCenterId, companyId },
-        select: { id: true }
-      });
-      if (!workCenter) return res.status(400).json({ error: 'Secilen is merkezi bulunamadi' });
-    }
+    if (!device) return res.status(404).json({ error: 'Ekipman bulunamadı' });
 
     const status = await (prisma as any).equipmentStatus.create({
       data: {
@@ -143,21 +184,11 @@ router.post('/:id/statuses', async (req: AuthRequest, res) => {
     });
     res.status(201).json(status);
   } catch (error: any) {
-    res.status(400).json({ error: error.message || 'Ekipman durumu kaydedilemedi' });
+    res.status(400).json({ error: error.message || 'Durum kaydedilemedi' });
   }
 });
 
-router.delete('/:id', async (req: AuthRequest, res) => {
-  try {
-    const companyId = getCompanyId(req);
-    await (prisma as any).equipment.deleteMany({ where: { id: req.params.id, companyId } });
-    res.status(204).send();
-  } catch (error) {
-    res.status(400).json({ error: 'Ekipman silinemedi' });
-  }
-});
-
-router.delete('/statuses/:statusId', async (req: AuthRequest, res) => {
+router.delete('/statuses/:statusId', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const companyId = getCompanyId(req);
     await (prisma as any).equipmentStatus.deleteMany({
@@ -165,65 +196,24 @@ router.delete('/statuses/:statusId', async (req: AuthRequest, res) => {
     });
     res.status(204).send();
   } catch (error) {
-    res.status(400).json({ error: 'Durum kaydi silinemedi' });
+    res.status(400).json({ error: 'Durum kaydı silinemedi' });
   }
 });
 
-router.post('/reorder', async (req: AuthRequest, res) => {
+// REORDER ROUTES
+router.post('/reorder', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const companyId = getCompanyId(req);
     const ids = Array.isArray(req.body.ids) ? req.body.ids : [];
     await prisma.$transaction(ids.map((id: string, index: number) =>
-      (prisma as any).equipment.updateMany({
+      (prisma as any).equipmentType.updateMany({
         where: { id, companyId },
         data: { displayOrder: index }
       })
     ));
     res.json({ success: true });
   } catch (error) {
-    res.status(400).json({ error: 'Siralama kaydedilemedi' });
-  }
-});
-
-router.post('/bulk-delete', async (req: AuthRequest, res) => {
-  try {
-    const companyId = getCompanyId(req);
-    await (prisma as any).equipment.deleteMany({
-      where: { id: { in: req.body.ids || [] }, companyId }
-    });
-    res.json({ success: true });
-  } catch (error) {
-    res.status(400).json({ error: 'Toplu silme basarisiz oldu' });
-  }
-});
-
-router.post('/bulk-update-status', async (req: AuthRequest, res) => {
-  try {
-    const companyId = getCompanyId(req);
-    await (prisma as any).equipment.updateMany({
-      where: { id: { in: req.body.ids || [] }, companyId },
-      data: { status: req.body.status }
-    });
-    res.json({ success: true });
-  } catch (error) {
-    res.status(400).json({ error: 'Toplu durum guncelleme basarisiz oldu' });
-  }
-});
-
-router.post('/bulk-update', async (req: AuthRequest, res) => {
-  try {
-    const companyId = getCompanyId(req);
-    const updates = Array.isArray(req.body.updates) ? req.body.updates : [];
-    await prisma.$transaction(updates.map((update: any) => {
-      const { id, data } = update;
-      return (prisma as any).equipment.updateMany({
-        where: { id, companyId },
-        data: cleanEquipmentPayload(data)
-      });
-    }));
-    res.json({ success: true });
-  } catch (error) {
-    res.status(400).json({ error: 'Toplu guncelleme basarisiz oldu' });
+    res.status(400).json({ error: 'Sıralama kaydedilemedi' });
   }
 });
 

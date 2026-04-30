@@ -75,8 +75,8 @@ export function StockMovements() {
     const endTime = filters.endDate ? new Date(filters.endDate).setHours(23, 59, 59, 999) : null;
 
     return movements.filter((move) => {
-      const productCode = normalize(move.product?.productCode);
-      const productName = normalize(move.product?.productName);
+      const itemCode = normalize(move.product?.productCode || move.toolType?.code || move.equipmentType?.code);
+      const itemName = normalize(move.product?.productName || move.toolType?.name || move.equipmentType?.name);
       const lot = normalize(move.lotNumber);
       const reference = normalize(move.referenceId);
       const description = normalize(move.description);
@@ -85,15 +85,15 @@ export function StockMovements() {
       const movementTime = new Date(move.createdAt).getTime();
 
       const matchesSearch = !search ||
-        productCode.includes(search) ||
-        productName.includes(search) ||
+        itemCode.includes(search) ||
+        itemName.includes(search) ||
         lot.includes(search) ||
         reference.includes(search) ||
         description.includes(search) ||
         fromWarehouse.includes(search) ||
         toWarehouse.includes(search) ||
         normalize(move.type).includes(search);
-      const matchesProduct = !product || productCode.includes(product) || productName.includes(product);
+      const matchesProduct = !product || itemCode.includes(product) || itemName.includes(product);
       const matchesLot = !lotNumber || lot.includes(lotNumber);
       const matchesReference = !referenceId || reference.includes(referenceId);
       const matchesType = !filters.type || filters.type === 'all' || move.type === filters.type;
@@ -189,14 +189,14 @@ export function StockMovements() {
               icon={Search}
               label="Genel Arama"
               value={filters.search}
-              placeholder="Kod, ürün, lot, açıklama..."
+              placeholder="Kod, kalem, lot, açıklama..."
               onChange={(value: string) => updateFilter('search', value)}
             />
             <FilterInput
               icon={Package}
-              label="Ürün Bazında"
+              label="Kalem Bazında"
               value={filters.product}
-              placeholder="Ürün kodu veya adı"
+              placeholder="Kod veya ad"
               onChange={(value: string) => updateFilter('product', value)}
             />
             <FilterInput
@@ -252,7 +252,7 @@ export function StockMovements() {
             <thead>
               <tr className="bg-theme-surface/50">
                 <th className="px-8 py-5 text-[11px] font-black text-theme-dim">Tarih</th>
-                <th className="px-8 py-5 text-[11px] font-black text-theme-dim">Ürün</th>
+                <th className="px-8 py-5 text-[11px] font-black text-theme-dim">Kalem</th>
                 <th className="px-8 py-5 text-[11px] font-black text-theme-dim ">Giriş No</th>
                 <th className="px-8 py-5 text-[11px] font-black text-theme-dim ">Tip</th>
                 <th className="px-8 py-5 text-[11px] font-black text-theme-dim ">Nereden / Nereye</th>
@@ -262,86 +262,92 @@ export function StockMovements() {
               </tr>
             </thead>
             <tbody className="divide-y divide-theme/20">
-              {paginatedMovements.map((move) => (
-                <tr key={move.id} className="hover:bg-theme-main/5 transition-all group">
-                  <td className="px-8 py-5">
-                    <div className="flex flex-col">
-                      <span className="text-xs font-bold text-theme-main">
-                        {format(new Date(move.createdAt), 'dd MMMM yyyy', { locale: tr })}
-                      </span>
-                      <span className="text-[10px] text-theme-muted font-bold">
-                        {format(new Date(move.createdAt), 'HH:mm')}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-8 py-5">
-                    <div className="flex flex-col">
-                      <span className="text-xs font-black text-theme-main">{move.product.productCode}</span>
-                      <span className="text-[10px] text-theme-muted font-bold truncate max-w-[240px]">{move.product.productName}</span>
-                    </div>
-                  </td>
-                  <td className="px-8 py-5 text-[10px] font-black text-theme-dim uppercase">
-                    {move.lotNumber || '-'}
-                  </td>
-                  <td className="px-8 py-5">
-                    <MovementTypeBadge type={move.type} />
-                  </td>
-                  <td className="px-8 py-5">
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs font-bold text-theme-main">{move.fromWarehouse?.name || '-'}</span>
-                      <ArrowRightLeft size={12} className="text-theme-dim opacity-90" />
-                      <span className="text-xs font-bold text-theme-main">{move.toWarehouse?.name || '-'}</span>
-                    </div>
-                  </td>
-                  <td className="px-8 py-5">
-                    <div className="flex items-center gap-3">
-                      {move.referenceId && (
-                        <div className="opacity-50 group-hover:opacity-100 transition-opacity">
-                          <Tooltip content="Kayda Git">
-                            <button
-                              onClick={() => handleReferenceClick(move)}
-                              className="p-1.5 rounded-lg bg-theme-surface border border-theme text-theme-dim hover:text-theme-primary hover:border-theme-primary/30 hover:bg-theme-primary/10 transition-all flex items-center justify-center shadow-sm"
-                            >
-                              <Eye size={13} strokeWidth={2.5} />
-                            </button>
-                          </Tooltip>
-                        </div>
-                      )}
-                      <div className="flex flex-col flex-1">
-                        <span className="text-[10px] font-black text-theme-dim uppercase">
-                          {move.type === 'CONSUMPTION_TRANSACTION' ? 'TÜKETİM İŞLEMİ' : (move.type.includes('PRODUCTION') || move.type === 'CONSUMPTION' ? 'ÜRETİM EMRİ' : (move.referenceId || '-'))}
+              {paginatedMovements.map((move) => {
+                const itemCode = move.product?.productCode || move.toolType?.code || move.equipmentType?.code || '-';
+                const itemName = move.product?.productName || move.toolType?.name || move.equipmentType?.name || '-';
+                const unit = move.unit || move.product?.unitOfMeasure || 'Adet';
+
+                return (
+                  <tr key={move.id} className="hover:bg-theme-main/5 transition-all group">
+                    <td className="px-8 py-5">
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-theme-main">
+                          {format(new Date(move.createdAt), 'dd MMMM yyyy', { locale: tr })}
                         </span>
-                        {move.description && (
-                          <span className="text-[10px] font-bold text-theme-muted truncate max-w-[200px]">{move.description}</span>
-                        )}
+                        <span className="text-[10px] text-theme-muted font-bold">
+                          {format(new Date(move.createdAt), 'HH:mm')}
+                        </span>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-8 py-5 text-right">
-                    <span className={`text-sm font-black ${move.toWarehouseId ? 'text-theme-success' : 'text-theme-danger'}`}>
-                      {move.toWarehouseId ? '+' : '-'}
-                      {(() => {
-                        const isKg = move.product?.unitOfMeasure?.toLowerCase() === 'kilogram' || move.product?.unitOfMeasure?.toLowerCase() === 'kg';
-                        if (isKg && move.quantity > 0 && move.quantity < 1) {
-                           return (move.quantity * 1000).toLocaleString(undefined, { maximumFractionDigits: 4 });
-                        }
-                        return move.quantity.toLocaleString(undefined, { maximumFractionDigits: 4 });
-                      })()}
-                    </span>
-                  </td>
-                  <td className="px-8 py-5 text-left">
-                    <span className="text-[10px] font-bold text-theme-muted">
-                      {(() => {
-                        const isKg = move.product?.unitOfMeasure?.toLowerCase() === 'kilogram' || move.product?.unitOfMeasure?.toLowerCase() === 'kg';
-                        if (isKg && move.quantity > 0 && move.quantity < 1) {
-                           return 'Gram';
-                        }
-                        return move.product?.unitOfMeasure || '-';
-                      })()}
-                    </span>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-8 py-5">
+                      <div className="flex flex-col">
+                        <span className="text-xs font-black text-theme-main">{itemCode}</span>
+                        <span className="text-[10px] text-theme-muted font-bold truncate max-w-[240px]">{itemName}</span>
+                      </div>
+                    </td>
+                    <td className="px-8 py-5 text-[10px] font-black text-theme-dim uppercase">
+                      {move.lotNumber || '-'}
+                    </td>
+                    <td className="px-8 py-5">
+                      <MovementTypeBadge type={move.type} />
+                    </td>
+                    <td className="px-8 py-5">
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs font-bold text-theme-main">{move.fromWarehouse?.name || '-'}</span>
+                        <ArrowRightLeft size={12} className="text-theme-dim opacity-90" />
+                        <span className="text-xs font-bold text-theme-main">{move.toWarehouse?.name || '-'}</span>
+                      </div>
+                    </td>
+                    <td className="px-8 py-5">
+                      <div className="flex items-center gap-3">
+                        {move.referenceId && (
+                          <div className="opacity-50 group-hover:opacity-100 transition-opacity">
+                            <Tooltip content="Kayda Git">
+                              <button
+                                onClick={() => handleReferenceClick(move)}
+                                className="p-1.5 rounded-lg bg-theme-surface border border-theme text-theme-dim hover:text-theme-primary hover:border-theme-primary/30 hover:bg-theme-primary/10 transition-all flex items-center justify-center shadow-sm"
+                              >
+                                <Eye size={13} strokeWidth={2.5} />
+                              </button>
+                            </Tooltip>
+                          </div>
+                        )}
+                        <div className="flex flex-col flex-1">
+                          <span className="text-[10px] font-black text-theme-dim uppercase">
+                            {move.type === 'CONSUMPTION_TRANSACTION' ? 'TÜKETİM İŞLEMİ' : (move.type.includes('PRODUCTION') || move.type === 'CONSUMPTION' ? 'ÜRETİM EMRİ' : (move.referenceId || '-'))}
+                          </span>
+                          {move.description && (
+                            <span className="text-[10px] font-bold text-theme-muted truncate max-w-[200px]">{move.description}</span>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-8 py-5 text-right">
+                      <span className={`text-sm font-black ${move.toWarehouseId ? 'text-theme-success' : 'text-theme-danger'}`}>
+                        {move.toWarehouseId ? '+' : '-'}
+                        {(() => {
+                          const isKg = unit.toLowerCase() === 'kilogram' || unit.toLowerCase() === 'kg';
+                          if (isKg && move.quantity > 0 && move.quantity < 1) {
+                             return (move.quantity * 1000).toLocaleString(undefined, { maximumFractionDigits: 4 });
+                          }
+                          return move.quantity.toLocaleString(undefined, { maximumFractionDigits: 4 });
+                        })()}
+                      </span>
+                    </td>
+                    <td className="px-8 py-5 text-left">
+                      <span className="text-[10px] font-bold text-theme-muted">
+                        {(() => {
+                          const isKg = unit.toLowerCase() === 'kilogram' || unit.toLowerCase() === 'kg';
+                          if (isKg && move.quantity > 0 && move.quantity < 1) {
+                             return 'Gram';
+                          }
+                          return unit;
+                        })()}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
               {filteredMovements.length === 0 && (
                 <tr>
                   <td colSpan={8} className="px-8 py-32 text-center">
@@ -454,3 +460,5 @@ function MovementTypeBadge({ type }: { type: string }) {
     </span>
   );
 }
+
+export default StockMovements;

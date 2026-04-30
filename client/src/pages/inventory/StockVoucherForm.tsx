@@ -44,6 +44,12 @@ const controlStatuses = [
   { id: 'accepted', label: 'Kabul Edildi' }
 ];
 
+const itemTypes = [
+  { id: 'PRODUCT', label: 'Ürün' },
+  { id: 'TOOL', label: 'Ölçüm Cihazı' },
+  { id: 'EQUIPMENT', label: 'Ekipman' }
+];
+
 const baseUnitOptions = ['Adet', 'PCS', 'Kg', 'Gram', 'Metre', 'Litre'];
 
 const initialForm = {
@@ -60,7 +66,10 @@ const initialForm = {
 
 type VoucherLine = {
   clientId: string;
+  itemType: string;
   productId: string;
+  toolTypeId: string;
+  equipmentTypeId: string;
   lotNumber: string;
   quantity: string;
   unit: string;
@@ -75,7 +84,10 @@ const createClientId = () => {
 
 const createLine = (): VoucherLine => ({
   clientId: createClientId(),
+  itemType: 'PRODUCT',
   productId: '',
+  toolTypeId: '',
+  equipmentTypeId: '',
   lotNumber: '',
   quantity: '',
   unit: '',
@@ -88,6 +100,8 @@ export function StockVoucherForm() {
   const isEditing = Boolean(voucherNo);
 
   const [products, setProducts] = useState<any[]>([]);
+  const [toolTypes, setToolTypes] = useState<any[]>([]);
+  const [equipmentTypes, setEquipmentTypes] = useState<any[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [firms, setFirms] = useState<any[]>([]);
   const [stockLevels, setStockLevels] = useState<any[]>([]);
@@ -107,8 +121,10 @@ export function StockVoucherForm() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [productRes, warehouseRes, firmRes, levelRes, nextRes] = await Promise.all([
+        const [productRes, toolRes, equipRes, warehouseRes, firmRes, levelRes, nextRes] = await Promise.all([
           api.get('/products'),
+          api.get('/measurement-tools'),
+          api.get('/equipment'),
           api.get('/inventory/warehouses'),
           api.get('/firms'),
           api.get('/inventory/levels'),
@@ -116,6 +132,8 @@ export function StockVoucherForm() {
         ]);
 
         setProducts(Array.isArray(productRes) ? productRes : []);
+        setToolTypes(Array.isArray(toolRes) ? toolRes : []);
+        setEquipmentTypes(Array.isArray(equipRes) ? equipRes : []);
         setWarehouses(Array.isArray(warehouseRes) ? warehouseRes : []);
         setFirms(Array.isArray(firmRes) ? firmRes : []);
         setStockLevels(Array.isArray(levelRes) ? levelRes : []);
@@ -143,7 +161,10 @@ export function StockVoucherForm() {
           setNow(new Date(voucher.transactionDate));
           setLines(voucher.items.map((item: any) => ({
             clientId: createClientId(),
-            productId: item.productId,
+            itemType: item.itemType || 'PRODUCT',
+            productId: item.productId || '',
+            toolTypeId: item.toolTypeId || '',
+            equipmentTypeId: item.equipmentTypeId || '',
             lotNumber: item.lotNumber,
             quantity: String(item.quantity),
             unit: item.unit || '',
@@ -161,13 +182,15 @@ export function StockVoucherForm() {
     fetchData();
   }, [voucherNo, isEditing]);
 
-  const productOptions = useMemo(() => {
-    return products.map((product) => ({
-      id: product.id,
-      label: product.productName,
-      subLabel: product.productCode
-    }));
-  }, [products]);
+  const getOptionList = (itemType: string) => {
+    if (itemType === 'TOOL') {
+      return toolTypes.map(t => ({ id: t.id, label: t.name, subLabel: t.code || 'Ölçüm Cihazı' }));
+    }
+    if (itemType === 'EQUIPMENT') {
+      return equipmentTypes.map(e => ({ id: e.id, label: e.name, subLabel: e.code || 'Ekipman' }));
+    }
+    return products.map(p => ({ id: p.id, label: p.productName, subLabel: p.productCode }));
+  };
 
   const firmOptions = useMemo(() => {
     return [
@@ -202,10 +225,25 @@ export function StockVoucherForm() {
     setLines((prev) => prev.map((line) => {
       if (line.clientId !== clientId) return line;
       const nextLine = { ...line, ...patch };
-      if (patch.productId) {
-        const product = products.find((item) => item.id === patch.productId);
-        nextLine.unit = product?.unitOfMeasure || '';
+      
+      // Handle item change
+      if (patch.productId || patch.toolTypeId || patch.equipmentTypeId) {
+        if (nextLine.itemType === 'PRODUCT' && patch.productId) {
+          const product = products.find((item) => item.id === patch.productId);
+          nextLine.unit = product?.unitOfMeasure || '';
+        } else {
+          nextLine.unit = 'Adet'; // Default for tools/equipment
+        }
       }
+      
+      // Handle itemType change
+      if (patch.itemType) {
+        nextLine.productId = '';
+        nextLine.toolTypeId = '';
+        nextLine.equipmentTypeId = '';
+        nextLine.unit = patch.itemType === 'PRODUCT' ? '' : 'Adet';
+      }
+
       return nextLine;
     }));
   };
@@ -215,24 +253,28 @@ export function StockVoucherForm() {
   };
 
   const getAvailableQty = (line: VoucherLine) => {
-    if (!form.warehouseId || !line.productId) return 0;
+    if (!form.warehouseId) return 0;
+    const itemId = line.itemType === 'PRODUCT' ? line.productId : line.itemType === 'TOOL' ? line.toolTypeId : line.equipmentTypeId;
+    if (!itemId) return 0;
 
     return stockLevels
       .filter((level) =>
         level.warehouseId === form.warehouseId &&
-        level.productId === line.productId &&
+        (line.itemType === 'PRODUCT' ? level.productId === line.productId : line.itemType === 'TOOL' ? level.toolTypeId === line.toolTypeId : level.equipmentTypeId === line.equipmentTypeId) &&
         (!line.lotNumber || level.lotNumber === line.lotNumber)
       )
       .reduce((sum, level) => sum + Number(level.quantity || 0), 0);
   };
 
   const getLotOptions = (line: VoucherLine) => {
-    if (!form.warehouseId || !line.productId) return [];
+    if (!form.warehouseId) return [];
+    const itemId = line.itemType === 'PRODUCT' ? line.productId : line.itemType === 'TOOL' ? line.toolTypeId : line.equipmentTypeId;
+    if (!itemId) return [];
 
     return stockLevels
       .filter((level) =>
         level.warehouseId === form.warehouseId &&
-        level.productId === line.productId &&
+        (line.itemType === 'PRODUCT' ? level.productId === line.productId : line.itemType === 'TOOL' ? level.toolTypeId === line.toolTypeId : level.equipmentTypeId === line.equipmentTypeId) &&
         Number(level.quantity || 0) > 0
       )
       .map((level) => ({ lotNumber: level.lotNumber || '', quantity: Number(level.quantity || 0) }));
@@ -276,9 +318,12 @@ export function StockVoucherForm() {
     }
 
     const validLines = lines
-      .filter((line) => line.productId && Number(line.quantity) > 0)
+      .filter((line) => (line.productId || line.toolTypeId || line.equipmentTypeId) && Number(line.quantity) > 0)
       .map((line) => ({
-        productId: line.productId,
+        itemType: line.itemType,
+        productId: line.itemType === 'PRODUCT' ? line.productId : null,
+        toolTypeId: line.itemType === 'TOOL' ? line.toolTypeId : null,
+        equipmentTypeId: line.itemType === 'EQUIPMENT' ? line.equipmentTypeId : null,
         lotNumber: line.lotNumber.trim(),
         quantity: Number(line.quantity),
         unit: line.unit || null,
@@ -286,7 +331,7 @@ export function StockVoucherForm() {
       }));
 
     if (validLines.length === 0) {
-      notify.warning('Satır Ekleyin', 'En az bir ürün satırı girilmelidir.');
+      notify.warning('Satır Ekleyin', 'En az bir satır girilmelidir.');
       return;
     }
 
@@ -477,8 +522,9 @@ export function StockVoucherForm() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-theme-surface/60">
-                  <th className="px-4 py-3 text-[10px] font-black text-theme-dim min-w-[260px]">Ürün</th>
-                  <th className="px-4 py-3 text-[10px] font-black text-theme-dim min-w-[160px]">Lot Numarası</th>
+                  <th className="px-4 py-3 text-[10px] font-black text-theme-dim w-32">Tür</th>
+                  <th className="px-4 py-3 text-[10px] font-black text-theme-dim min-w-[260px]">Kalem</th>
+                  <th className="px-4 py-3 text-[10px] font-black text-theme-dim min-w-[160px]">Lot / Seri Numarası</th>
                   <th className="px-4 py-3 text-[10px] font-black text-theme-dim text-right min-w-[110px]">Mevcut</th>
                   <th className="px-4 py-3 text-[10px] font-black text-theme-dim min-w-[220px]">Miktar</th>
                   <th className="px-4 py-3 text-[10px] font-black text-theme-dim min-w-[180px]">Açıklama</th>
@@ -490,15 +536,29 @@ export function StockVoucherForm() {
                   const lotOptions = getLotOptions(line);
                   const availableQty = getAvailableQty(line);
                   const datalistId = `voucher-lots-${line.clientId}`;
+                  const currentItemId = line.itemType === 'PRODUCT' ? line.productId : line.itemType === 'TOOL' ? line.toolTypeId : line.equipmentTypeId;
 
                   return (
                     <tr key={line.clientId} className="bg-theme-base/20">
                       <td className="px-4 py-3 align-top">
                         <CustomSelect
-                          options={productOptions}
-                          value={line.productId}
-                          onChange={(value) => updateLine(line.clientId, { productId: String(value || ''), lotNumber: '' })}
-                          placeholder="Ürün Seçin"
+                          options={itemTypes}
+                          value={line.itemType}
+                          onChange={(value) => updateLine(line.clientId, { itemType: String(value || 'PRODUCT') })}
+                          searchable={false}
+                        />
+                      </td>
+                      <td className="px-4 py-3 align-top">
+                        <CustomSelect
+                          options={getOptionList(line.itemType)}
+                          value={currentItemId}
+                          onChange={(value) => {
+                            const val = String(value || '');
+                            if (line.itemType === 'PRODUCT') updateLine(line.clientId, { productId: val, lotNumber: '' });
+                            else if (line.itemType === 'TOOL') updateLine(line.clientId, { toolTypeId: val, lotNumber: '' });
+                            else if (line.itemType === 'EQUIPMENT') updateLine(line.clientId, { equipmentTypeId: val, lotNumber: '' });
+                          }}
+                          placeholder={`${itemTypes.find(t => t.id === line.itemType)?.label} Seçin`}
                         />
                       </td>
                       <td className="px-4 py-3 align-top">
@@ -507,7 +567,7 @@ export function StockVoucherForm() {
                           value={line.lotNumber}
                           onChange={(event) => updateLine(line.clientId, { lotNumber: event.target.value })}
                           className="w-full h-10 bg-theme-base border border-theme rounded-xl px-3 text-xs font-black text-theme-main outline-none focus:border-theme-primary transition-all uppercase"
-                          placeholder={isOutbound ? 'Lot seçin' : 'Lot girin'}
+                          placeholder={isOutbound ? 'Seç' : 'Gir'}
                         />
                         <datalist id={datalistId}>
                           {lotOptions.map((lot) => (
@@ -532,7 +592,7 @@ export function StockVoucherForm() {
                             onChange={(event) => updateLine(line.clientId, { quantity: event.target.value })}
                             className="w-full h-10 bg-theme-base border border-theme rounded-xl px-3 text-xs font-black text-theme-main outline-none focus:border-theme-primary transition-all text-right"
                           />
-                          <div className="w-36 shrink-0">
+                          <div className="w-44 shrink-0">
                             <CustomSelect
                               options={Array.from(new Set([...baseUnitOptions, line.unit])).filter(Boolean).map(u => ({ id: u, label: u }))}
                               value={line.unit}
