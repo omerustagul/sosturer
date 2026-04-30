@@ -700,15 +700,13 @@ export function OvertimeList() {
                           <Edit2 size={16} />
                         </button>
                         <div className="w-40 h-9 flex items-center justify-center rounded-xl">
-                          <CustomSelect
-                            options={Object.entries(statusConfig).map(([val, cfg]) => ({
+                          <CustomSelect options={Object.entries(statusConfig).map(([val, cfg]) => ({
                               id: val,
                               label: cfg.label
                             }))}
                             value={plan.status}
                             onChange={(val) => updateStatus(plan.id, val)}
-                            searchable={false}
-                          />
+                            searchable={false} />
                         </div>
                         <button
                           onClick={() => deletePlan(plan.id)}
@@ -730,19 +728,7 @@ export function OvertimeList() {
               <div className="flex items-center gap-2">
                 <span className="text-[11px] font-black text-theme-dim whitespace-nowrap">Sayfada Görüntülenen:</span>
                 <div className="min-w-fit">
-                  <CustomSelect
-                    options={[
-                      { id: 20, label: '20' },
-                      { id: 50, label: '50' },
-                      { id: 250, label: '250' },
-                      { id: 500, label: '500' },
-                      { id: 1000, label: '1000' },
-                      { id: 999999, label: 'Tümü' }
-                    ]}
-                    value={pageSize}
-                    onChange={value => handlePageSizeChange(Number(value))}
-                    searchable={false}
-                  />
+                  <CustomSelect fullWidth={false} options={[ { id: 20, label: '20' }, { id: 50, label: '50' }, { id: 250, label: '250' }, { id: 500, label: '500' }, { id: 1000, label: '1000' }, { id: 999999, label: 'Tümü' } ]} value={pageSize} onChange={value => handlePageSizeChange(Number(value))} searchable={false} />
                 </div>
               </div>
               <div className="h-4 w-px bg-theme hidden md:block" />

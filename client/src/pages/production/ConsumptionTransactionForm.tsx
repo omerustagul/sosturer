@@ -182,6 +182,14 @@ export function ConsumptionTransactionForm() {
     }));
   }, [productionOrders]);
 
+  const lotOptions = useMemo(() => {
+    return stockLots.map((lot) => ({
+      id: lot.lotNumber || '',
+      label: lot.lotNumber || 'Lotsuz',
+      subLabel: `${Number(lot.quantity || 0).toLocaleString('tr-TR')} ${selectedProduct?.unitOfMeasure || form.unit || ''}`.trim()
+    }));
+  }, [stockLots, selectedProduct, form.unit]);
+
   const selectedOrders = productionOrders.filter((order) => form.orderIds.includes(order.id));
 
   const updateForm = (patch: Partial<FormState>) => {
@@ -312,23 +320,13 @@ export function ConsumptionTransactionForm() {
               <CustomSelect options={warehouseOptions} value={form.warehouseId} onChange={(value) => updateForm({ warehouseId: String(value || ''), lotNumber: '' })} placeholder="Depo seçin" />
             </Field>
             <Field label="Giriş No">
-              <div className="relative">
-                <input
-                  list="consumption-lots"
-                  value={form.lotNumber}
-                  onChange={(event) => updateForm({ lotNumber: event.target.value })}
-                  className="w-full h-10 bg-theme-base border border-theme rounded-xl px-3 text-xs font-black text-theme-main outline-none focus:border-theme-primary transition-all uppercase"
-                  placeholder={loadingLots ? 'Lotlar yükleniyor' : 'Giriş no seçin'}
-                  disabled={!form.productId || !form.warehouseId}
-                />
-                <datalist id="consumption-lots">
-                  {stockLots.map((lot) => (
-                    <option key={`${lot.lotNumber || 'lotsuz'}-${lot.quantity}`} value={lot.lotNumber || ''}>
-                      {`${lot.lotNumber || 'Lotsuz'} - ${Number(lot.quantity || 0).toLocaleString('tr-TR')}`}
-                    </option>
-                  ))}
-                </datalist>
-              </div>
+              <CustomSelect
+                options={lotOptions}
+                value={form.lotNumber}
+                onChange={(value) => updateForm({ lotNumber: String(value || '') })}
+                placeholder={loadingLots ? 'Lotlar yükleniyor...' : 'Giriş no seçin'}
+                disabled={!form.productId || !form.warehouseId}
+              />
             </Field>
             <Field label="Seri No">
               <input value={form.serialNo} onChange={(event) => updateForm({ serialNo: event.target.value })} className="form-input h-10 text-xs" placeholder="Elle girilebilir" />
@@ -424,7 +422,7 @@ export function ConsumptionTransactionForm() {
 
           {activeTab === 'notes' && (
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-theme-dim uppercase tracking-widest">Notlar</label>
+              <label className="text-[10px] font-black text-theme-dim">Notlar</label>
               <textarea
                 value={form.notes}
                 onChange={(event) => updateForm({ notes: event.target.value })}
@@ -444,7 +442,7 @@ export function ConsumptionTransactionForm() {
           className="h-11 px-7 rounded-xl bg-theme-primary text-white hover:bg-theme-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 text-xs font-black uppercase tracking-widest shadow-lg shadow-theme-primary/20"
         >
           {saving ? <RefreshCw size={16} className="animate-spin" /> : <Plus size={16} />}
-          {isEditing ? 'Güncelle' : 'Kaydet'}
+          {isEditing ? 'Güncelle' : 'Oluştur'}
         </button>
       </div>
     </div>
@@ -454,7 +452,7 @@ export function ConsumptionTransactionForm() {
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="space-y-1 min-w-0">
-      <span className="text-[10px] font-black text-theme-dim uppercase tracking-widest">{label}</span>
+      <span className="text-[11px] font-black text-theme-dim">{label}</span>
       {children}
     </div>
   );
@@ -477,7 +475,7 @@ function TabButton({ active, onClick, icon: Icon, label }: { active: boolean; on
       onClick={onClick}
       className={`flex items-center gap-2 pb-2 border-b-2 transition-all whitespace-nowrap text-[10px] uppercase tracking-[0.05em] ${active ? 'border-theme-primary text-theme-primary font-black' : 'border-transparent text-theme-muted hover:text-theme-dim font-bold'}`}
     >
-      <Icon className={`w-4 h-4 ${active ? 'opacity-100' : 'opacity-40'}`} />
+      <Icon className={`w-4 h-4 mb-0.5 ${active ? 'opacity-100' : 'opacity-40'}`} />
       {label}
     </button>
   );

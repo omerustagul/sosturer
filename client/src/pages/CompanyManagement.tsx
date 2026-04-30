@@ -850,24 +850,20 @@ function NextGenUnits({ units, locations, onAdd, onDelete, onUpdate, onRefreshLo
               className="next-gen-input text-xs font-bold"
               placeholder="Lokasyon adı (örn. Üretim Fabrikası)"
             />
-            <CustomSelect
-              value={newLocationType}
+            <CustomSelect value={newLocationType}
               onChange={setNewLocationType}
               options={UNIT_TYPES.map((t) => ({ id: t.id, label: t.label }))}
-              searchable={false}
-            />
+              searchable={false} />
             <input
               value={newLocationCode}
               onChange={(e) => setNewLocationCode(e.target.value)}
               className="next-gen-input text-xs font-bold"
               placeholder="Lokasyon kodu (örn. TR-IZM-01)"
             />
-            <CustomSelect
-              value={newOperationalStatus}
+            <CustomSelect value={newOperationalStatus}
               onChange={setNewOperationalStatus}
               options={OPERATIONAL_STATUS.map((o) => ({ id: o.id, label: o.label }))}
-              searchable={false}
-            />
+              searchable={false} />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
             <input
@@ -956,24 +952,20 @@ function NextGenUnits({ units, locations, onAdd, onDelete, onUpdate, onRefreshLo
                       className="next-gen-input text-xs font-bold"
                       placeholder="Lokasyon adı"
                     />
-                    <CustomSelect
-                      value={editingLocationType}
+                    <CustomSelect value={editingLocationType}
                       onChange={(val) => setEditingLocationType(String(val))}
                       options={UNIT_TYPES.map((t) => ({ id: t.id, label: t.label }))}
-                      searchable={false}
-                    />
+                      searchable={false} />
                     <input
                       value={editingLocationCode}
                       onChange={(e) => setEditingLocationCode(e.target.value)}
                       className="next-gen-input text-xs font-bold"
                       placeholder="Lokasyon kodu"
                     />
-                    <CustomSelect
-                      value={editingOperationalStatus}
+                    <CustomSelect value={editingOperationalStatus}
                       onChange={setEditingOperationalStatus}
                       options={OPERATIONAL_STATUS.map((o) => ({ id: o.id, label: o.label }))}
-                      searchable={false}
-                    />
+                      searchable={false} />
                     <input
                       value={editingLocationAddress}
                       onChange={(e) => setEditingLocationAddress(e.target.value)}
@@ -1165,17 +1157,13 @@ function NextGenUnits({ units, locations, onAdd, onDelete, onUpdate, onRefreshLo
                       className="next-gen-input text-xs font-black"
                       placeholder="Birim kodu (örn. CNC-GRP)"
                     />
-                    <CustomSelect
-                      value={unit.status || 'active'}
+                    <CustomSelect value={unit.status || 'active'}
                       options={OPERATIONAL_STATUS.map((o) => ({ id: o.id, label: o.label }))}
                       onChange={val => onUpdate(units.map((u: any) => u.id === unit.id ? { ...u, status: String(val) } : u))}
-                      searchable={false}
-                    />
-                    <CustomSelect
-                      value={unit.locationId || '__none__'}
+                      searchable={false} />
+                    <CustomSelect value={unit.locationId || '__none__'}
                       options={locationOptions}
-                      onChange={val => onUpdate(units.map((u: any) => u.id === unit.id ? { ...u, locationId: val === '__none__' ? null : val } : u))}
-                    />
+                      onChange={val => onUpdate(units.map((u: any) => u.id === unit.id ? { ...u, locationId: val === '__none__' ? null : val } : u))} />
                     <input
                       type="date"
                       value={dateInputValue(unit.openingDate)}
@@ -1332,12 +1320,10 @@ function NextGenUnits({ units, locations, onAdd, onDelete, onUpdate, onRefreshLo
                       </td>
                       <td className="px-2 py-3 min-w-[120px]">
                         {isInlineEditing ? (
-                          <CustomSelect
-                            value={localChanges[unit.id]?.status ?? (unit.status || 'active')}
+                          <CustomSelect value={localChanges[unit.id]?.status ?? (unit.status || 'active')}
                             options={OPERATIONAL_STATUS.map((o) => ({ id: o.id, label: o.label }))}
                             onChange={val => setLocalChanges((prev: any) => ({ ...prev, [unit.id]: { ...(prev[unit.id] || {}), status: String(val) } }))}
-                            searchable={false}
-                          />
+                            searchable={false} />
                         ) : (
                           <span className="text-[10px] font-black text-theme-dim uppercase">{operationalStatusLabel(unit.status)}</span>
                         )}
@@ -1361,11 +1347,9 @@ function NextGenUnits({ units, locations, onAdd, onDelete, onUpdate, onRefreshLo
                       </td>
                       <td className="px-2 py-3">
                         {isInlineEditing ? (
-                          <CustomSelect
-                            value={localChanges[unit.id]?.locationId ?? (unit.locationId || '__none__')}
+                          <CustomSelect value={localChanges[unit.id]?.locationId ?? (unit.locationId || '__none__')}
                             options={locationOptions}
-                            onChange={val => setLocalChanges((prev: any) => ({ ...prev, [unit.id]: { ...(prev[unit.id] || {}), locationId: val === '__none__' ? null : val } }))}
-                          />
+                            onChange={val => setLocalChanges((prev: any) => ({ ...prev, [unit.id]: { ...(prev[unit.id] || {}), locationId: val === '__none__' ? null : val } }))} />
                         ) : (
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-semibold text-theme-main">{linkedLocation?.name || '-'}</span>
@@ -1394,22 +1378,7 @@ function NextGenUnits({ units, locations, onAdd, onDelete, onUpdate, onRefreshLo
           <div className="flex items-center gap-2">
             <span className="text-[11px] font-black text-theme-dim whitespace-nowrap">Sayfada Görüntülenen:</span>
             <div className="min-w-fit">
-              <CustomSelect
-                options={[
-                  { id: 20, label: '20' },
-                  { id: 50, label: '50' },
-                  { id: 250, label: '250' },
-                  { id: 500, label: '500' },
-                  { id: 1000, label: '1000' },
-                  { id: 999999, label: 'Tümü' }
-                ]}
-                value={pageSize}
-                onChange={value => {
-                  setPageSize(Number(value));
-                  setCurrentPage(0);
-                }}
-                searchable={false}
-              />
+              <CustomSelect fullWidth={false} options={[ { id: 20, label: '20' }, { id: 50, label: '50' }, { id: 250, label: '250' }, { id: 500, label: '500' }, { id: 1000, label: '1000' }, { id: 999999, label: 'Tümü' } ]} value={pageSize} onChange={value => { setPageSize(Number(value)); setCurrentPage(0); }} searchable={false} />
             </div>
           </div>
           <div className="h-4 w-px bg-theme hidden md:block" />

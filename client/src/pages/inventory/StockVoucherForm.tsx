@@ -44,6 +44,8 @@ const controlStatuses = [
   { id: 'accepted', label: 'Kabul Edildi' }
 ];
 
+const baseUnitOptions = ['Adet', 'PCS', 'Kg', 'Gram', 'Metre', 'Litre'];
+
 const initialForm = {
   voucherType: 'ENTRY',
   firmId: '',
@@ -478,7 +480,7 @@ export function StockVoucherForm() {
                   <th className="px-4 py-3 text-[10px] font-black text-theme-dim min-w-[260px]">Ürün</th>
                   <th className="px-4 py-3 text-[10px] font-black text-theme-dim min-w-[160px]">Lot Numarası</th>
                   <th className="px-4 py-3 text-[10px] font-black text-theme-dim text-right min-w-[110px]">Mevcut</th>
-                  <th className="px-4 py-3 text-[10px] font-black text-theme-dim min-w-[140px]">Miktar</th>
+                  <th className="px-4 py-3 text-[10px] font-black text-theme-dim min-w-[220px]">Miktar</th>
                   <th className="px-4 py-3 text-[10px] font-black text-theme-dim min-w-[180px]">Açıklama</th>
                   <th className="px-4 py-3 text-center text-[10px] font-black text-theme-dim w-16">İşlem</th>
                 </tr>
@@ -530,7 +532,15 @@ export function StockVoucherForm() {
                             onChange={(event) => updateLine(line.clientId, { quantity: event.target.value })}
                             className="w-full h-10 bg-theme-base border border-theme rounded-xl px-3 text-xs font-black text-theme-main outline-none focus:border-theme-primary transition-all text-right"
                           />
-                          {line.unit && <span className="h-10 px-2 rounded-xl bg-theme-main/5 border border-theme text-theme-dim text-[10px] font-black flex items-center">{line.unit}</span>}
+                          <div className="w-36 shrink-0">
+                            <CustomSelect
+                              options={Array.from(new Set([...baseUnitOptions, line.unit])).filter(Boolean).map(u => ({ id: u, label: u }))}
+                              value={line.unit}
+                              onChange={(value) => updateLine(line.clientId, { unit: String(value || '') })}
+                              searchable={false}
+                              placeholder="Birim"
+                            />
+                          </div>
                         </div>
                       </td>
                       <td className="px-4 py-3 align-top">

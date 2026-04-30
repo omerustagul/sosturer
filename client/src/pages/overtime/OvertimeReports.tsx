@@ -124,39 +124,31 @@ export function OvertimeReports() {
           </div>
           <div>
             <label className="label-sm mb-1 block">Personel</label>
-            <CustomSelect
-              options={[{ id: '', label: 'Tümü' }, ...operators.map(o => ({ id: o.id, label: o.fullName }))]}
+            <CustomSelect options={[{ id: '', label: 'Tümü' }, ...operators.map(o => ({ id: o.id, label: o.fullName }))]}
               value={operatorId}
               onChange={(val) => setOperatorId(val)}
-              searchable={true}
-            />
+              searchable={true} />
           </div>
           <div>
             <label className="label-sm mb-1 block">Makine</label>
-            <CustomSelect
-              options={[{ id: '', label: 'Tümü' }, ...machines.map(m => ({ id: m.id, label: m.name }))]}
+            <CustomSelect options={[{ id: '', label: 'Tümü' }, ...machines.map(m => ({ id: m.id, label: m.name }))]}
               value={machineId}
               onChange={(val) => setMachineId(val)}
-              searchable={true}
-            />
+              searchable={true} />
           </div>
           <div>
             <label className="label-sm mb-1 block">Ürün</label>
-            <CustomSelect
-              options={[{ id: '', label: 'Tümü' }, ...products.map(p => ({ id: p.id, label: p.productName }))]}
+            <CustomSelect options={[{ id: '', label: 'Tümü' }, ...products.map(p => ({ id: p.id, label: p.productName }))]}
               value={productId}
               onChange={(val) => setProductId(val)}
-              searchable={true}
-            />
+              searchable={true} />
           </div>
           <div>
             <label className="label-sm mb-1 block">Vardiya</label>
-            <CustomSelect
-              options={[{ id: '', label: 'Tümü' }, ...shifts.map(s => ({ id: s.id, label: s.shiftName }))]}
+            <CustomSelect options={[{ id: '', label: 'Tümü' }, ...shifts.map(s => ({ id: s.id, label: s.shiftName }))]}
               value={shiftId}
               onChange={(val) => setShiftId(val)}
-              searchable={false}
-            />
+              searchable={false} />
           </div>
         </div>
         <div className="flex items-center gap-3 mt-5">
@@ -261,22 +253,7 @@ export function OvertimeReports() {
                 <div className="flex items-center gap-2">
                   <span className="text-[11px] font-black text-theme-dim whitespace-nowrap">Sayfada Görüntülenen:</span>
                   <div className="min-w-fit">
-                    <CustomSelect
-                      options={[
-                        { id: 20, label: '20' },
-                        { id: 50, label: '50' },
-                        { id: 250, label: '250' },
-                        { id: 500, label: '500' },
-                        { id: 1000, label: '1000' },
-                        { id: 999999, label: 'Tümü' }
-                      ]}
-                      value={pageSize}
-                      onChange={value => {
-                        setPageSize(Number(value));
-                        setCurrentPage(0);
-                      }}
-                      searchable={false}
-                    />
+                    <CustomSelect fullWidth={false} options={[ { id: 20, label: '20' }, { id: 50, label: '50' }, { id: 250, label: '250' }, { id: 500, label: '500' }, { id: 1000, label: '1000' }, { id: 999999, label: 'Tümü' } ]} value={pageSize} onChange={(value) => { setPageSize(Number(value)); setCurrentPage(0); }} searchable={false} />
                   </div>
                 </div>
                 <div className="h-4 w-px bg-theme hidden md:block" />

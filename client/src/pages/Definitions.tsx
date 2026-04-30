@@ -45,7 +45,7 @@ export function Definitions() {
     { id: 'operations', label: 'Operasyonlar', icon: Workflow, indent: true },
     { id: 'routes', label: 'Reçeteler', icon: Map, indent: true },
     { id: 'consumption-types', label: 'Tüketim Tipleri', icon: ClipboardList, indent: true },
-    { id: 'measurement-tools', label: 'Ölçüm Araçları', icon: Activity, indent: true },
+    { id: 'measurement-tools', label: 'Ölçüm Aracı Türleri', icon: Activity, indent: true },
     { id: 'equipment', label: 'Ekipmanlar', icon: Wrench, indent: true },
     { id: 'event-groups', label: 'Olay Grupları', icon: Layers, indent: true },
     { id: 'event-reasons', label: 'Olay Sebepleri', icon: AlertCircle, indent: true },
@@ -702,7 +702,7 @@ export function Definitions() {
     return [
       { id: '', label: 'Birim Bağlantısı Yok' },
       ...unitOptionsByLocation.flatMap(g =>
-        g.units.map(u => ({ id: u.id, label: u.label, subLabel: `📍 ${g.locationName}` }))
+        g.units.map(u => ({ id: u.id, label: u.label, subLabel: `${g.locationName}` }))
       )
     ];
   }, [unitOptionsByLocation]);
@@ -811,52 +811,43 @@ export function Definitions() {
           {['machines', 'operators', 'work-centers', 'stations', 'department-roles', 'operations', 'plan-types'].includes(activeTab) && (
             <div className="flex-1 min-w-[200px]">
               <label className="text-[10px] font-black text-theme-dim mb-1.5 block uppercase ml-1">Departman Filtresi</label>
-              <CustomSelect
-                options={[{ id: '', label: 'Tüm Departmanlar' }, ...departments.map(d => ({ id: d.id, label: d.name }))]}
+              <CustomSelect options={[{ id: '', label: 'Tüm Departmanlar' }, ...departments.map(d => ({ id: d.id, label: d.name }))]}
                 value={deptFilter}
                 onChange={setDeptFilter}
-                placeholder="Seçiniz..."
-              />
+                placeholder="Seçiniz..." />
             </div>
           )}
           {['machines', 'work-centers', 'warehouses'].includes(activeTab) && (
             <div className="flex-1 min-w-[200px]">
               <label className="text-[10px] font-black text-theme-dim mb-1.5 block uppercase ml-1">Lokasyon Filtresi</label>
-              <CustomSelect
-                options={[{ id: '', label: 'Tüm Lokasyonlar' }, ...companyLocations.map(l => ({ id: l.id, label: l.name }))]}
+              <CustomSelect options={[{ id: '', label: 'Tüm Lokasyonlar' }, ...companyLocations.map(l => ({ id: l.id, label: l.name }))]}
                 value={locFilter}
                 onChange={setLocFilter}
-                placeholder="Seçiniz..."
-              />
+                placeholder="Seçiniz..." />
             </div>
           )}
           {activeTab === 'operators' && (
             <div className="flex-1 min-w-[200px]">
               <label className="text-[10px] font-black text-theme-dim mb-1.5 block uppercase ml-1">Rol Filtresi</label>
-              <CustomSelect
-                options={[{ id: '', label: 'Tüm Roller' }, ...roles.map(r => ({ id: r.id, label: r.name }))]}
+              <CustomSelect options={[{ id: '', label: 'Tüm Roller' }, ...roles.map(r => ({ id: r.id, label: r.name }))]}
                 value={roleFilter}
                 onChange={setRoleFilter}
-                placeholder="Seçiniz..."
-              />
+                placeholder="Seçiniz..." />
             </div>
           )}
           {activeTab === 'stations' && (
             <div className="flex-1 min-w-[200px]">
               <label className="text-[10px] font-black text-theme-dim mb-1.5 block uppercase ml-1">İş Merkezi Filtresi</label>
-              <CustomSelect
-                options={[{ id: '', label: 'Tüm İş Merkezleri' }, ...departments.map(d => ({ id: d.id, label: d.name }))]}
+              <CustomSelect options={[{ id: '', label: 'Tüm İş Merkezleri' }, ...departments.map(d => ({ id: d.id, label: d.name }))]}
                 value={parentFilter}
                 onChange={setParentFilter}
-                placeholder="Seçiniz..."
-              />
+                placeholder="Seçiniz..." />
             </div>
           )}
           {activeTab === 'warehouses' && (
             <div className="flex-1 min-w-[200px]">
               <label className="text-[10px] font-black text-theme-dim mb-1.5 block uppercase ml-1">Depo Tipi</label>
-              <CustomSelect
-                options={[
+              <CustomSelect options={[
                   { id: '', label: 'Tüm Tipler' },
                   { id: 'general', label: 'Genel Depo' },
                   { id: 'raw', label: 'Hammadde' },
@@ -868,26 +859,22 @@ export function Definitions() {
                 ]}
                 value={typeFilter}
                 onChange={setTypeFilter}
-                placeholder="Seçiniz..."
-              />
+                placeholder="Seçiniz..." />
             </div>
           )}
           {activeTab === 'event-reasons' && (
             <div className="flex-1 min-w-[200px]">
               <label className="text-[10px] font-black text-theme-dim mb-1.5 block uppercase ml-1">Olay Grubu</label>
-              <CustomSelect
-                options={[{ id: '', label: 'Tüm Gruplar' }, ...eventGroups.map(g => ({ id: g.id, label: g.name }))]}
+              <CustomSelect options={[{ id: '', label: 'Tüm Gruplar' }, ...eventGroups.map(g => ({ id: g.id, label: g.name }))]}
                 value={parentFilter}
                 onChange={setParentFilter}
-                placeholder="Seçiniz..."
-              />
+                placeholder="Seçiniz..." />
             </div>
           )}
           {activeTab === 'firms' && (
             <div className="flex-1 min-w-[200px]">
               <label className="text-[10px] font-black text-theme-dim mb-1.5 block uppercase ml-1">Firma Tipi</label>
-              <CustomSelect
-                options={[
+              <CustomSelect options={[
                   { id: '', label: 'Tüm Tipler' },
                   { id: 'general', label: 'Genel' },
                   { id: 'supplier', label: 'Tedarikçi' },
@@ -898,19 +885,16 @@ export function Definitions() {
                 ]}
                 value={typeFilter}
                 onChange={setTypeFilter}
-                placeholder="Seçiniz..."
-              />
+                placeholder="Seçiniz..." />
             </div>
           )}
           {activeTab === 'operations' && (
             <div className="flex-1 min-w-[200px]">
               <label className="text-[10px] font-black text-theme-dim mb-1.5 block uppercase ml-1">İstasyon Filtresi</label>
-              <CustomSelect
-                options={[{ id: '', label: 'Tüm İstasyonlar' }, ...stations.map(s => ({ id: s.id, label: s.name }))]}
+              <CustomSelect options={[{ id: '', label: 'Tüm İstasyonlar' }, ...stations.map(s => ({ id: s.id, label: s.name }))]}
                 value={parentFilter}
                 onChange={setParentFilter}
-                placeholder="Seçiniz..."
-              />
+                placeholder="Seçiniz..." />
             </div>
           )}
           {activeTab === 'products' && (
@@ -947,8 +931,7 @@ export function Definitions() {
                 </div>
                 <div className="w-full md:w-80">
                   <label className="text-[10px] font-black text-theme-dim mb-2 block">İÇE AKTARILACAK ALAN</label>
-                  <CustomSelect
-                    value={importType}
+                  <CustomSelect value={importType}
                     onChange={setImportType}
                     options={[
                       { id: 'production_records', label: 'Üretim Kayıtları' },
@@ -963,8 +946,7 @@ export function Definitions() {
                       { id: 'stations', label: 'İstasyonlar' },
                       { id: 'routes', label: 'Reçeteler' }
                     ]}
-                    searchable={false}
-                  />
+                    searchable={false} />
                 </div>
               </div>
 
@@ -1432,22 +1414,18 @@ export function Definitions() {
                                 <>
                                   <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap">
                                     {isEditingRow ? (
-                                      <CustomSelect
-                                        variant="inline"
+                                      <CustomSelect variant="inline"
                                         options={departments.map(d => ({ id: d.id, label: d.name }))}
                                         value={localChanges[item.id]?.departmentId ?? (item.departmentId || '')}
-                                        onChange={(val) => updateLocalChanges(item.id, 'departmentId', val)}
-                                      />
+                                        onChange={(val) => updateLocalChanges(item.id, 'departmentId', val)} />
                                     ) : (item.department?.name || '-')}
                                   </td>
                                   <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap">
                                     {isEditingRow ? (
-                                      <CustomSelect
-                                        variant="inline"
+                                      <CustomSelect variant="inline"
                                         options={roles.filter(r => r.departmentId === (localChanges[item.id]?.departmentId ?? item.departmentId)).map(r => ({ id: r.id, label: r.name }))}
                                         value={localChanges[item.id]?.roleId ?? (item.roleId || '')}
-                                        onChange={(val) => updateLocalChanges(item.id, 'roleId', val)}
-                                      />
+                                        onChange={(val) => updateLocalChanges(item.id, 'roleId', val)} />
                                     ) : (item.role?.name || '-')}
                                   </td>
                                   <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap">
@@ -1466,12 +1444,10 @@ export function Definitions() {
                                 <>
                                   <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap">
                                     {isEditingRow ? (
-                                      <CustomSelect
-                                        variant="inline"
+                                      <CustomSelect variant="inline"
                                         options={departments.map(d => ({ id: d.id, label: d.name }))}
                                         value={localChanges[item.id]?.departmentId ?? (item.departmentId || '')}
-                                        onChange={(val) => updateLocalChanges(item.id, 'departmentId', val)}
-                                      />
+                                        onChange={(val) => updateLocalChanges(item.id, 'departmentId', val)} />
                                     ) : (item.department?.name || '-')}
                                   </td>
                                 </>
@@ -1531,8 +1507,7 @@ export function Definitions() {
                                 <>
                                   <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap">
                                     {isEditingRow ? (
-                                      <CustomSelect
-                                        variant="inline"
+                                      <CustomSelect variant="inline"
                                         options={[
                                           { id: 'general', label: 'Genel' },
                                           { id: 'supplier', label: 'Tedarikçi' },
@@ -1543,8 +1518,7 @@ export function Definitions() {
                                         ]}
                                         value={localChanges[item.id]?.type ?? (item.type || 'general')}
                                         onChange={(val) => updateLocalChanges(item.id, 'type', val)}
-                                        searchable={false}
-                                      />
+                                        searchable={false} />
                                     ) : (({
                                       general: 'Genel',
                                       supplier: 'Tedarikçi',
@@ -1572,15 +1546,13 @@ export function Definitions() {
                               {(activeTab === 'operations' || activeTab === 'stations') && (
                                 <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap">
                                   {isEditingRow ? (
-                                    <CustomSelect
-                                      variant="inline"
+                                    <CustomSelect variant="inline"
                                       options={companyUnits.map(u => ({ id: u.id, label: u.name }))}
                                       value={localChanges[item.id]?.unitId ?? (item.unitId || '')}
                                       onChange={(val) => {
                                         updateLocalChanges(item.id, 'unitId', val);
                                         updateLocalChanges(item.id, 'stationId', '');
-                                      }}
-                                    />
+                                      }} />
                                   ) : (item.unit?.name || '-')}
                                 </td>
                               )}
@@ -1588,14 +1560,12 @@ export function Definitions() {
                               {activeTab === 'operations' && (
                                 <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap">
                                   {isEditingRow ? (
-                                    <CustomSelect
-                                      variant="inline"
+                                    <CustomSelect variant="inline"
                                       options={stations.filter(s => s.unitId === (localChanges[item.id]?.unitId ?? item.unitId)).map(s => ({ id: s.id, label: s.name }))}
                                       value={localChanges[item.id]?.stationId ?? (item.stationId || '')}
                                       onChange={(val) => updateLocalChanges(item.id, 'stationId', val)}
                                       disabled={!(localChanges[item.id]?.unitId ?? item.unitId)}
-                                      placeholder={(localChanges[item.id]?.unitId ?? item.unitId) ? "Seç" : "Önce Birim"}
-                                    />
+                                      placeholder={(localChanges[item.id]?.unitId ?? item.unitId) ? "Seç" : "Önce Birim"} />
                                   ) : (item.station?.name || '-')}
                                 </td>
                               )}
@@ -1610,8 +1580,7 @@ export function Definitions() {
                                 <>
                                   <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap">
                                     {isEditingRow ? (
-                                      <CustomSelect
-                                        variant="inline"
+                                      <CustomSelect variant="inline"
                                         options={[
                                           { id: 'general', label: 'Genel Depo' },
                                           { id: 'raw', label: 'Hammadde' },
@@ -1622,8 +1591,7 @@ export function Definitions() {
                                           { id: 'workcenter', label: 'İş Merkezi' },
                                         ]}
                                         value={localChanges[item.id]?.type ?? (item.type || 'general')}
-                                        onChange={(val) => updateLocalChanges(item.id, 'type', val)}
-                                      />
+                                        onChange={(val) => updateLocalChanges(item.id, 'type', val)} />
                                     ) : (({
                                       general: 'Genel Depo',
                                       raw: 'Hammadde',
@@ -1636,13 +1604,11 @@ export function Definitions() {
                                   </td>
                                   <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap text-start">
                                     {isEditingRow ? (
-                                      <CustomSelect
-                                        variant="inline"
+                                      <CustomSelect variant="inline"
                                         options={companyLocations.map(l => ({ id: l.id, label: l.name }))}
                                         value={localChanges[item.id]?.locationId ?? (item.locationId || '')}
                                         onChange={(val) => updateLocalChanges(item.id, 'locationId', val)}
-                                        placeholder="Lokasyon Seçin"
-                                      />
+                                        placeholder="Lokasyon Seçin" />
                                     ) : (() => {
                                       const directLoc = companyLocations.find(l => l.id === item.locationId);
                                       if (directLoc) return directLoc.name;
@@ -1657,13 +1623,11 @@ export function Definitions() {
                               {activeTab === 'work-centers' && (
                                 <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap">
                                   {isEditingRow ? (
-                                    <CustomSelect
-                                      variant="inline"
+                                    <CustomSelect variant="inline"
                                       options={companyLocations.map(l => ({ id: l.id, label: l.name }))}
                                       value={localChanges[item.id]?.locationId ?? (item.locationId || '')}
                                       onChange={(val) => updateLocalChanges(item.id, 'locationId', val)}
-                                      placeholder="Seç"
-                                    />
+                                      placeholder="Seç" />
                                   ) : (
                                     (() => {
                                       const loc = companyLocations.find(l => l.id === item.locationId);
@@ -1679,19 +1643,16 @@ export function Definitions() {
                                 <>
                                   <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap">
                                     {isEditingRow ? (
-                                      <CustomSelect
-                                        variant="inline"
+                                      <CustomSelect variant="inline"
                                         options={eventGroups.map(g => ({ id: g.id, label: g.name }))}
                                         value={localChanges[item.id]?.groupId ?? (item.groupId || '')}
                                         onChange={(val) => updateLocalChanges(item.id, 'groupId', val)}
-                                        placeholder="Grup Seçin"
-                                      />
+                                        placeholder="Grup Seçin" />
                                     ) : (item.group?.name || '-')}
                                   </td>
                                   <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap">
                                     {isEditingRow ? (
-                                      <CustomSelect
-                                        variant="inline"
+                                      <CustomSelect variant="inline"
                                         options={[
                                           { id: 'RED', label: 'RED' },
                                           { id: 'NUMUNE', label: 'NUMUNE' },
@@ -1699,8 +1660,7 @@ export function Definitions() {
                                           { id: 'SARTLI_KABUL', label: 'ŞARTLI KABUL' }
                                         ]}
                                         value={localChanges[item.id]?.type ?? (item.type || '')}
-                                        onChange={(val) => updateLocalChanges(item.id, 'type', val)}
-                                      />
+                                        onChange={(val) => updateLocalChanges(item.id, 'type', val)} />
                                     ) : (item.type || '-')}
                                   </td>
                                 </>
@@ -1767,24 +1727,9 @@ export function Definitions() {
               <div className="p-4 border-t border-theme bg-theme-base/20 flex flex-col md:flex-row items-center justify-between gap-6">
                 <div className="flex items-center gap-6 order-2 md:order-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-black text-theme-dim whitespace-nowrap uppercase">SAYFADA:</span>
+                    <span className="text-[11px] font-black text-theme-dim whitespace-nowrap">Sayfada Görüntülenen:</span>
                     <div className="min-w-fit">
-                      <CustomSelect
-                        options={[
-                          { id: 20, label: '20' },
-                          { id: 50, label: '50' },
-                          { id: 250, label: '250' },
-                          { id: 500, label: '500' },
-                          { id: 1000, label: '1000' },
-                          { id: 999999, label: 'Tümü' }
-                        ]}
-                        value={pageSize}
-                        onChange={value => {
-                          setPageSize(Number(value));
-                          setCurrentPage(0);
-                        }}
-                        searchable={false}
-                      />
+                      <CustomSelect fullWidth={false} options={[ { id: 20, label: '20' }, { id: 50, label: '50' }, { id: 250, label: '250' }, { id: 500, label: '500' }, { id: 1000, label: '1000' }, { id: 999999, label: 'Tümü' } ]} value={pageSize} onChange={value => { setPageSize(Number(value)); setCurrentPage(0); }} searchable={false} />
                     </div>
                   </div>
                   <div className="h-4 w-px bg-theme hidden md:block" />
@@ -1912,7 +1857,7 @@ export function Definitions() {
                         'event-groups': 'Olay Grubu Tanımı',
                         'event-reasons': 'Olay Sebebi Tanımı',
                         'measurement-methods': 'Ölçüm Yöntemi Tanımı',
-                        'measurement-tools': 'Ölçüm Aracı Tanımı',
+                        'measurement-tools': 'Ölçüm Aracı Türü Tanımı',
                         'equipment': 'Ekipman Tanımı',
                         'consumption-types': 'Tüketim Tipi Tanımı'
                       };
@@ -1950,26 +1895,22 @@ export function Definitions() {
                       <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Ad Soyad</label><input required value={formData.fullName || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, fullName: e.target.value })} /></div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Departman</label>
-                        <CustomSelect
-                          options={departments.map(d => ({ id: d.id, label: d.name }))}
+                        <CustomSelect options={departments.map(d => ({ id: d.id, label: d.name }))}
                           value={formData.departmentId || ''}
                           onChange={(val) => {
                             setFormData({ ...formData, departmentId: val, roleId: '' });
                           }}
-                          placeholder="Departman Seçin"
-                        />
+                          placeholder="Departman Seçin" />
                       </div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Görev / Rol</label>
-                        <CustomSelect
-                          options={roles
+                        <CustomSelect options={roles
                             .filter(r => !formData.departmentId || r.departmentId === formData.departmentId)
                             .map(r => ({ id: r.id, label: r.name, subLabel: r.department?.name }))}
                           value={formData.roleId || ''}
                           onChange={(val) => setFormData({ ...formData, roleId: val })}
                           placeholder="Görev Seçin"
-                          disabled={!formData.departmentId}
-                        />
+                          disabled={!formData.departmentId} />
                       </div>
                       <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">İşe Giriş Tarihi</label><input value={formData.hireDate ? String(formData.hireDate).slice(0, 10) : ''} type="date" className="form-input h-10" onChange={(e) => setFormData({ ...formData, hireDate: e.target.value || null })} /></div>
                       <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Tecrübe (Yıl)</label><input value={formData.experienceYears ?? ''} type="number" className="form-input h-10" onChange={(e) => setFormData({ ...formData, experienceYears: e.target.value === '' ? null : Number(e.target.value) })} /></div>
@@ -1980,21 +1921,17 @@ export function Definitions() {
                     <>
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">DEPARTMAN</label>
-                        <CustomSelect
-                          options={departments.map(d => ({ id: d.id, label: d.name }))}
+                        <CustomSelect options={departments.map(d => ({ id: d.id, label: d.name }))}
                           value={formData.departmentId || ''}
                           onChange={(val) => setFormData({ ...formData, departmentId: val })}
-                          placeholder="Departman Seçin"
-                        />
+                          placeholder="Departman Seçin" />
                       </div>
                       <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Görev / Rol Adı</label><input required value={formData.name || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Durum</label>
-                        <CustomSelect
-                          options={[{ id: 'active', label: 'Aktif' }, { id: 'passive', label: 'Pasif' }]}
+                        <CustomSelect options={[{ id: 'active', label: 'Aktif' }, { id: 'passive', label: 'Pasif' }]}
                           value={formData.status || 'active'}
-                          onChange={(val) => setFormData({ ...formData, status: val })}
-                        />
+                          onChange={(val) => setFormData({ ...formData, status: val })} />
                       </div>
                     </>
                   )}
@@ -2004,12 +1941,10 @@ export function Definitions() {
                       <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">İş Merkezi Adı</label><input required value={formData.name || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Lokasyon</label>
-                        <CustomSelect
-                          options={companyLocations.map(l => ({ id: l.id, label: l.name }))}
+                        <CustomSelect options={companyLocations.map(l => ({ id: l.id, label: l.name }))}
                           value={formData.locationId || ''}
                           onChange={(val) => setFormData({ ...formData, locationId: val })}
-                          placeholder="Lokasyon Seçin"
-                        />
+                          placeholder="Lokasyon Seçin" />
                       </div>
                     </>
                   )}
@@ -2025,8 +1960,7 @@ export function Definitions() {
                       </div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Depo Tipi</label>
-                        <CustomSelect
-                          options={[
+                        <CustomSelect options={[
                             { id: 'general', label: 'Genel Depo' },
                             { id: 'raw', label: 'Hammadde' },
                             { id: 'finished', label: 'Mamül' },
@@ -2036,26 +1970,21 @@ export function Definitions() {
                             { id: 'workcenter', label: 'İş Merkezi' },
                           ]}
                           value={formData.type || 'general'}
-                          onChange={(val) => setFormData({ ...formData, type: val })}
-                        />
+                          onChange={(val) => setFormData({ ...formData, type: val })} />
                       </div>
                       <div className="space-y-2 md:col-span-2">
                         <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Lokasyon Bağlantısı</label>
-                        <CustomSelect
-                          options={companyLocations.map(l => ({ id: l.id, label: l.name }))}
+                        <CustomSelect options={companyLocations.map(l => ({ id: l.id, label: l.name }))}
                           value={formData.locationId || ''}
                           onChange={(val) => setFormData({ ...formData, locationId: val || null })}
-                          placeholder="Lokasyon Seçin"
-                        />
+                          placeholder="Lokasyon Seçin" />
                       </div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Birim Bağlantısı</label>
-                        <CustomSelect
-                          options={flatUnitOptions}
+                        <CustomSelect options={flatUnitOptions}
                           value={formData.unitId || ''}
                           onChange={(val) => setFormData({ ...formData, unitId: val || null })}
-                          placeholder="Bağlanacak birimi seçin"
-                        />
+                          placeholder="Bağlanacak birimi seçin" />
                       </div>
                     </>
                   )}
@@ -2077,28 +2006,24 @@ export function Definitions() {
                       <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Ürün Grubu</label><input value={formData.productGroup || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, productGroup: e.target.value })} /></div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Takip Sistemi</label>
-                        <CustomSelect
-                          options={[
+                        <CustomSelect options={[
                             { id: 'LOT', label: 'Lot Takibi' },
                             { id: 'SERIAL', label: 'Seri No Takibi' },
                             { id: 'BOTH', label: 'Lot ve Seri Takibi' },
                             { id: 'NONE', label: 'Takip Yok' }
                           ]}
                           value={formData.trackingType || 'NONE'}
-                          onChange={(val) => setFormData({ ...formData, trackingType: val })}
-                        />
+                          onChange={(val) => setFormData({ ...formData, trackingType: val })} />
                       </div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Stok Tipi</label>
-                        <CustomSelect
-                          options={[
+                        <CustomSelect options={[
                             'Hammadde', 'Sarf Malzeme', 'Yarımamül', 'Mamül', 'Ölçüm Aracı',
                             'Ekipman', 'Kalıp', 'Yardımcı Malzeme', 'Tüketim Malzemesi',
                             'Ambalaj', 'Yedek Parça'
                           ].map(s => ({ id: s, label: s }))}
                           value={formData.stockType || ''}
-                          onChange={(val) => setFormData({ ...formData, stockType: val })}
-                        />
+                          onChange={(val) => setFormData({ ...formData, stockType: val })} />
                       </div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Std. Üretim Adedi</label>
@@ -2106,11 +2031,9 @@ export function Definitions() {
                       </div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Hedef Depo</label>
-                        <CustomSelect
-                          options={warehouses.map(w => ({ id: w.id, label: w.name }))}
+                        <CustomSelect options={warehouses.map(w => ({ id: w.id, label: w.name }))}
                           value={formData.targetWarehouseId || ''}
-                          onChange={(val) => setFormData({ ...formData, targetWarehouseId: val })}
-                        />
+                          onChange={(val) => setFormData({ ...formData, targetWarehouseId: val })} />
                       </div>
                       <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Ürün Sınıfı</label><input value={formData.productClass || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, productClass: e.target.value })} /></div>
                       <div className="space-y-2 md:col-span-2 lg:col-span-3"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Açıklama</label><input value={formData.description || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, description: e.target.value })} /></div>
@@ -2122,8 +2045,7 @@ export function Definitions() {
                       <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Firma Adı</label><input required value={formData.name || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Firma Tipi</label>
-                        <CustomSelect
-                          options={[
+                        <CustomSelect options={[
                             { id: 'general', label: 'Genel' },
                             { id: 'supplier', label: 'Tedarikçi' },
                             { id: 'customer', label: 'Müşteri' },
@@ -2133,8 +2055,7 @@ export function Definitions() {
                           ]}
                           value={formData.type || 'general'}
                           onChange={(val) => setFormData({ ...formData, type: val })}
-                          searchable={false}
-                        />
+                          searchable={false} />
                       </div>
                       <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Vergi Dairesi</label><input value={formData.taxOffice || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, taxOffice: e.target.value })} /></div>
                       <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Vergi No</label><input value={formData.taxNumber || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, taxNumber: e.target.value })} /></div>
@@ -2144,12 +2065,10 @@ export function Definitions() {
                       <div className="space-y-2 md:col-span-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Adres</label><input value={formData.address || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, address: e.target.value })} /></div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Durum</label>
-                        <CustomSelect
-                          options={[{ id: 'active', label: 'Aktif' }, { id: 'passive', label: 'Pasif' }]}
+                        <CustomSelect options={[{ id: 'active', label: 'Aktif' }, { id: 'passive', label: 'Pasif' }]}
                           value={formData.status || 'active'}
                           onChange={(val) => setFormData({ ...formData, status: val })}
-                          searchable={false}
-                        />
+                          searchable={false} />
                       </div>
                       <div className="space-y-2 md:col-span-2 lg:col-span-3"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">NOTLAR</label><input value={formData.notes || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, notes: e.target.value })} /></div>
                     </>
@@ -2160,22 +2079,18 @@ export function Definitions() {
                       <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Operasyon Adı</label><input required value={formData.name || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">İş Merkezi / Birim</label>
-                        <CustomSelect
-                          options={companyUnits.map(u => ({ id: u.id, label: u.name, subLabel: companyLocations.find(l => l.id === u.locationId)?.name }))}
+                        <CustomSelect options={companyUnits.map(u => ({ id: u.id, label: u.name, subLabel: companyLocations.find(l => l.id === u.locationId)?.name }))}
                           value={formData.unitId || ''}
                           onChange={(val) => setFormData({ ...formData, unitId: val, stationId: '' })}
-                          placeholder="Birim Seçin"
-                        />
+                          placeholder="Birim Seçin" />
                       </div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">İstasyon</label>
-                        <CustomSelect
-                          options={stations.filter(s => s.unitId === (formData.unitId || '')).map(s => ({ id: s.id, label: s.name, subLabel: s.code }))}
+                        <CustomSelect options={stations.filter(s => s.unitId === (formData.unitId || '')).map(s => ({ id: s.id, label: s.name, subLabel: s.code }))}
                           value={formData.stationId || ''}
                           onChange={(val) => setFormData({ ...formData, stationId: val })}
                           placeholder={formData.unitId ? "İstasyon Seçin" : "Önce İş Merkezi Seçin"}
-                          disabled={!formData.unitId}
-                        />
+                          disabled={!formData.unitId} />
                       </div>
                       <div className="space-y-2 md:col-span-2 lg:col-span-3"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">AÇIKLAMA</label><input value={formData.description || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, description: e.target.value })} /></div>
                     </>
@@ -2186,12 +2101,10 @@ export function Definitions() {
                       <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">İstasyon Adı</label><input required value={formData.name || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">İş Merkezi / Birim</label>
-                        <CustomSelect
-                          options={companyUnits.map(u => ({ id: u.id, label: u.name, subLabel: companyLocations.find(l => l.id === u.locationId)?.name }))}
+                        <CustomSelect options={companyUnits.map(u => ({ id: u.id, label: u.name, subLabel: companyLocations.find(l => l.id === u.locationId)?.name }))}
                           value={formData.unitId || ''}
                           onChange={(val) => setFormData({ ...formData, unitId: val })}
-                          placeholder="Birim Seçin"
-                        />
+                          placeholder="Birim Seçin" />
                       </div>
                     </>
                   )}
@@ -2201,11 +2114,9 @@ export function Definitions() {
                       <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Grup Adı</label><input required value={formData.name || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="örn. CNC Kaynaklı" /></div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Durum</label>
-                        <CustomSelect
-                          options={[{ id: 'active', label: 'Aktif' }, { id: 'passive', label: 'Pasif' }]}
+                        <CustomSelect options={[{ id: 'active', label: 'Aktif' }, { id: 'passive', label: 'Pasif' }]}
                           value={formData.status || 'active'}
-                          onChange={(val) => setFormData({ ...formData, status: val })}
-                        />
+                          onChange={(val) => setFormData({ ...formData, status: val })} />
                       </div>
                     </>
                   )}
@@ -2215,17 +2126,14 @@ export function Definitions() {
                       <div className="space-y-2"><label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Olay Sebebi</label><input required value={formData.name || ''} className="form-input h-10" onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Olay Grubu</label>
-                        <CustomSelect
-                          options={eventGroups.map(g => ({ id: g.id, label: g.name, subLabel: g.code }))}
+                        <CustomSelect options={eventGroups.map(g => ({ id: g.id, label: g.name, subLabel: g.code }))}
                           value={formData.groupId || ''}
                           onChange={(val) => setFormData({ ...formData, groupId: val })}
-                          placeholder="Grup Seçin"
-                        />
+                          placeholder="Grup Seçin" />
                       </div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Olay Tipi</label>
-                        <CustomSelect
-                          options={[
+                        <CustomSelect options={[
                             { id: 'RED', label: 'RED' },
                             { id: 'NUMUNE', label: 'NUMUNE' },
                             { id: 'TEKRAR_ISLEM', label: 'TEKRAR İŞLEM' },
@@ -2233,16 +2141,13 @@ export function Definitions() {
                           ]}
                           value={formData.type || ''}
                           onChange={(val) => setFormData({ ...formData, type: val })}
-                          placeholder="Tip Seçin"
-                        />
+                          placeholder="Tip Seçin" />
                       </div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Durum</label>
-                        <CustomSelect
-                          options={[{ id: 'active', label: 'Aktif' }, { id: 'passive', label: 'Pasif' }]}
+                        <CustomSelect options={[{ id: 'active', label: 'Aktif' }, { id: 'passive', label: 'Pasif' }]}
                           value={formData.status || 'active'}
-                          onChange={(val) => setFormData({ ...formData, status: val })}
-                        />
+                          onChange={(val) => setFormData({ ...formData, status: val })} />
                       </div>
                     </>
                   )}
@@ -2258,23 +2163,19 @@ export function Definitions() {
                       </div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Durum</label>
-                        <CustomSelect
-                          options={[{ id: 'active', label: 'Aktif' }, { id: 'passive', label: 'Pasif' }]}
+                        <CustomSelect options={[{ id: 'active', label: 'Aktif' }, { id: 'passive', label: 'Pasif' }]}
                           value={formData.status || 'active'}
-                          onChange={(val) => setFormData({ ...formData, status: val })}
-                        />
+                          onChange={(val) => setFormData({ ...formData, status: val })} />
                       </div>
                       {activeTab === 'measurement-tools' && (
                         <div className="space-y-2 md:col-span-2 lg:col-span-3">
                           <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">Ölçüm Yöntemleri</label>
-                          <CustomSelect
-                            options={measurementMethodOptions}
+                          <CustomSelect options={measurementMethodOptions}
                             value={formData.measurementMethodIds || []}
                             onChange={(val) => setFormData({ ...formData, measurementMethodIds: Array.isArray(val) ? val : [] })}
                             isMulti
                             fullWidth
-                            placeholder="Ölçüm yöntemi seçin"
-                          />
+                            placeholder="Ölçüm yöntemi seçin" />
                         </div>
                       )}
                       <div className="space-y-2 md:col-span-2 lg:col-span-3">

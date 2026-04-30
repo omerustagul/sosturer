@@ -332,9 +332,11 @@ router.post('/stock-vouchers', authenticateToken, async (req: AuthRequest, res) 
               toWarehouseId: typeMeta.direction === 1 ? warehouseId : voucherType === 'TRANSFER' ? targetWarehouseId : null,
               lotNumber,
               quantity: item.quantity,
+              unit: item.unit,
               type: typeMeta.movementType,
               referenceId: voucherNo,
-              description: `${typeMeta.label} stok fişi`
+              description: `${typeMeta.label} stok fişi`,
+              notes: item.notes
             }
           });
         }
@@ -501,9 +503,11 @@ router.put('/stock-vouchers/:id', authenticateToken, async (req: AuthRequest, re
                 toWarehouseId: typeMeta.direction === 1 ? oldVoucher.warehouseId : oldVoucher.voucherType === 'TRANSFER' ? oldVoucher.targetWarehouseId : null,
                 lotNumber,
                 quantity: item.quantity,
+                unit: item.unit,
                 type: typeMeta.movementType,
                 referenceId: finalVoucherNo,
-                description: `${typeMeta.label} stok fişi (Güncellendi)`
+                description: `${typeMeta.label} stok fişi (Güncellendi)`,
+                notes: item.notes
               }
             });
           }
@@ -581,9 +585,11 @@ router.put('/stock-vouchers/:id', authenticateToken, async (req: AuthRequest, re
                 toWarehouseId: typeMeta.direction === 1 ? oldVoucher.warehouseId : oldVoucher.voucherType === 'TRANSFER' ? oldVoucher.targetWarehouseId : null,
                 lotNumber,
                 quantity: item.quantity,
+                unit: item.unit,
                 type: typeMeta.movementType,
                 referenceId: finalVoucherNo,
-                description: `${typeMeta.label} stok fişi (Onaylandı)`
+                description: `${typeMeta.label} stok fişi (Onaylandı)`,
+                notes: item.notes
               }
             });
           }

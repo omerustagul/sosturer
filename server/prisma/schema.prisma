@@ -65,7 +65,8 @@ model Company {
   offDays                 CompanyOffDay[]
   consumptionTypes        ConsumptionType[]
   consumptionTransactions ConsumptionTransaction[]
-  measurementTools        MeasurementTool[]
+  measurementToolTypes    MeasurementToolType[]
+  measurementDevices      MeasurementDevice[]
   measurementToolStatuses MeasurementToolStatus[]
   equipment               Equipment[]
   measurementMethods      MeasurementMethod[]
@@ -567,6 +568,8 @@ model StockMovement {
   toWarehouseId   String?    @map("to_warehouse_id")
   lotNumber       String?    @map("lot_number")
   quantity        Float
+  unit            String?
+  notes           String?
   type            String // PRODUCTION, SALE, ADJUSTMENT, TRANSFER
   referenceId     String?    @map("reference_id")
   description     String?
@@ -1107,12 +1110,11 @@ model ConsumptionTransactionOrder {
   @@map("consumption_transaction_orders")
 }
 
-model MeasurementTool {
+model MeasurementToolType {
   id           String   @id @default(uuid())
   companyId    String   @map("company_id")
   code         String?
   name         String
-  serialNo     String?  @map("serial_no")
   brand        String?
   model        String?
   status       String   @default("active")
@@ -1121,45 +1123,67 @@ model MeasurementTool {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  company  Company                 @relation(fields: [companyId], references: [id])
-  statuses MeasurementToolStatus[]
-  methods  MeasurementToolMethod[]
+  company Company                 @relation(fields: [companyId], references: [id])
+  devices MeasurementDevice[]
+  methods MeasurementToolMethod[]
 
   @@unique([companyId, name])
   @@map("measurement_tools")
 }
 
+model MeasurementDevice {
+  id           String   @id @default(uuid())
+  companyId    String   @map("company_id")
+  typeId       String   @map("type_id")
+  serialNo     String?  @map("serial_no")
+  code         String?
+  status       String   @default("active")
+  notes        String?
+  displayOrder Int      @default(0) @map("display_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  company  Company                 @relation(fields: [companyId], references: [id])
+  type     MeasurementToolType     @relation(fields: [typeId], references: [id], onDelete: Cascade)
+  statuses MeasurementToolStatus[]
+
+  @@unique([companyId, code])
+  @@map("measurement_devices")
+}
+
 model MeasurementToolStatus {
-  id                String    @id @default(uuid())
-  companyId         String    @map("company_id")
-  measurementToolId String    @map("measurement_tool_id")
-  workCenterId      String?   @map("work_center_id")
-  validUntil        DateTime? @map("valid_until")
-  negativeTolerance Float?    @map("negative_tolerance")
-  positiveTolerance Float?    @map("positive_tolerance")
-  certificate       String?
-  operationStatus   String    @default("available") @map("operation_status")
-  notes             String?
-  createdBy         String?   @map("created_by")
-  createdAt         DateTime  @default(now()) @map("created_at")
+  id                  String    @id @default(uuid())
+  companyId           String    @map("company_id")
+  measurementDeviceId String    @map("measurement_device_id")
+  workCenterId        String?   @map("work_center_id")
+  validUntil          DateTime? @map("valid_until")
+  negativeTolerance   Float?    @map("negative_tolerance")
+  positiveTolerance   Float?    @map("positive_tolerance")
+  certificate             String?
+  certificateDocumentUrl  String?   @map("certificate_document_url")
+  certificateDocumentName String?   @map("certificate_document_name")
+  operationStatus         String    @default("available") @map("operation_status")
+  notes                   String?
+  createdBy               String?   @map("created_by")
+  createdAt               DateTime  @default(now()) @map("created_at")
 
-  company         Company         @relation(fields: [companyId], references: [id])
-  measurementTool MeasurementTool @relation(fields: [measurementToolId], references: [id], onDelete: Cascade)
-  workCenter      Department?     @relation(fields: [workCenterId], references: [id])
+  company Company           @relation(fields: [companyId], references: [id])
+  device  MeasurementDevice @relation(fields: [measurementDeviceId], references: [id], onDelete: Cascade)
+  workCenter Department?    @relation(fields: [workCenterId], references: [id])
 
-  @@index([measurementToolId, createdAt])
+  @@index([measurementDeviceId, createdAt])
   @@map("measurement_tool_statuses")
 }
 
 model MeasurementToolMethod {
-  id                  String @id @default(uuid())
-  measurementToolId   String @map("measurement_tool_id")
-  measurementMethodId String @map("measurement_method_id")
+  id                    String @id @default(uuid())
+  measurementToolTypeId String @map("measurement_tool_id")
+  measurementMethodId   String @map("measurement_method_id")
 
-  measurementTool   MeasurementTool   @relation(fields: [measurementToolId], references: [id], onDelete: Cascade)
-  measurementMethod MeasurementMethod @relation(fields: [measurementMethodId], references: [id], onDelete: Cascade)
+  measurementToolType MeasurementToolType @relation(fields: [measurementToolTypeId], references: [id], onDelete: Cascade)
+  measurementMethod   MeasurementMethod   @relation(fields: [measurementMethodId], references: [id], onDelete: Cascade)
 
-  @@unique([measurementToolId, measurementMethodId])
+  @@unique([measurementToolTypeId, measurementMethodId])
   @@map("measurement_tool_methods")
 }
 

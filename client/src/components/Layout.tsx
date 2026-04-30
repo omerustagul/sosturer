@@ -403,7 +403,7 @@ export function Layout() {
           { icon: Logs, label: 'Üretim Kayıtları', path: '/records' },
           { icon: ListOrdered, label: 'Üretim Emirleri', path: '/production-orders' },
           { icon: ClipboardList, label: 'Tüketim İşlemleri', path: '/production/consumption-transactions' },
-          { icon: Activity, label: 'Ölçüm Araçları', path: '/production/measurement-tools' },
+          { icon: Activity, label: 'Ölçüm Cihazları', path: '/production/measurement-tools' },
           { icon: Wrench, label: 'Ekipmanlar', path: '/production/equipment' },
         ]
       },
@@ -469,7 +469,7 @@ export function Layout() {
           { icon: Map, label: 'Reçeteler', path: '/definitions/routes' },
           { icon: ClipboardList, label: 'Planlama Türleri', path: '/definitions/plan-types' },
           { icon: ClipboardList, label: 'Tüketim Tipleri', path: '/definitions/consumption-types' },
-          { icon: Activity, label: 'Ölçüm Araçları', path: '/definitions/measurement-tools' },
+          { icon: Activity, label: 'Ölçüm Aracı Türleri', path: '/definitions/measurement-tools' },
           { icon: Wrench, label: 'Ekipmanlar', path: '/definitions/equipment' },
           { icon: Layers, label: 'Olay Grupları', path: '/definitions/event-groups' },
           { icon: AlertCircle, label: 'Olay Sebepleri', path: '/definitions/event-reasons' },
@@ -562,7 +562,7 @@ export function Layout() {
                 <p className="text-xs font-bold text-theme-main group-hover:text-theme-primary transition-colors underline-offset-4 leading-none">{userFullName}</p>
                 <p className="text-[10px] font-bold text-theme-muted opacity-60 transition-colors">{userEmail}</p>
               </div>
-              <div className="w-9 h-9 sm:w-10 sm:h-10 bg-theme-base/40 rounded-xl flex items-center justify-center text-xs font-bold border border-theme shadow-sm group-hover:shadow-theme-primary/10 group-hover:border-theme-primary/50 transition-all overflow-hidden group shadow-lg shrink-0">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 bg-theme-base rounded-xl flex items-center justify-center text-xs font-bold border border-theme shadow-sm group-hover:shadow-theme-primary/10 group-hover:border-theme-primary/50 transition-all overflow-hidden group shadow-lg shrink-0">
                 {userAvatarUrl ? (
                   <img src={userAvatarUrl} className="w-full h-full object-cover" alt="User" />
                 ) : (

@@ -155,38 +155,32 @@ export function ConsumptionTransactions() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="space-y-1">
-              <span className="text-[10px] font-black text-theme-dim uppercase tracking-widest">Durum</span>
-              <CustomSelect
-                options={statusOptions}
+              <span className="text-[10px] font-black text-theme-dim">Durum</span>
+              <CustomSelect options={statusOptions}
                 value={statusFilter}
                 onChange={(value) => {
                   setStatusFilter(String(value || 'all'));
                   setCurrentPage(0);
                 }}
-                searchable={false}
-              />
+                searchable={false} />
             </div>
             <div className="space-y-1">
-              <span className="text-[10px] font-black text-theme-dim uppercase tracking-widest">Tip</span>
-              <CustomSelect
-                options={[{ id: 'all', label: 'Tüm Tipler' }, ...types.map((type) => ({ id: type.id, label: type.name, subLabel: type.code }))]}
+              <span className="text-[10px] font-black text-theme-dim">Tip</span>
+              <CustomSelect options={[{ id: 'all', label: 'Tüm Tipler' }, ...types.map((type) => ({ id: type.id, label: type.name, subLabel: type.code }))]}
                 value={typeFilter}
                 onChange={(value) => {
                   setTypeFilter(String(value || 'all'));
                   setCurrentPage(0);
-                }}
-              />
+                }} />
             </div>
             <div className="space-y-1">
-              <span className="text-[10px] font-black text-theme-dim uppercase tracking-widest">Depo</span>
-              <CustomSelect
-                options={[{ id: 'all', label: 'Tüm Depolar' }, ...warehouses.map((warehouse) => ({ id: warehouse.id, label: warehouse.name, subLabel: warehouse.code || warehouse.type }))]}
+              <span className="text-[10px] font-black text-theme-dim">Depo</span>
+              <CustomSelect options={[{ id: 'all', label: 'Tüm Depolar' }, ...warehouses.map((warehouse) => ({ id: warehouse.id, label: warehouse.name, subLabel: warehouse.code || warehouse.type }))]}
                 value={warehouseFilter}
                 onChange={(value) => {
                   setWarehouseFilter(String(value || 'all'));
                   setCurrentPage(0);
-                }}
-              />
+                }} />
             </div>
           </div>
         </div>
@@ -275,15 +269,7 @@ export function ConsumptionTransactions() {
           <div className="flex items-center gap-6 order-2 md:order-1">
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-black text-theme-dim whitespace-nowrap">Sayfada Görüntülenen:</span>
-              <CustomSelect
-                options={[20, 50, 250, 500, 1000].map((value) => ({ id: value, label: String(value) }))}
-                value={pageSize}
-                onChange={(value) => {
-                  setPageSize(Number(value));
-                  setCurrentPage(0);
-                }}
-                searchable={false}
-              />
+              <CustomSelect fullWidth={false} options={[20, 50, 250, 500, 1000].map((value) => ({ id: value, label: String(value) }))} value={pageSize} onChange={(value) => { setPageSize(Number(value)); setCurrentPage(0); }} searchable={false} />
             </div>
             <div className="h-4 w-px bg-theme hidden md:block" />
             <span className="text-[11px] font-black text-theme-dim">

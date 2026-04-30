@@ -215,11 +215,9 @@ export function ReportsProducts() {
           <label className="text-[10px] font-black text-theme-dim uppercase tracking-widest flex items-center gap-2 px-1">
             <Box size={12} /> ÜRÜN FİLTRESİ
           </label>
-          <CustomSelect
-            options={[{ id: 'all', label: 'Tüm Aktif Ürünler' }, ...products.map(p => ({ id: p.id, label: p.productCode, subLabel: p.productName }))]}
+          <CustomSelect options={[{ id: 'all', label: 'Tüm Aktif Ürünler' }, ...products.map(p => ({ id: p.id, label: p.productCode, subLabel: p.productName }))]}
             value={filters.productId}
-            onChange={(val) => setFilters(prev => ({ ...prev, productId: val }))}
-          />
+            onChange={(val) => setFilters(prev => ({ ...prev, productId: val }))} />
         </div>
       </div>
 
@@ -291,22 +289,7 @@ export function ReportsProducts() {
               <div className="flex items-center gap-2">
                 <span className="text-[11px] font-black text-theme-dim whitespace-nowrap">Sayfada Görüntülenen:</span>
                 <div className="min-w-fit">
-                  <CustomSelect
-                    options={[
-                      { id: 20, label: '20' },
-                      { id: 50, label: '50' },
-                      { id: 250, label: '250' },
-                      { id: 500, label: '500' },
-                      { id: 1000, label: '1000' },
-                      { id: 999999, label: 'Tümü' }
-                    ]}
-                    value={pageSize}
-                    onChange={value => {
-                      setPageSize(Number(value));
-                      setCurrentPage(0);
-                    }}
-                    searchable={false}
-                  />
+                  <CustomSelect fullWidth={false} options={[ { id: 20, label: '20' }, { id: 50, label: '50' }, { id: 250, label: '250' }, { id: 500, label: '500' }, { id: 1000, label: '1000' }, { id: 999999, label: 'Tümü' } ]} value={pageSize} onChange={value => { setPageSize(Number(value)); setCurrentPage(0); }} searchable={false} />
                 </div>
               </div>
               <div className="h-4 w-px bg-theme hidden md:block" />

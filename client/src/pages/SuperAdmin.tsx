@@ -624,22 +624,7 @@ export function SuperAdmin() {
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] font-black text-theme-dim whitespace-nowrap">Sayfada Görüntülenen:</span>
                     <div className="min-w-fit">
-                      <CustomSelect
-                        options={[
-                          { id: 20, label: '20' },
-                          { id: 50, label: '50' },
-                          { id: 250, label: '250' },
-                          { id: 500, label: '500' },
-                          { id: 1000, label: '1000' },
-                          { id: 999999, label: 'Tümü' }
-                        ]}
-                        value={pageSize}
-                        onChange={value => {
-                          setPageSize(Number(value));
-                          setCurrentPage(0);
-                        }}
-                        searchable={false}
-                      />
+                      <CustomSelect fullWidth={false} options={[ { id: 20, label: '20' }, { id: 50, label: '50' }, { id: 250, label: '250' }, { id: 500, label: '500' }, { id: 1000, label: '1000' }, { id: 999999, label: 'Tümü' } ]} value={pageSize} onChange={value => { setPageSize(Number(value)); setCurrentPage(0); }} searchable={false} />
                     </div>
                   </div>
                   <div className="h-4 w-px bg-theme hidden md:block" />
@@ -951,41 +936,35 @@ export function SuperAdmin() {
               <div className="space-y-6">
                 <div>
                   <label className="text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 block">ŞİRKET ATAMASI</label>
-                  <CustomSelect
-                    options={[
+                  <CustomSelect options={[
                       { id: '', label: 'Bağımsız (Şirketsiz)' },
                       ...companies.map(c => ({ id: c.id, label: c.name }))
                     ]}
                     value={userForm.companyId}
                     onChange={(val) => setUserForm({ ...userForm, companyId: val })}
-                    searchable={true}
-                  />
+                    searchable={true} />
                 </div>
                 <div>
                   <label className="text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 block">YETKİ SEVİYESİ</label>
-                  <CustomSelect
-                    options={[
+                  <CustomSelect options={[
                       { id: 'user', label: 'Kullanıcı' },
                       { id: 'admin', label: 'Şirket Admini' },
                       { id: 'superadmin', label: 'Sistem Admini' }
                     ]}
                     value={userForm.role}
                     onChange={(val) => setUserForm({ ...userForm, role: val })}
-                    searchable={false}
-                  />
+                    searchable={false} />
                 </div>
                 <div>
                   <label className="text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 block">HESAP DURUMU</label>
-                  <CustomSelect
-                    options={[
+                  <CustomSelect options={[
                       { id: 'active', label: 'Aktif' },
                       { id: 'inactive', label: 'Pasif' },
                       { id: 'archived', label: 'Arşivlendi' }
                     ]}
                     value={userForm.status}
                     onChange={(val) => setUserForm({ ...userForm, status: val })}
-                    searchable={false}
-                  />
+                    searchable={false} />
                 </div>
               </div>
             </div>

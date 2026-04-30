@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { format } from 'date-fns';
-import { Activity, Building2, CalendarClock, ChevronLeft, FileText, History, RefreshCw, Save, Search, Wrench, X } from 'lucide-react';
+import { Activity, Building2, CalendarClock, ChevronLeft, ExternalLink, FileText, History, RefreshCw, Save, Search, Trash2, UploadCloud, Wrench, X } from 'lucide-react';
 import { api } from '../../lib/api';
 import { CustomSelect } from '../../components/common/CustomSelect';
 import { Loading } from '../../components/common/Loading';
@@ -16,6 +16,8 @@ type StatusForm = {
   negativeTolerance: string;
   positiveTolerance: string;
   certificate: string;
+  certificateDocumentUrl: string;
+  certificateDocumentName: string;
   operationStatus: string;
   notes: string;
 };
@@ -28,13 +30,13 @@ const operationStatuses = [
 
 const configByKind = {
   measurement: {
-    endpoint: '/measurement-tools',
+    endpoint: '/measurement-devices',
     listPath: '/production/measurement-tools',
-    title: 'ÖLÇÜM ARAÇLARI',
-    singleTitle: 'Ölçüm Aracı',
-    description: 'Ölçüm araçlarının güncel durum ve kalibrasyon geçmişi',
+    title: 'ÖLÇÜM CİHAZLARI',
+    singleTitle: 'Ölçüm Cihazı',
+    description: 'Ölçüm cihazlarının güncel durum ve kalibrasyon geçmişi',
     icon: Activity,
-    emptyText: 'Tanımlı ölçüm aracı bulunamadı.'
+    emptyText: 'Tanımlı ölçüm cihazı bulunamadı.'
   },
   equipment: {
     endpoint: '/equipment',
@@ -55,6 +57,8 @@ const createStatusForm = (status?: any): StatusForm => ({
   negativeTolerance: status?.negativeTolerance == null ? '' : String(status.negativeTolerance),
   positiveTolerance: status?.positiveTolerance == null ? '' : String(status.positiveTolerance),
   certificate: status?.certificate || '',
+  certificateDocumentUrl: status?.certificateDocumentUrl || '',
+  certificateDocumentName: status?.certificateDocumentName || '',
   operationStatus: status?.operationStatus || 'available',
   notes: status?.notes || ''
 });
@@ -106,16 +110,43 @@ function AssetList({ kind }: { kind: AssetKind }) {
       const latest = asset.statuses?.[0];
       const matchesSearch = !search ||
         normalize(asset.code).includes(search) ||
+        normalize(asset.type?.code).includes(search) ||
         normalize(asset.name).includes(search) ||
+        normalize(asset.type?.name).includes(search) ||
         normalize(asset.serialNo).includes(search) ||
-        normalize(asset.brand).includes(search) ||
-        normalize(asset.model).includes(search) ||
+        normalize(asset.type?.brand).includes(search) ||
+        normalize(asset.type?.model).includes(search) ||
         normalize(latest?.workCenter?.name).includes(search) ||
-        normalize(latest?.certificate).includes(search);
+        normalize(latest?.certificate).includes(search) ||
+        normalize(latest?.certificateDocumentName).includes(search);
       const matchesStatus = statusFilter === 'all' || latest?.operationStatus === statusFilter;
       return matchesSearch && matchesStatus;
     });
   }, [assets, searchTerm, statusFilter]);
+
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [types, setTypes] = useState<any[]>([]);
+  const [newDevice, setNewDevice] = useState({ typeId: '', serialNo: '', code: '', notes: '' });
+
+  const fetchTypes = async () => {
+    try {
+      const res = await api.get('/measurement-tools'); // This endpoint now returns Types
+      setTypes(Array.isArray(res) ? res : []);
+    } catch (e) { }
+  };
+
+  const handleAddDevice = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await api.post('/measurement-devices', newDevice);
+      notify.success('Cihaz Eklendi', 'Yeni ölçüm cihazı başarıyla oluşturuldu.');
+      setShowAddModal(false);
+      setNewDevice({ typeId: '', serialNo: '', code: '', notes: '' });
+      fetchData();
+    } catch (err: any) {
+      notify.error('Hata', err.message || 'Cihaz eklenemedi.');
+    }
+  };
 
   if (loading) return <Loading size="lg" fullScreen />;
 
@@ -129,6 +160,14 @@ function AssetList({ kind }: { kind: AssetKind }) {
           </h2>
           <p className="text-theme-main/80 text-[12px] mt-1 font-bold opacity-60">{cfg.description}</p>
         </div>
+        {kind === 'measurement' && (
+          <button
+            onClick={() => { fetchTypes(); setShowAddModal(true); }}
+            className="bg-theme-primary hover:bg-theme-primary-hover h-11 text-white px-8 rounded-xl text-xs font-black transition-all shadow-xl shadow-theme-primary/30 flex items-center gap-2.5 active:scale-95 uppercase tracking-widest"
+          >
+            <Activity className="w-4 h-4" /> YENİ CİHAZ EKLE
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -185,11 +224,14 @@ function AssetList({ kind }: { kind: AssetKind }) {
                 const latest = asset.statuses?.[0];
                 return (
                   <tr key={asset.id} onClick={() => navigate(`${cfg.listPath}/${asset.id}`)} className="hover:bg-theme-main/5 transition-all cursor-pointer">
-                    <td className="px-6 py-5 font-mono text-sm font-black text-theme-primary whitespace-nowrap">{asset.code || asset.id.slice(0, 8)}</td>
+                    <td className="px-6 py-5 font-mono text-sm font-black text-theme-primary whitespace-nowrap">{asset.code || asset.type?.code || asset.id.slice(0, 8)}</td>
                     <td className="px-6 py-5">
                       <div className="flex flex-col">
-                        <span className="text-xs font-black text-theme-main">{asset.name}</span>
-                        <span className="text-[10px] text-theme-muted font-bold">{asset.serialNo || asset.brand || asset.model || '-'}</span>
+                        <span className="text-xs font-black text-theme-main">{asset.type?.name || asset.name}</span>
+                        <span className="text-[10px] text-theme-muted font-bold">
+                          {asset.serialNo ? `S/N: ${asset.serialNo}` : ''} 
+                          {asset.type?.brand ? ` [${asset.type.brand} ${asset.type.model || ''}]` : ''}
+                        </span>
                       </div>
                     </td>
                     <td className="px-6 py-5 text-xs font-bold text-theme-muted whitespace-nowrap">{latest?.workCenter?.name || '-'}</td>
@@ -217,6 +259,60 @@ function AssetList({ kind }: { kind: AssetKind }) {
           </table>
         </div>
       </div>
+      <AddDeviceModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        types={types}
+        onSubmit={handleAddDevice}
+        data={newDevice}
+        setData={setNewDevice}
+      />
+    </div>
+  );
+}
+
+function AddDeviceModal({ isOpen, onClose, types, onSubmit, data, setData }: any) {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-theme-base/60 backdrop-blur-md animate-in fade-in duration-300">
+      <div className="bg-theme-surface w-full max-w-lg rounded-3xl border border-theme shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+        <div className="p-6 border-b border-theme flex items-center justify-between bg-theme-base/10">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-theme-primary/10 rounded-2xl">
+              <Activity className="w-5 h-5 text-theme-primary" />
+            </div>
+            <div>
+              <h3 className="text-lg font-black text-theme-main uppercase leading-none">YENİ ÖLÇÜM CİHAZI</h3>
+              <p className="text-[10px] text-theme-dim font-black uppercase tracking-widest mt-1 opacity-60">Fiziksel cihaz tanımlama</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="w-10 h-10 flex items-center justify-center rounded-xl bg-theme-base/10 text-theme-dim hover:bg-theme-primary hover:text-white transition-all"><X size={20} /></button>
+        </div>
+        <form onSubmit={onSubmit} className="p-6 space-y-5">
+          <Field label="Ölçüm Aracı Türü">
+            <CustomSelect
+              options={types.map((t: any) => ({ id: t.id, label: t.name, subLabel: `${t.code || ''} ${t.brand || ''}` }))}
+              value={data.typeId}
+              onChange={(val) => setData({ ...data, typeId: String(val) })}
+              placeholder="Tür seçin..."
+            />
+          </Field>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Cihaz Kodu (Opsiyonel)">
+              <input value={data.code} onChange={e => setData({ ...data, code: e.target.value })} className="form-input h-11 text-xs" placeholder="Örn: MK-01" />
+            </Field>
+            <Field label="Seri Numarası">
+              <input value={data.serialNo} onChange={e => setData({ ...data, serialNo: e.target.value })} className="form-input h-11 text-xs" placeholder="Cihaz üzerindeki S/N" />
+            </Field>
+          </div>
+          <Field label="Notlar">
+            <textarea value={data.notes} onChange={e => setData({ ...data, notes: e.target.value })} className="form-input min-h-[80px] py-3 text-xs" placeholder="Ekstra bilgiler..." />
+          </Field>
+          <button type="submit" className="w-full h-12 bg-theme-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-theme-primary-hover transition-all shadow-xl shadow-theme-primary/20 flex items-center justify-center gap-2">
+            <Save size={18} /> CİHAZI KAYDET
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
@@ -231,8 +327,10 @@ function AssetDetail({ kind }: { kind: AssetKind }) {
   const [form, setForm] = useState<StatusForm>(() => createStatusForm());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [certificateUploading, setCertificateUploading] = useState(false);
 
   const latestStatus = asset?.statuses?.[0];
+  const canUploadCertificate = kind === 'measurement';
 
   const fetchData = async () => {
     if (!id) return;
@@ -274,8 +372,48 @@ function AssetDetail({ kind }: { kind: AssetKind }) {
     }
   };
 
+  const deleteStatus = async (statusId: string) => {
+    if (!window.confirm('Bu durum kaydını silmek istediğinize emin misiniz?')) return;
+    try {
+      await api.delete(`${cfg.endpoint}/statuses/${statusId}`);
+      notify.success('Silindi', 'Durum kaydı başarıyla silindi.');
+      await fetchData();
+    } catch (error: any) {
+      notify.error('Hata', error.message || 'Durum kaydı silinemedi.');
+    }
+  };
+
   const updateForm = (patch: Partial<StatusForm>) => {
     setForm((prev) => ({ ...prev, ...patch }));
+  };
+
+  const handleCertificateDocumentUpload = async (file: File | null) => {
+    if (!file) return;
+    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+      notify.warning('PDF Gerekli', 'Sertifika belgesi sadece PDF kabul eder.');
+      return;
+    }
+
+    const fd = new FormData();
+    fd.append('file', file);
+    setCertificateUploading(true);
+
+    try {
+      const uploaded = await api.upload('/measurement-devices/certificates/upload', fd);
+      updateForm({
+        certificateDocumentUrl: uploaded.url,
+        certificateDocumentName: uploaded.name
+      });
+      notify.success('Belge Yüklendi', uploaded.name);
+    } catch (error: any) {
+      notify.error('Belge Yüklenemedi', error.message || 'PDF yükleme başarısız oldu.');
+    } finally {
+      setCertificateUploading(false);
+    }
+  };
+
+  const clearCertificateDocument = () => {
+    updateForm({ certificateDocumentUrl: '', certificateDocumentName: '' });
   };
 
   if (loading) return <Loading size="lg" fullScreen />;
@@ -294,17 +432,18 @@ function AssetDetail({ kind }: { kind: AssetKind }) {
           <div>
             <h2 className="text-xl font-black text-theme-main uppercase flex items-center gap-2">
               <Icon className="w-5 h-5 text-theme-primary" />
-              {asset.name}
+              {asset.type?.name || asset.name}
             </h2>
             <p className="text-theme-main/80 text-[11px] mt-0.5 font-bold opacity-60">
-              {asset.code || '-'} {asset.serialNo ? ` / ${asset.serialNo}` : ''}
+              {asset.code || asset.type?.code || '-'} {asset.serialNo ? ` / S/N: ${asset.serialNo}` : ''}
+              {asset.type?.brand ? ` [${asset.type.brand} ${asset.type.model || ''}]` : ''}
             </p>
           </div>
         </div>
         <button
           type="button"
           onClick={saveStatus}
-          disabled={saving}
+          disabled={saving || certificateUploading}
           className="h-11 px-6 rounded-xl bg-theme-primary text-white hover:bg-theme-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 text-xs font-black uppercase tracking-widest shadow-lg shadow-theme-primary/20"
         >
           {saving ? <RefreshCw size={16} className="animate-spin" /> : <Save size={16} />}
@@ -352,9 +491,51 @@ function AssetDetail({ kind }: { kind: AssetKind }) {
           <Field label="Artı Tolerans">
             <input type="number" step="0.0001" value={form.positiveTolerance} onChange={(event) => updateForm({ positiveTolerance: event.target.value })} className="form-input h-10 text-xs text-right" />
           </Field>
-          <Field label="Sertifika">
-            <input value={form.certificate} onChange={(event) => updateForm({ certificate: event.target.value })} className="form-input h-10 text-xs" placeholder="Sertifika no / belge referansı" />
-          </Field>
+          <div className={canUploadCertificate ? 'md:col-span-2 xl:col-span-2' : ''}>
+            <Field label="Sertifika">
+              <div className={canUploadCertificate ? 'grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(210px,260px)] gap-2' : ''}>
+                <input value={form.certificate} onChange={(event) => updateForm({ certificate: event.target.value })} className="form-input h-10 text-xs" placeholder="Sertifika no / belge referansı" />
+                {canUploadCertificate && (
+                  <div className="flex gap-2 min-w-0">
+                    <label className="h-10 flex-1 rounded-xl bg-theme-base border border-theme text-theme-main hover:border-theme-primary/40 transition-all flex items-center justify-center gap-2 text-[10px] font-black uppercase cursor-pointer overflow-hidden px-3">
+                      <UploadCloud size={16} className={certificateUploading ? 'animate-pulse text-theme-primary' : 'text-theme-muted'} />
+                      <span className="truncate">{form.certificateDocumentName || (certificateUploading ? 'Yükleniyor' : 'PDF Yükle')}</span>
+                      <input
+                        type="file"
+                        accept="application/pdf,.pdf"
+                        className="hidden"
+                        onChange={(event) => {
+                          handleCertificateDocumentUpload(event.target.files?.[0] || null);
+                          event.currentTarget.value = '';
+                        }}
+                      />
+                    </label>
+                    {form.certificateDocumentUrl && (
+                      <a
+                        href={form.certificateDocumentUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        title="Sertifika belgesini aç"
+                        className="h-10 w-10 rounded-xl bg-theme-base border border-theme text-theme-dim hover:text-theme-primary hover:border-theme-primary/30 transition-all flex items-center justify-center shrink-0"
+                      >
+                        <ExternalLink size={16} />
+                      </a>
+                    )}
+                    {form.certificateDocumentUrl && (
+                      <button
+                        type="button"
+                        onClick={clearCertificateDocument}
+                        title="Belgeyi kaldır"
+                        className="h-10 w-10 rounded-xl bg-theme-base border border-theme text-theme-dim hover:text-theme-danger hover:border-theme-danger/30 transition-all flex items-center justify-center shrink-0"
+                      >
+                        <X size={16} />
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </Field>
+          </div>
           <Field label="İşlem Durumu">
             <CustomSelect options={operationStatuses} value={form.operationStatus} onChange={(value) => updateForm({ operationStatus: String(value || 'available') })} searchable={false} />
           </Field>
@@ -382,6 +563,7 @@ function AssetDetail({ kind }: { kind: AssetKind }) {
                 <th className="px-6 py-4 text-[10px] font-black text-theme-dim">Sertifika</th>
                 <th className="px-6 py-4 text-[10px] font-black text-theme-dim">Durum</th>
                 <th className="px-6 py-4 text-[10px] font-black text-theme-dim">Not</th>
+                <th className="px-6 py-4 text-[10px] font-black text-theme-dim text-center">İşlem</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-theme/20">
@@ -391,14 +573,41 @@ function AssetDetail({ kind }: { kind: AssetKind }) {
                   <td className="px-6 py-5 text-xs font-bold text-theme-muted whitespace-nowrap">{status.workCenter?.name || '-'}</td>
                   <td className="px-6 py-5 text-xs font-bold text-theme-muted whitespace-nowrap">{status.validUntil ? format(new Date(status.validUntil), 'dd/MM/yyyy') : '-'}</td>
                   <td className="px-6 py-5 text-xs font-black text-theme-muted whitespace-nowrap">{status.negativeTolerance ?? '-'} / +{status.positiveTolerance ?? '-'}</td>
-                  <td className="px-6 py-5 text-xs font-bold text-theme-muted whitespace-nowrap">{status.certificate || '-'}</td>
+                  <td className="px-6 py-5 text-xs font-bold text-theme-muted whitespace-nowrap">
+                    <div className="flex items-center gap-2 min-w-[180px]">
+                      <span className="truncate max-w-[180px]">{status.certificate || '-'}</span>
+                      {status.certificateDocumentUrl && (
+                        <a
+                          href={status.certificateDocumentUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          title={status.certificateDocumentName || 'Sertifika belgesini aç'}
+                          className="inline-flex items-center gap-1 h-7 px-2 rounded-lg border border-theme text-theme-primary hover:bg-theme-primary/10 transition-all shrink-0"
+                        >
+                          <FileText size={13} />
+                          <span className="text-[9px] font-black uppercase">PDF</span>
+                        </a>
+                      )}
+                    </div>
+                  </td>
                   <td className="px-6 py-5"><OperationStatusBadge status={status.operationStatus} /></td>
                   <td className="px-6 py-5 text-xs font-bold text-theme-muted max-w-[260px] truncate">{status.notes || '-'}</td>
+                  <td className="px-6 py-5">
+                    <div className="flex justify-center">
+                      <button
+                        onClick={() => deleteStatus(status.id)}
+                        className="p-2 rounded-lg bg-theme-danger/10 text-theme-danger hover:bg-theme-danger/20 transition-all"
+                        title="Bu kaydı sil"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
               {(asset.statuses || []).length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-6 py-20 text-center opacity-30 italic text-sm">
+                  <td colSpan={8} className="px-6 py-20 text-center opacity-30 italic text-sm">
                     Henüz durum kaydı eklenmedi.
                   </td>
                 </tr>

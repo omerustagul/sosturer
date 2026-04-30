@@ -346,13 +346,11 @@ export function RecordsList() {
         if (isBulkEditing && isSelected) {
           return (
             <div onClick={e => e.stopPropagation()}>
-              <CustomSelect
-                variant="inline"
+              <CustomSelect variant="inline"
                 options={(meta?.shifts || []).map((s: any) => ({ id: s.id, label: s.shiftName, subLabel: `${s.durationMinutes} dk` }))}
                 value={localChanges?.[id]?.shiftId ?? info.getValue()}
                 onChange={(val) => meta?.updateLocalChange(id, 'shiftId', val)}
-                className="w-30"
-              />
+                className="w-30" />
             </div>
           );
         }
@@ -427,13 +425,11 @@ export function RecordsList() {
         if (isBulkEditing && isSelected) {
           return (
             <div onClick={e => e.stopPropagation()}>
-              <CustomSelect
-                variant="inline"
+              <CustomSelect variant="inline"
                 options={(meta?.operators || []).map((o: any) => ({ id: o.id, label: o.fullName, subLabel: o.employeeId }))}
                 value={localChanges?.[id]?.operatorId ?? info.getValue()}
                 onChange={(val) => meta?.updateLocalChange(id, 'operatorId', val)}
-                className="w-32"
-              />
+                className="w-32" />
             </div>
           );
         }
@@ -474,13 +470,11 @@ export function RecordsList() {
         if (isBulkEditing && isSelected) {
           return (
             <div onClick={e => e.stopPropagation()}>
-              <CustomSelect
-                variant="inline"
+              <CustomSelect variant="inline"
                 options={(meta?.machines || []).map((m: any) => ({ id: m.id, label: m.code }))}
                 value={localChanges?.[id]?.machineId ?? info.row.original.machineId}
                 onChange={(val) => meta?.updateLocalChange(id, 'machineId', val)}
-                className="w-24"
-              />
+                className="w-24" />
             </div>
           );
         }
@@ -515,13 +509,11 @@ export function RecordsList() {
         if (isBulkEditing && isSelected) {
           return (
             <div onClick={e => e.stopPropagation()}>
-              <CustomSelect
-                variant="inline"
+              <CustomSelect variant="inline"
                 options={(meta?.products || []).map((p: any) => ({ id: p.id, label: p.productCode, subLabel: p.productName }))}
                 value={localChanges?.[id]?.productId ?? info.row.original.productId}
                 onChange={(val) => meta?.updateLocalChange(id, 'productId', val)}
-                className="w-23"
-              />
+                className="w-23" />
             </div>
           );
         }
@@ -1093,13 +1085,11 @@ export function RecordsList() {
               <label className="text-[10px] font-black text-theme-dim uppercase tracking-widest flex items-center gap-2 px-1">
                 <Settings size={12} /> Makine
               </label>
-              <CustomSelect
-                options={(machines || []).map(m => ({ id: m.id, label: m.code, subLabel: m.name }))}
+              <CustomSelect options={(machines || []).map(m => ({ id: m.id, label: m.code, subLabel: m.name }))}
                 value={filters.machineId}
                 onChange={(val) => setFilters(prev => ({ ...prev, machineId: val }))}
                 placeholder="Tüm Makineler"
-                fullWidth
-              />
+                fullWidth />
             </div>
 
             <div className="flex items-center gap-3">
@@ -1138,81 +1128,69 @@ export function RecordsList() {
                 <label className="text-[10px] font-black text-theme-dim uppercase tracking-widest flex items-center gap-2 px-1">
                   <User size={12} /> Personel
                 </label>
-                <CustomSelect
-                  options={(operators || []).map(o => ({ id: o.id, label: o.fullName, subLabel: o.employeeId }))}
+                <CustomSelect options={(operators || []).map(o => ({ id: o.id, label: o.fullName, subLabel: o.employeeId }))}
                   value={filters.operatorId}
                   onChange={(val) => setFilters(prev => ({ ...prev, operatorId: val }))}
                   placeholder="Hepsi"
-                  fullWidth
-                />
+                  fullWidth />
               </div>
 
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-theme-dim uppercase tracking-widest flex items-center gap-2 px-1">
                   <Package size={12} /> Ürün
                 </label>
-                <CustomSelect
-                  options={(products || []).map(p => ({ id: p.id, label: p.productCode, subLabel: p.productName }))}
+                <CustomSelect options={(products || []).map(p => ({ id: p.id, label: p.productCode, subLabel: p.productName }))}
                   value={filters.productId}
                   onChange={(val) => setFilters(prev => ({ ...prev, productId: val }))}
                   placeholder="Hepsi"
-                  fullWidth
-                />
+                  fullWidth />
               </div>
 
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-theme-dim uppercase tracking-widest flex items-center gap-2 px-1">
                   <Package size={12} /> Ürün Grubu
                 </label>
-                <CustomSelect
-                  options={productGroupOptions || []}
+                <CustomSelect options={productGroupOptions || []}
                   value={filters.productGroup}
                   onChange={(val) => setFilters(prev => ({ ...prev, productGroup: val }))}
                   placeholder="Hepsi"
                   searchable
-                  fullWidth
-                />
+                  fullWidth />
               </div>
 
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-theme-dim uppercase tracking-widest flex items-center gap-2 px-1">
                   <Package size={12} /> Kategori
                 </label>
-                <CustomSelect
-                  options={categoryOptions || []}
+                <CustomSelect options={categoryOptions || []}
                   value={filters.category}
                   onChange={(val) => setFilters(prev => ({ ...prev, category: val }))}
                   placeholder="Hepsi"
                   searchable
-                  fullWidth
-                />
+                  fullWidth />
               </div>
 
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-theme-dim uppercase tracking-widest flex items-center gap-2 px-1">
                   <Settings size={12} /> Marka
                 </label>
-                <CustomSelect
-                  options={brandOptions || []}
+                <CustomSelect options={brandOptions || []}
                   value={filters.brand}
                   onChange={(val) => setFilters(prev => ({ ...prev, brand: val }))}
                   placeholder="Hepsi"
                   searchable
-                  fullWidth
-                />
+                  fullWidth />
               </div>
 
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-theme-dim uppercase tracking-widest flex items-center gap-2 px-1">
                   <Clock size={12} /> Vardiya
                 </label>
-                <CustomSelect
-                  options={(shifts || []).map(s => ({ id: s.id, label: s.shiftName, subLabel: `${s.durationMinutes} dk` }))}
+                <CustomSelect options={(shifts || []).map(s => ({ id: s.id, label: s.shiftName, subLabel: `${s.durationMinutes} dk` }))}
                   value={filters.shiftId}
                   onChange={(val) => setFilters(prev => ({ ...prev, shiftId: val }))}
                   placeholder="Hepsi"
-                  fullWidth
-                />
+                  fullWidth />
               </div>
             </div>
           )}
@@ -1353,20 +1331,7 @@ export function RecordsList() {
             <div className="flex items-center gap-3">
               <span className="text-[11px] font-black text-theme-dim whitespace-nowrap">Sayfada Görüntülenen:</span>
               <div className="min-w-fit">
-                <CustomSelect
-                  options={[
-                    { id: 20, label: '20' },
-                    { id: 50, label: '50' },
-                    { id: 250, label: '250' },
-                    { id: 500, label: '500' },
-                    { id: 1000, label: '1000' },
-                    { id: 999999, label: 'Tümü' }
-                  ]}
-                  value={table.getState().pagination.pageSize}
-                  onChange={value => table.setPageSize(Number(value))}
-                  searchable={false}
-                  placeholder="Seç"
-                />
+                <CustomSelect fullWidth={false} options={[ { id: 20, label: '20' }, { id: 50, label: '50' }, { id: 250, label: '250' }, { id: 500, label: '500' }, { id: 1000, label: '1000' }, { id: 999999, label: 'Tümü' } ]} value={table.getState().pagination.pageSize} onChange={value => table.setPageSize(Number(value))} searchable={false} placeholder="Seç" />
               </div>
             </div>
           </div>
@@ -1542,23 +1507,19 @@ function ProductionCalculatorModal({ shifts, products, onClose }: any) {
               <div className="grid grid-cols-1 gap-4">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-theme-dim uppercase tracking-widest px-1">ÜRÜN SEÇIMI (OPSIYONEL)</label>
-                  <CustomSelect
-                    options={products.map((p: any) => ({ id: p.id, label: p.productCode, subLabel: p.productName }))}
+                  <CustomSelect options={products.map((p: any) => ({ id: p.id, label: p.productCode, subLabel: p.productName }))}
                     value={selectedProductId}
                     onChange={handleProductChange}
-                    placeholder="Ürün seçerek birim süreyi getir..."
-                  />
+                    placeholder="Ürün seçerek birim süreyi getir..." />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-theme-dim uppercase tracking-widest px-1">VARDIYA SÜRESI</label>
-                    <CustomSelect
-                      options={shifts.map((s: any) => ({ id: s.id, label: s.shiftName, subLabel: `${s.durationMinutes} dk` }))}
+                    <CustomSelect options={shifts.map((s: any) => ({ id: s.id, label: s.shiftName, subLabel: `${s.durationMinutes} dk` }))}
                       value={selectedShiftId}
                       onChange={setSelectedShiftId}
-                      placeholder="Seçin..."
-                    />
+                      placeholder="Seçin..." />
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-theme-dim uppercase tracking-widest px-1">BİRİM SÜRE (SN)</label>
@@ -1591,12 +1552,10 @@ function ProductionCalculatorModal({ shifts, products, onClose }: any) {
             <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-theme-dim uppercase tracking-widest px-1">ANALİZ EDİLECEK ÜRÜN</label>
-                <CustomSelect
-                  options={products.map((p: any) => ({ id: p.id, label: p.productCode, subLabel: p.productName }))}
+                <CustomSelect options={products.map((p: any) => ({ id: p.id, label: p.productCode, subLabel: p.productName }))}
                   value={selectedProductId}
                   onChange={setSelectedProductId}
-                  placeholder="Ürün seçin..."
-                />
+                  placeholder="Ürün seçin..." />
               </div>
 
               {loading ? (

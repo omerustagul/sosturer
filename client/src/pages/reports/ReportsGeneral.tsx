@@ -376,11 +376,9 @@ export function ReportsGeneral() {
             <label className="text-[10px] font-black text-theme-dim uppercase tracking-widest flex items-center gap-2 px-1">
               <Factory size={12} /> MAKİNE
             </label>
-            <CustomSelect
-              options={[{ id: 'all', label: 'Tüm Makinalar' }, ...machines.map(m => ({ id: m.id, label: m.code, subLabel: m.name }))]}
+            <CustomSelect options={[{ id: 'all', label: 'Tüm Makinalar' }, ...machines.map(m => ({ id: m.id, label: m.code, subLabel: m.name }))]}
               value={filters.machineId}
-              onChange={(val) => setFilters(prev => ({ ...prev, machineId: val }))}
-            />
+              onChange={(val) => setFilters(prev => ({ ...prev, machineId: val }))} />
           </div>
           <div className="flex shrink-0 gap-3">
             <button
@@ -410,61 +408,49 @@ export function ReportsGeneral() {
               <label className="text-[10px] font-black text-theme-dim uppercase tracking-widest flex items-center gap-2 px-1">
                 <User size={12} /> OPERATÖR
               </label>
-              <CustomSelect
-                options={[{ id: 'all', label: 'Tüm Operatörler' }, ...operators.map(o => ({ id: o.id, label: o.fullName, subLabel: o.employeeId }))]}
+              <CustomSelect options={[{ id: 'all', label: 'Tüm Operatörler' }, ...operators.map(o => ({ id: o.id, label: o.fullName, subLabel: o.employeeId }))]}
                 value={filters.operatorId}
-                onChange={(val) => setFilters(prev => ({ ...prev, operatorId: val }))}
-              />
+                onChange={(val) => setFilters(prev => ({ ...prev, operatorId: val }))} />
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-black text-theme-dim uppercase tracking-widest flex items-center gap-2 px-1">
                 <Clock size={12} /> VARDİYA
               </label>
-              <CustomSelect
-                options={[{ id: 'all', label: 'Tüm Vardiyalar' }, ...shifts.map(s => ({ id: s.id, label: s.shiftName, subLabel: s.shiftCode }))]}
+              <CustomSelect options={[{ id: 'all', label: 'Tüm Vardiyalar' }, ...shifts.map(s => ({ id: s.id, label: s.shiftName, subLabel: s.shiftCode }))]}
                 value={filters.shiftId}
-                onChange={(val) => setFilters(prev => ({ ...prev, shiftId: val }))}
-              />
+                onChange={(val) => setFilters(prev => ({ ...prev, shiftId: val }))} />
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-black text-theme-dim uppercase tracking-widest flex items-center gap-2 px-1">
                 <Package size={12} /> ÜRÜN
               </label>
-              <CustomSelect
-                options={[{ id: 'all', label: 'Tüm Ürünler' }, ...products.map(p => ({ id: p.id, label: p.productName, subLabel: p.productCode }))]}
+              <CustomSelect options={[{ id: 'all', label: 'Tüm Ürünler' }, ...products.map(p => ({ id: p.id, label: p.productName, subLabel: p.productCode }))]}
                 value={filters.productId}
-                onChange={(val) => setFilters(prev => ({ ...prev, productId: val }))}
-              />
+                onChange={(val) => setFilters(prev => ({ ...prev, productId: val }))} />
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-black text-theme-dim uppercase tracking-widest flex items-center gap-2 px-1">
                 <Layers size={12} /> ÜRÜN GRUBU
               </label>
-              <CustomSelect
-                options={[{ id: 'all', label: 'Tüm Gruplar' }, ...productMeta.groups.map(g => ({ id: g, label: g }))]}
+              <CustomSelect options={[{ id: 'all', label: 'Tüm Gruplar' }, ...productMeta.groups.map(g => ({ id: g, label: g }))]}
                 value={filters.productGroup}
-                onChange={(val) => setFilters(prev => ({ ...prev, productGroup: val }))}
-              />
+                onChange={(val) => setFilters(prev => ({ ...prev, productGroup: val }))} />
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-black text-theme-dim uppercase tracking-widest flex items-center gap-2 px-1">
                 <Tags size={12} /> KATEGORİ
               </label>
-              <CustomSelect
-                options={[{ id: 'all', label: 'Tüm Kategoriler' }, ...productMeta.categories.map(c => ({ id: c, label: c }))]}
+              <CustomSelect options={[{ id: 'all', label: 'Tüm Kategoriler' }, ...productMeta.categories.map(c => ({ id: c, label: c }))]}
                 value={filters.category}
-                onChange={(val) => setFilters(prev => ({ ...prev, category: val }))}
-              />
+                onChange={(val) => setFilters(prev => ({ ...prev, category: val }))} />
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-black text-theme-dim uppercase tracking-widest flex items-center gap-2 px-1">
                 <Bookmark size={12} /> MARKA
               </label>
-              <CustomSelect
-                options={[{ id: 'all', label: 'Tüm Markalar' }, ...productMeta.brands.map(b => ({ id: b, label: b }))]}
+              <CustomSelect options={[{ id: 'all', label: 'Tüm Markalar' }, ...productMeta.brands.map(b => ({ id: b, label: b }))]}
                 value={filters.brand}
-                onChange={(val) => setFilters(prev => ({ ...prev, brand: val }))}
-              />
+                onChange={(val) => setFilters(prev => ({ ...prev, brand: val }))} />
             </div>
           </div>
         )}
@@ -697,22 +683,7 @@ export function ReportsGeneral() {
                 <div className="flex items-center gap-2">
                   <span className="text-[11px] font-black text-theme-dim whitespace-nowrap">Sayfada Görüntülenen:</span>
                   <div className="min-w-fit">
-                    <CustomSelect
-                      options={[
-                        { id: 20, label: '20' },
-                        { id: 50, label: '50' },
-                        { id: 250, label: '250' },
-                        { id: 500, label: '500' },
-                        { id: 1000, label: '1000' },
-                        { id: 999999, label: 'Tümü' }
-                      ]}
-                      value={pageSize}
-                      onChange={value => {
-                        setPageSize(Number(value));
-                        setCurrentPage(0);
-                      }}
-                      searchable={false}
-                    />
+                    <CustomSelect fullWidth={false} options={[ { id: 20, label: '20' }, { id: 50, label: '50' }, { id: 250, label: '250' }, { id: 500, label: '500' }, { id: 1000, label: '1000' }, { id: 999999, label: 'Tümü' } ]} value={pageSize} onChange={value => { setPageSize(Number(value)); setCurrentPage(0); }} searchable={false} />
                   </div>
                 </div>
                 <div className="h-4 w-px bg-theme hidden md:block" />

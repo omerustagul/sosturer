@@ -42,7 +42,7 @@ export const CustomSelect = memo(({
   searchable = true,
   isMulti = false,
   variant = 'default',
-  fullWidth = false
+  fullWidth = true
 }: CustomSelectProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -230,8 +230,8 @@ export const CustomSelect = memo(({
       <div
         onClick={() => !disabled && setIsOpen(!isOpen)}
         className={cn(
-          "relative min-w-[5rem] bg-theme-base border border-theme rounded-xl flex items-center justify-between cursor-pointer transition-all duration-300 group",
-          fullWidth ? "w-full" : "w-fit max-w-[12rem]",
+          "relative bg-theme-base border border-theme rounded-xl flex items-center justify-between cursor-pointer transition-all duration-300 group",
+          fullWidth ? "w-full" : "min-w-[5rem] w-fit",
           variant === 'inline' ? "h-10 px-2 py-1" : "h-10 px-2 py-1",
           isOpen && "ring-4 ring-theme-primary/10 border-theme-primary/40 bg-theme-surface shadow-primary-glow",
           !isOpen && !disabled && "hover:border-theme-primary/40 hover:bg-theme-surface/50",

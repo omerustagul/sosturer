@@ -215,24 +215,20 @@ export function StockMovements() {
             />
             <div className="space-y-1">
               <span className="text-[10px] font-black text-theme-dim uppercase tracking-widest">İşlem Tipi</span>
-              <CustomSelect
-                options={movementTypes}
+              <CustomSelect options={movementTypes}
                 value={filters.type}
                 onChange={(value) => updateFilter('type', String(value || 'all'))}
-                searchable={false}
-              />
+                searchable={false} />
             </div>
             <div className="space-y-1">
               <span className="text-[10px] font-black text-theme-dim uppercase tracking-widest">Depo</span>
-              <CustomSelect
-                options={[
+              <CustomSelect options={[
                   { id: 'all', label: 'Tüm Depolar' },
                   ...warehouses.map((warehouse) => ({ id: warehouse.id, label: warehouse.name, subLabel: warehouse.type }))
                 ]}
                 value={filters.warehouseId}
                 onChange={(value) => updateFilter('warehouseId', String(value || 'all'))}
-                searchable={true}
-              />
+                searchable={true} />
             </div>
             <FilterInput
               icon={Calendar}
@@ -365,22 +361,7 @@ export function StockMovements() {
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-black text-theme-dim whitespace-nowrap">Sayfada Görüntülenen:</span>
               <div className="min-w-fit">
-                <CustomSelect
-                  options={[
-                    { id: 20, label: '20' },
-                    { id: 50, label: '50' },
-                    { id: 250, label: '250' },
-                    { id: 500, label: '500' },
-                    { id: 1000, label: '1000' },
-                    { id: 999999, label: 'Tümü' }
-                  ]}
-                  value={pageSize}
-                  onChange={(value) => {
-                    setPageSize(Number(value));
-                    setCurrentPage(0);
-                  }}
-                  searchable={false}
-                />
+                <CustomSelect fullWidth={false} options={[ { id: 20, label: '20' }, { id: 50, label: '50' }, { id: 250, label: '250' }, { id: 500, label: '500' }, { id: 1000, label: '1000' }, { id: 999999, label: 'Tümü' } ]} value={pageSize} onChange={(value) => { setPageSize(Number(value)); setCurrentPage(0); }} searchable={false} />
               </div>
             </div>
             <div className="h-4 w-px bg-theme hidden md:block" />

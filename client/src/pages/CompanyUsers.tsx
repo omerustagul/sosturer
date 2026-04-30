@@ -279,13 +279,11 @@ export default function CompanyUsers() {
                   <td className="px-4 py-2">
                     <div className="flex items-center gap-2">
                       {isBulkEditing && selectedIds.has(u.id) ? (
-                        <CustomSelect
-                          variant="inline"
+                        <CustomSelect variant="inline"
                           options={[{ id: 'admin', label: 'YÖNETİCİ' }, { id: 'user', label: 'PERSONEL' }]}
                           value={localChanges[u.id]?.role ?? u.role}
                           onChange={(val) => setLocalChanges(prev => ({ ...prev, [u.id]: { ...prev[u.id], role: val } }))}
-                          className="w-40"
-                        />
+                          className="w-40" />
                       ) : u.role === 'admin' ? (
                         <div className="flex items-center gap-2 px-3 py-1 bg-purple-500/10 border border-purple-500/20 text-purple-400 text-[10px] font-black rounded-lg uppercase tracking-wider">
                           <ShieldCheck size={12} /> YÖNETİCİ
@@ -334,22 +332,7 @@ export default function CompanyUsers() {
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-black text-theme-dim whitespace-nowrap">Sayfada Görüntülenen:</span>
               <div className="min-w-fit">
-                <CustomSelect
-                  options={[
-                    { id: 20, label: '20' },
-                    { id: 50, label: '50' },
-                    { id: 250, label: '250' },
-                    { id: 500, label: '500' },
-                    { id: 1000, label: '1000' },
-                    { id: 999999, label: 'Tümü' }
-                  ]}
-                  value={pageSize}
-                  onChange={value => {
-                    setPageSize(Number(value));
-                    setCurrentPage(0);
-                  }}
-                  searchable={false}
-                />
+                <CustomSelect fullWidth={false} options={[ { id: 20, label: '20' }, { id: 50, label: '50' }, { id: 250, label: '250' }, { id: 500, label: '500' }, { id: 1000, label: '1000' }, { id: 999999, label: 'Tümü' } ]} value={pageSize} onChange={value => { setPageSize(Number(value)); setCurrentPage(0); }} searchable={false} />
               </div>
             </div>
             <div className="h-4 w-px bg-theme hidden md:block" />

@@ -121,6 +121,8 @@ const applyStock = async (tx: any, companyId: string, transaction: any) => {
       fromWarehouseId: transaction.warehouseId,
       lotNumber: transaction.lotNumber || '',
       quantity: transaction.quantity,
+      unit: transaction.unit,
+      notes: transaction.notes,
       type: MOVEMENT_TYPE,
       referenceId: transaction.transactionNo,
       description: `Tuketim islemi - ${transaction.transactionNo}`
