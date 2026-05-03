@@ -86,7 +86,7 @@ export function Login() {
         className="w-full max-w-md relative z-10"
       >
         <div className="modern-glass-card">
-          <div className="mb-10 text-center space-y-4">
+          <div className="mb-4 text-center space-y-4">
             <div className="relative inline-flex group">
               <div className="absolute inset-0 bg-theme-primary/30 blur-2xl rounded-full opacity-50 group-hover:opacity-100 transition-opacity animate-pulse" />
               <div className="relative bg-transparent overflow-hidden hover:scale-105 transition-transform duration-500 rotate-0 hover:rotate-5">
@@ -204,8 +204,8 @@ export function Login() {
             </button>
           </form>
 
-          <div className="mt-10 pt-4 border-t border-theme text-center">
-            <p className="text-theme-dim text-sm">
+          <div className="mt-4 pt-4 border-t border-theme text-center">
+            <p className="text-theme-dim text-xs">
               Sisteme henüz üye değil misiniz?
             </p>
             <button

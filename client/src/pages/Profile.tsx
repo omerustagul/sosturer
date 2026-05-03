@@ -107,7 +107,7 @@ export function Profile() {
   const formatPhone = (val: string) => val.replace(/\D/g, '').slice(0, 10);
 
   return (
-    <div className="p-4 lg:p-8 max-w-[1600px] mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="p-4 lg:p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
 
       {/* Enhanced Profile Header */}
       <section className="modern-glass-card relative overflow-hidden group">

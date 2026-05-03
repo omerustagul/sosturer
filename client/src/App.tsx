@@ -25,6 +25,15 @@ const AppSettings = lazy(() => import('./pages/AppSettings').then((m) => ({ defa
 const Profile = lazy(() => import('./pages/Profile'));
 const CompanyUsers = lazy(() => import('./pages/CompanyUsers'));
 const SuperAdmin = lazy(() => import('./pages/SuperAdmin').then((m) => ({ default: m.SuperAdmin })));
+
+// SuperAdmin Control Panel
+const SuperAdminLayout = lazy(() => import('./pages/superadmin/SuperAdminLayout'));
+const SADashboard = lazy(() => import('./pages/superadmin/SADashboard'));
+const SACompanies = lazy(() => import('./pages/superadmin/SACompanies'));
+const SACompanyDetail = lazy(() => import('./pages/superadmin/SACompanyDetail'));
+const SAUsers = lazy(() => import('./pages/superadmin/SAUsers'));
+const SASystem = lazy(() => import('./pages/superadmin/SASystem'));
+const SASettings = lazy(() => import('./pages/superadmin/SASettings'));
 const CompanyManagement = lazy(() => import('./pages/CompanyManagement').then((m) => ({ default: m.CompanyManagement })));
 
 const OvertimeCreate = lazy(() => import('./pages/overtime/OvertimeCreate').then((m) => ({ default: m.OvertimeCreate })));
@@ -140,6 +149,21 @@ function App() {
                 <Route path="production/equipment/:id" element={<EquipmentDetail />} />
                 <Route path="production/sterile-operations" element={<ProtectedRoute><SterileOperations /></ProtectedRoute>} />
               </Route>
+
+              {/* SuperAdmin Control Panel — independent layout */}
+              <Route path="/superadmin" element={
+                <ProtectedRoute>
+                  <SuperAdminLayout />
+                </ProtectedRoute>
+              }>
+                <Route index element={<SADashboard />} />
+                <Route path="companies" element={<SACompanies />} />
+                <Route path="companies/:id" element={<SACompanyDetail />} />
+                <Route path="users" element={<SAUsers />} />
+                <Route path="system" element={<SASystem />} />
+                <Route path="settings" element={<SASettings />} />
+              </Route>
+
             </Routes>
           </Suspense>
         </BrowserRouter>

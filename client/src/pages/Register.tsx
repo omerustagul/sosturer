@@ -264,22 +264,6 @@ export function Register() {
                       </div>
                     </div>
                     <div className="space-y-1 md:col-span-2">
-                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">T.C. KİMLİK NO *</label>
-                      <div className="relative group">
-                        <Fingerprint className="absolute left-4 top-1/2 -translate-y-1/2 text-theme-dim group-focus-within:text-theme-primary transition-colors" size={18} />
-                        <input
-                          type="text"
-                          name="tc"
-                          required
-                          maxLength={11}
-                          value={formData.tc}
-                          onChange={handleChange}
-                          className="w-full h-10 bg-theme-form/60 border border-theme focus:border-theme-primary/50 focus:ring-2 focus:ring-theme-primary/30 rounded-xl py-3 pl-11 pr-4 text-theme-main text-sm placeholder-theme-dim outline-none transition-all"
-                          placeholder="12345678901"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-1 md:col-span-2">
                       <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">ŞİFRE *</label>
                       <div className="relative group">
                         <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-theme-dim group-focus-within:text-theme-primary transition-colors" size={18} />
@@ -307,6 +291,22 @@ export function Register() {
                           onChange={handleChange}
                           className="w-full h-10 bg-theme-form/60 border border-theme focus:border-theme-primary/50 focus:ring-2 focus:ring-theme-primary/30 rounded-xl py-3 pl-11 pr-4 text-theme-main text-sm placeholder-theme-dim outline-none transition-all"
                           placeholder="••••••••"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1 md:col-span-2">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">T.C. KİMLİK NO *</label>
+                      <div className="relative group">
+                        <Fingerprint className="absolute left-4 top-1/2 -translate-y-1/2 text-theme-dim group-focus-within:text-theme-primary transition-colors" size={18} />
+                        <input
+                          type="text"
+                          name="tc"
+                          required
+                          maxLength={11}
+                          value={formData.tc}
+                          onChange={handleChange}
+                          className="w-full h-10 bg-theme-form/60 border border-theme focus:border-theme-primary/50 focus:ring-2 focus:ring-theme-primary/30 rounded-xl py-3 pl-11 pr-4 text-theme-main text-sm placeholder-theme-dim outline-none transition-all"
+                          placeholder="12345678901"
                         />
                       </div>
                     </div>

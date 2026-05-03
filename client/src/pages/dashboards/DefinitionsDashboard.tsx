@@ -193,7 +193,7 @@ export function DefinitionsDashboard() {
               </div>
 
               <div className="space-y-3">
-                {recentProducts.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.code.toLowerCase().includes(searchQuery.toLowerCase())).map((product, i) => (
+                {recentProducts.filter(p => (p.name ?? '').toLowerCase().includes(searchQuery.toLowerCase()) || (p.code ?? '').toLowerCase().includes(searchQuery.toLowerCase())).map((product, i) => (
                   <div key={i} className="p-3 bg-theme-surface/50 border border-theme rounded-xl hover:border-theme-primary/30 transition-all group/p">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
