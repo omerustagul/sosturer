@@ -27,7 +27,7 @@ router.post('/', authenticateToken, async (req: AuthRequest, res: Response) => {
     const companyId = req.user?.companyId;
     if (!companyId) return res.status(400).json({ error: 'Şirket bilgisi bulunamadı' });
 
-    const { name, code, status, locationId } = req.body;
+    const { name, code, status, locationId, trackProductionRecords, productionRecordSlug, productionRecordSidebarName } = req.body;
 
     const lastItem = await prisma.department.findFirst({
       where: { companyId },
@@ -43,7 +43,10 @@ router.post('/', authenticateToken, async (req: AuthRequest, res: Response) => {
         code,
         status: status || 'active',
         displayOrder: req.body.displayOrder || nextOrder,
-        locationId
+        locationId,
+        trackProductionRecords: trackProductionRecords || false,
+        productionRecordSlug: productionRecordSlug || null,
+        productionRecordSidebarName: productionRecordSidebarName || null
       }
     });
 
@@ -57,7 +60,7 @@ router.post('/', authenticateToken, async (req: AuthRequest, res: Response) => {
 // PUT /api/departments/:id - Departman güncelle
 router.put('/:id', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
-    const { name, code, status, displayOrder, locationId } = req.body;
+    const { name, code, status, displayOrder, locationId, trackProductionRecords, productionRecordSlug, productionRecordSidebarName } = req.body;
     const department = await prisma.department.update({
       where: { id: req.params.id as string },
       data: {
@@ -65,7 +68,10 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res: Response) =>
         code,
         status,
         displayOrder: displayOrder !== undefined ? displayOrder : undefined,
-        locationId
+        locationId,
+        trackProductionRecords: trackProductionRecords !== undefined ? trackProductionRecords : undefined,
+        productionRecordSlug: productionRecordSlug !== undefined ? productionRecordSlug : undefined,
+        productionRecordSidebarName: productionRecordSidebarName !== undefined ? productionRecordSidebarName : undefined
       }
     });
     res.json(department);

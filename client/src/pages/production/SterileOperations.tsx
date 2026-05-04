@@ -304,12 +304,12 @@ export function SterileOperations() {
             <button
               onClick={() => setCurrentPage(p => Math.max(0, p - 1))}
               disabled={currentPage === 0}
-              className="w-9 h-9 p-2 rounded-xl bg-theme-base border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+              className="w-9 h-9 p-2 rounded-xl bg-theme-base border border-theme-border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
             >
               <ChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
             </button>
 
-            <div className="flex items-center gap-2 px-4 py-2 bg-theme-base border rounded-2xl">
+            <div className="flex items-center gap-2 px-4 py-2 bg-theme-base border border-theme-border rounded-xl">
               <span className="text-theme-primary font-black text-sm min-w-[20px] text-center">
                 {currentPage + 1}
               </span>
@@ -322,7 +322,7 @@ export function SterileOperations() {
             <button
               onClick={() => setCurrentPage(p => Math.min(pageCount - 1, p + 1))}
               disabled={currentPage >= pageCount - 1 || pageCount === 0}
-              className="w-9 h-9 p-2 rounded-xl bg-theme-base border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+              className="w-9 h-9 p-2 rounded-xl bg-theme-base border border-theme-border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
             >
               <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
             </button>

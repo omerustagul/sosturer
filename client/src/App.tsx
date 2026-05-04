@@ -101,6 +101,7 @@ function App() {
               }>
                 <Route index element={<Dashboard />} />
                 <Route path="records" element={<RecordsList />} />
+                <Route path="records/:workCenterSlug" element={<RecordsList />} />
                 <Route path="records/new" element={<RecordForm />} />
                 <Route path="records/bulk" element={<BulkRecordEntry />} />
                 <Route path="records/edit/:id" element={<RecordForm />} />

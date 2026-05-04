@@ -126,7 +126,9 @@ model Machine {
   displayOrder            Int                      @default(0) @map("display_order")
   createdAt               DateTime                 @default(now()) @map("created_at")
   updatedAt               DateTime                 @updatedAt @map("updated_at")
+  departmentId            String?                  @map("department_id")
   company                 Company                  @relation(fields: [companyId], references: [id])
+  department              Department?              @relation(fields: [departmentId], references: [id])
   backupOvertimePlanItems OvertimePlanItem[]       @relation("BackupMachine")
   overtimePlanItems       OvertimePlanItem[]       @relation("MainMachine")
   productDefaultMachines  ProductDefaultMachine[]
@@ -207,6 +209,9 @@ model Department {
   notes                   String?
   openingDate             DateTime?               @map("opening_date")
   locationId              String?                 @map("location_id")
+  trackProductionRecords  Boolean                 @default(false) @map("track_production_records")
+  productionRecordSlug    String?                 @map("production_record_slug")
+  productionRecordSidebarName String?             @map("production_record_sidebar_name")
   roles                   DepartmentRole[]
   company                 Company                 @relation(fields: [companyId], references: [id])
   location                locations?              @relation(fields: [locationId], references: [id])
@@ -216,6 +221,8 @@ model Department {
   operators               Operator[]
   stations                Station[]
   workPlans               WorkPlan[]
+  machines                Machine[]
+  productionRecords       ProductionRecord[]
 
   @@unique([companyId, name])
   @@map("departments")
@@ -304,37 +311,39 @@ model Product {
 }
 
 model ProductionRecord {
-  id                         String    @id @default(uuid())
-  companyId                  String    @map("company_id")
-  productionDate             DateTime  @map("production_date")
-  shiftId                    String    @map("shift_id")
-  machineId                  String    @map("machine_id")
-  operatorId                 String?   @map("operator_id")
-  productId                  String?   @map("product_id")
-  producedQuantity           Int       @map("produced_quantity")
-  actualDurationMinutes      Float?    @map("actual_duration_minutes")
-  cycleTimeSeconds           Float     @map("cycle_time_seconds")
-  plannedDurationMinutes     Float?    @map("planned_duration_minutes")
-  cncReportedDurationMinutes Float?    @map("cnc_reported_duration_minutes")
-  plannedDowntimeMinutes     Float     @default(0) @map("planned_downtime_minutes")
-  unplannedDowntimeMinutes   Float?    @default(0) @map("unplanned_downtime_minutes")
-  downtimeMinutes            Float?    @default(0) @map("downtime_minutes")
+  id                         String      @id @default(uuid())
+  companyId                  String      @map("company_id")
+  productionDate             DateTime    @map("production_date")
+  shiftId                    String      @map("shift_id")
+  machineId                  String      @map("machine_id")
+  operatorId                 String?     @map("operator_id")
+  productId                  String?     @map("product_id")
+  departmentId               String?     @map("department_id")
+  producedQuantity           Int         @map("produced_quantity")
+  actualDurationMinutes      Float?      @map("actual_duration_minutes")
+  cycleTimeSeconds           Float       @map("cycle_time_seconds")
+  plannedDurationMinutes     Float?      @map("planned_duration_minutes")
+  cncReportedDurationMinutes Float?      @map("cnc_reported_duration_minutes")
+  plannedDowntimeMinutes     Float       @default(0) @map("planned_downtime_minutes")
+  unplannedDowntimeMinutes   Float?      @default(0) @map("unplanned_downtime_minutes")
+  downtimeMinutes            Float?      @default(0) @map("downtime_minutes")
   availability               Float?
   performance                Float?
   quality                    Float?
   oee                        Float?
-  defectQuantity             Int       @default(0) @map("defect_quantity")
-  plannedQuantity            Int?      @map("planned_quantity")
+  defectQuantity             Int         @default(0) @map("defect_quantity")
+  plannedQuantity            Int?        @map("planned_quantity")
   notes                      String?
-  qualityIssues              String?   @map("quality_issues")
-  createdAt                  DateTime  @default(now()) @map("created_at")
-  updatedAt                  DateTime  @updatedAt @map("updated_at")
-  is_maintenance             Boolean   @default(false)
-  company                    Company   @relation(fields: [companyId], references: [id])
-  machine                    Machine   @relation(fields: [machineId], references: [id])
-  operator                   Operator? @relation(fields: [operatorId], references: [id])
-  product                    Product?  @relation(fields: [productId], references: [id])
-  shift                      Shift     @relation(fields: [shiftId], references: [id])
+  qualityIssues              String?     @map("quality_issues")
+  createdAt                  DateTime    @default(now()) @map("created_at")
+  updatedAt                  DateTime    @updatedAt @map("updated_at")
+  is_maintenance             Boolean     @default(false)
+  company                    Company     @relation(fields: [companyId], references: [id])
+  machine                    Machine     @relation(fields: [machineId], references: [id])
+  operator                   Operator?   @relation(fields: [operatorId], references: [id])
+  product                    Product?    @relation(fields: [productId], references: [id])
+  shift                      Shift       @relation(fields: [shiftId], references: [id])
+  department                 Department? @relation(fields: [departmentId], references: [id])
 
   @@index([companyId, productionDate])
   @@index([machineId, productionDate])

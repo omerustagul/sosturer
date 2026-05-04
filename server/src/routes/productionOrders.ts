@@ -305,7 +305,19 @@ router.get('/:id', authenticateToken, async (req: AuthRequest, res) => {
       }
     });
     if (!order) return res.status(404).json({ error: 'Üretim emri bulunamadı' });
-    res.json(order);
+
+    // Check if this lot is in an active sterile process list
+    const sterileItem = await prisma.sterileProcessItem.findFirst({
+      where: {
+        productionOrderId: order.id,
+        process: { status: { not: 'Cancelled' } }
+      }
+    });
+
+    res.json({ 
+      ...order, 
+      isInSterileList: !!sterileItem 
+    });
   } catch (error) {
     res.status(500).json({ error: 'Detaylar getirilemedi' });
   }
@@ -532,7 +544,28 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res) => {
         }
       });
 
-      // 2. Update components (Delete and Re-create for simplicity in this version)
+      // 2. Update Events (MUST be first to avoid FK constraints when deleting steps)
+      if (req.body.events && Array.isArray(req.body.events)) {
+        await tx.productionOrderEvent.deleteMany({ where: { productionOrderId: id } });
+        const validEvents = req.body.events.filter((e: any) => e.type && (e.quantity !== undefined));
+        if (validEvents.length > 0) {
+          await tx.productionOrderEvent.createMany({
+            data: validEvents.map((e: any) => ({
+              productionOrderId: id,
+              stepId: e.stepId || null,
+              type: e.type,
+              quantity: e.quantity ? Number(e.quantity) : 0,
+              operatorId: e.operatorId || null,
+              reasonId: e.reasonId || null,
+              warehouseId: e.warehouseId || null,
+              description: e.description || '',
+              createdAt: e.createdAt ? new Date(e.createdAt) : new Date()
+            }))
+          });
+        }
+      }
+
+      // 3. Update components
       if (components && Array.isArray(components)) {
         await tx.productionOrderComponent.deleteMany({ where: { productionOrderId: id } });
         await tx.productionOrderComponent.createMany({
@@ -563,75 +596,148 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res) => {
 
       // 4. Update Steps (Operational details)
       if (req.body.steps && Array.isArray(req.body.steps)) {
-        for (const step of req.body.steps) {
-          if (step.id) {
-            await tx.productionOrderStep.update({
-              where: { id: step.id },
-              data: {
-                status: step.status || 'pending',
-                operatorId: (step.operatorId && step.operatorId !== '') ? step.operatorId : null,
-                machineId: (step.machineId && step.machineId !== '') ? step.machineId : null,
-                shiftId: (step.shiftId && step.shiftId !== '') ? step.shiftId : null,
-                workType: step.workType || 'İşlem',
-                approvedQty: Number(step.approvedQty || 0),
-                rejectedQty: Number(step.rejectedQty || 0),
-                reworkQty: Number(step.reworkQty || 0),
-                sampleQty: Number(step.sampleQty || 0),
-                conditionalQty: Number(step.conditionalQty || 0),
-                startTime: step.startTime ? new Date(step.startTime) : null,
-                endTime: step.endTime ? new Date(step.endTime) : null,
-              }
+        const isRouteChange = routeId && routeId !== currentOrder.routeId;
+        const currentStatus = currentOrder.status;
+        
+        console.log(`[ProductionOrder Sync] ID: ${id}, Status: ${currentStatus} -> ${newStatus}, Route: ${currentOrder.routeId} -> ${routeId}, IsRouteChange: ${isRouteChange}`);
+
+        // If status is planned OR we are moving to planned status, we sync the steps
+        if (newStatus === 'planned' || currentStatus === 'planned') {
+          console.log(`[ProductionOrder Sync] Entering synchronization block.`);
+          
+          if (isRouteChange) {
+            console.log(`[ProductionOrder Sync] Route change detected. Syncing from DB for route: ${routeId}`);
+            const newRoute = await tx.productionRoute.findUnique({
+              where: { id: routeId },
+              include: { steps: true }
             });
+
+            if (newRoute) {
+              console.log(`[ProductionOrder Sync] Found route with ${newRoute.steps.length} steps. Re-creating...`);
+              await tx.productionOrderStep.deleteMany({ where: { productionOrderId: id } });
+              await tx.productionOrderStep.createMany({
+                data: newRoute.steps.map((s: any) => ({
+                  productionOrderId: id as string,
+                  operationId: s.operationId,
+                  sequence: s.sequence,
+                  status: 'pending'
+                }))
+              });
+            } else {
+              console.warn(`[ProductionOrder Sync] Route not found! Falling back to request body.`);
+              await tx.productionOrderStep.deleteMany({ where: { productionOrderId: id } });
+              await tx.productionOrderStep.createMany({
+                data: req.body.steps.map((s: any) => ({
+                  productionOrderId: id as string,
+                  operationId: s.operationId,
+                  sequence: s.sequence,
+                  status: 'pending'
+                }))
+              });
+            }
           } else {
-            // Fallback for steps without ID or if ID-based update failed (as updateMany)
-            await tx.productionOrderStep.updateMany({
-              where: { 
-                productionOrderId: id,
-                sequence: step.sequence
-              },
-              data: {
-                status: step.status || 'pending',
-                operatorId: (step.operatorId && step.operatorId !== '') ? step.operatorId : null,
-                machineId: (step.machineId && step.machineId !== '') ? step.machineId : null,
-                shiftId: (step.shiftId && step.shiftId !== '') ? step.shiftId : null,
-                workType: step.workType || 'İşlem',
-                approvedQty: Number(step.approvedQty || 0),
-                rejectedQty: Number(step.rejectedQty || 0),
-                reworkQty: Number(step.reworkQty || 0),
-                sampleQty: Number(step.sampleQty || 0),
-                conditionalQty: Number(step.conditionalQty || 0),
-                startTime: step.startTime ? new Date(step.startTime) : null,
-                endTime: step.endTime ? new Date(step.endTime) : null,
-              }
+            console.log(`[ProductionOrder Sync] No route change, syncing from request body (${req.body.steps.length} steps).`);
+            await tx.productionOrderStep.deleteMany({ where: { productionOrderId: id } });
+            await tx.productionOrderStep.createMany({
+              data: req.body.steps.map((s: any) => ({
+                productionOrderId: id as string,
+                operationId: s.operationId,
+                sequence: s.sequence,
+                status: s.status || 'pending',
+                operatorId: (s.operatorId && s.operatorId !== '') ? s.operatorId : null,
+                machineId: (s.machineId && s.machineId !== '') ? s.machineId : null,
+                shiftId: (s.shiftId && s.shiftId !== '') ? s.shiftId : null,
+                workType: s.workType || 'İşlem',
+                approvedQty: Number(s.approvedQty || 0),
+                rejectedQty: Number(s.rejectedQty || 0),
+                reworkQty: Number(s.reworkQty || 0),
+                sampleQty: Number(s.sampleQty || 0),
+                conditionalQty: Number(s.conditionalQty || 0),
+                startTime: s.startTime ? new Date(s.startTime) : null,
+                endTime: s.endTime ? new Date(s.endTime) : null,
+              }))
             });
+          }
+        } else {
+          // For active/completed orders, we update existing steps to preserve data integrity and signatures
+          for (const step of req.body.steps) {
+            if (step.id) {
+              // --- STERILE SIGNATURE VALIDATION ---
+              // Check if we are trying to add a signature (operatorId)
+              const isNewSignature = (step.operatorId && step.operatorId !== '');
+              
+              if (isNewSignature) {
+                // Fetch current step to check its operation type
+                const currentStep = await tx.productionOrderStep.findUnique({
+                  where: { id: step.id },
+                  include: { operation: true }
+                });
+
+                // If it's a sterile operation AND was not signed before
+                if (currentStep?.operation?.isSterileOperation && (!currentStep.operatorId)) {
+                  // Check if this lot is in a sterile list (not cancelled)
+                  const sterileItem = await tx.sterileProcessItem.findFirst({
+                    where: { 
+                      productionOrderId: id,
+                      process: { status: { not: 'Cancelled' } }
+                    },
+                    include: { process: true }
+                  });
+
+                  if (!sterileItem) {
+                    throw new Error(`Ürün steril edilmedi! Lot ${currentOrder?.lotNumber} henüz bir steril listesine eklenmemiş. Lütfen önce steril listesini oluşturun.`);
+                  }
+                }
+              }
+              // --- END STERILE VALIDATION ---
+
+              console.log(`[ProductionOrder Sync] Updating Step ${step.id}: Status=${step.status}, Operator=${step.operatorId}`);
+              await tx.productionOrderStep.update({
+                where: { id: step.id },
+                data: {
+                  operationId: step.operationId,
+                  sequence: step.sequence,
+                  status: step.status || 'pending',
+                  operatorId: (step.operatorId && step.operatorId !== '') ? step.operatorId : null,
+                  machineId: (step.machineId && step.machineId !== '') ? step.machineId : null,
+                  shiftId: (step.shiftId && step.shiftId !== '') ? step.shiftId : null,
+                  workType: step.workType || 'İşlem',
+                  approvedQty: Number(step.approvedQty || 0),
+                  rejectedQty: Number(step.rejectedQty || 0),
+                  reworkQty: Number(step.reworkQty || 0),
+                  sampleQty: Number(step.sampleQty || 0),
+                  conditionalQty: Number(step.conditionalQty || 0),
+                  startTime: step.startTime ? new Date(step.startTime) : null,
+                  endTime: step.endTime ? new Date(step.endTime) : null,
+                }
+              });
+            } else {
+              // Fallback for steps without ID
+              await tx.productionOrderStep.create({
+                data: {
+                  productionOrderId: id,
+                  operationId: step.operationId,
+                  sequence: step.sequence,
+                  status: step.status || 'pending',
+                  operatorId: (step.operatorId && step.operatorId !== '') ? step.operatorId : null,
+                  machineId: (step.machineId && step.machineId !== '') ? step.machineId : null,
+                  shiftId: (step.shiftId && step.shiftId !== '') ? step.shiftId : null,
+                  workType: step.workType || 'İşlem',
+                  approvedQty: Number(step.approvedQty || 0),
+                  rejectedQty: Number(step.rejectedQty || 0),
+                  reworkQty: Number(step.reworkQty || 0),
+                  sampleQty: Number(step.sampleQty || 0),
+                  conditionalQty: Number(step.conditionalQty || 0),
+                  startTime: step.startTime ? new Date(step.startTime) : null,
+                  endTime: step.endTime ? new Date(step.endTime) : null,
+                }
+              });
+            }
           }
         }
       }
 
-      // 5. Update Events (Sync events)
-      if (req.body.events && Array.isArray(req.body.events)) {
-        // Remove existing events and re-create to ensure synchronization with buffered state
-        await tx.productionOrderEvent.deleteMany({ where: { productionOrderId: id } });
-        
-        // Filter out any invalid events and prepare for creation
-        const validEvents = req.body.events.filter((e: any) => e.type && (e.quantity !== undefined));
-        
-        if (validEvents.length > 0) {
-          await tx.productionOrderEvent.createMany({
-            data: validEvents.map((e: any) => ({
-              productionOrderId: id,
-              stepId: e.stepId || null,
-              type: e.type,
-              quantity: e.quantity ? Number(e.quantity) : 0,
-              operatorId: e.operatorId || null,
-              reasonId: e.reasonId || null,
-              warehouseId: e.warehouseId || null,
-              description: e.description || '',
-              createdAt: e.createdAt ? new Date(e.createdAt) : new Date()
-            }))
-          });
-        }
-      }
+      // Events already synced above
       // 6. Sync Stock Movements
       console.log(`[PUT] Calling syncStock for ${id}, Status: ${newStatus}`);
       await syncProductionOrderStock(tx, id, companyId!, newStatus, currentOrder.status);

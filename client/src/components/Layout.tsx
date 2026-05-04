@@ -5,9 +5,9 @@ import {
   ChevronLeft, ChevronRight, ChevronUp, Package, FileUser, User, ShieldCheck, Factory,
   Bell, Building2, Warehouse, ShoppingCart, History, LayoutGrid, Boxes, GanttChart, Wrench, FileText,
   Moon, Sun, Activity, Menu, X, BookOpen, LayoutDashboard,
-  Database, Workflow, Map, Layers, Handshake, FileUp, Users, Clock, List, AlertCircle, ClipboardList
+  Database, Workflow, Map, Layers, Handshake, FileUp, Users, Clock, List, AlertCircle, ClipboardList, FolderKanban
 } from 'lucide-react';
-import { useState, useEffect, useRef, memo, useMemo } from 'react';
+import { useState, useEffect, useRef, memo, useMemo, useCallback } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { ToastContainer } from './common/ToastContainer';
 import { NotificationPanel } from './layout/NotificationPanel';
@@ -266,6 +266,17 @@ export function Layout() {
     details: string;
   }>({ type: 'closed', label: 'Tesis Kapalı', details: 'Mesai dışı' });
   const bellButtonRef = useRef<HTMLButtonElement>(null);
+  const [productionWorkCenters, setProductionWorkCenters] = useState<any[]>([]);
+
+  const fetchProductionWorkCenters = useCallback(async () => {
+    try {
+      const depts = await api.get('/departments');
+      const withTracking = (Array.isArray(depts) ? depts : []).filter((d: any) => d.trackProductionRecords && d.productionRecordSlug);
+      setProductionWorkCenters(withTracking);
+    } catch (err) {
+      setProductionWorkCenters([]);
+    }
+  }, []);
 
   const switchMenu = (menu: 'ana' | 'tanim' | 'rapor' | 'yonetim') => {
     setActiveMenu(menu);
@@ -357,8 +368,6 @@ export function Layout() {
       {
         icon: Factory, label: 'ÜRETİM', path: '/records_menu', isDropdown: true,
         children: [
-          { icon: DiamondPlus, label: 'Yeni Üretim Kaydı', path: '/records/new' },
-          { icon: Logs, label: 'Üretim Kayıtları', path: '/records' },
           { icon: ListOrdered, label: 'Üretim Emirleri', path: '/production-orders' },
           { icon: ClipboardList, label: 'Tüketim İşlemleri', path: '/production/consumption-transactions' },
           { icon: Activity, label: 'Ölçüm Cihazları', path: '/production/measurement-tools' },
@@ -400,6 +409,14 @@ export function Layout() {
           { icon: FileChartPie, label: 'Mesai Raporları', path: '/overtime/reports' },
         ]
       },
+      ...(productionWorkCenters.length > 0 ? [{
+        icon: FolderKanban, label: 'ÜRETİM KAYITLARI', path: '/records_wc_menu', isDropdown: true,
+        children: productionWorkCenters.map((wc: any) => ({
+          icon: Logs,
+          label: `${wc.productionRecordSidebarName || wc.name} Üretim Kayıtları`,
+          path: `/records/${wc.productionRecordSlug}`
+        }))
+      }] : []),
     ],
     tanim: [
       { icon: LayoutGrid, label: 'KONTROL PANELİ', path: '/definitions/dashboard' },
@@ -475,17 +492,29 @@ export function Layout() {
         ]
       }
     ],
-  }), [user?.role]);
+  }), [user?.role, productionWorkCenters]);
 
   useEffect(() => {
     checkUnreadNotifications();
     fetchWorkStatus();
+    fetchProductionWorkCenters();
     const interval = setInterval(() => {
       checkUnreadNotifications();
       fetchWorkStatus();
     }, 60000);
-    return () => clearInterval(interval);
-  }, []);
+    // Refresh work centers every 5 minutes
+    const wcInterval = setInterval(fetchProductionWorkCenters, 300000);
+
+    // Listen for custom events to refresh sidebar immediately
+    const handleRefresh = () => fetchProductionWorkCenters();
+    window.addEventListener('refresh-sidebar', handleRefresh);
+
+    return () => { 
+      clearInterval(interval); 
+      clearInterval(wcInterval); 
+      window.removeEventListener('refresh-sidebar', handleRefresh);
+    };
+  }, [fetchProductionWorkCenters]);
 
   useEffect(() => {
     if (!isNotificationOpen) {

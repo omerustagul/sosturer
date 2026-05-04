@@ -291,7 +291,7 @@ export function StockVouchers() {
             <button
               onClick={() => setCurrentPage((prev) => Math.max(0, prev - 1))}
               disabled={currentPage === 0}
-              className="w-9 h-9 p-2 rounded-xl bg-theme-base border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+              className="w-9 h-9 p-2 rounded-xl bg-theme-base border border-theme-border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
             >
               <ChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
             </button>
@@ -303,7 +303,7 @@ export function StockVouchers() {
             <button
               onClick={() => setCurrentPage((prev) => Math.min(pageCount - 1, prev + 1))}
               disabled={currentPage >= pageCount - 1}
-              className="w-9 h-9 p-2 rounded-xl bg-theme-base border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+              className="w-9 h-9 p-2 rounded-xl bg-theme-base border border-theme-border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
             >
               <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
             </button>
@@ -347,7 +347,7 @@ function StatCard({ icon: Icon, label, value, color }: any) {
           <Icon className={`${color} w-4 h-4`} />
         </div>
       </div>
-      <p className="text-[12px] font-black text-theme-dim mb-2 opacity-60">{label}</p>
+      <p className="text-[13px] font-black text-theme-dim mb-2 opacity-80">{label}</p>
       <p className="text-xl font-black text-theme-main tracking-tight leading-none truncate">{value}</p>
     </div>
   );

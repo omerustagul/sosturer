@@ -16,7 +16,12 @@ router.get('/', authenticateToken, async (req: AuthRequest, res) => {
         items: {
           include: {
             productionOrder: {
-              include: { product: true }
+              include: { 
+                product: true,
+                steps: {
+                  include: { operation: true }
+                }
+              }
             }
           }
         }
@@ -56,7 +61,6 @@ router.get('/eligible-lots', authenticateToken, async (req: AuthRequest, res) =>
       include: {
         product: { select: { productCode: true, productName: true, unitOfMeasure: true } },
         steps: {
-          where: { operation: { isSterileOperation: true } },
           include: { operation: true }
         }
       }
@@ -81,7 +85,6 @@ router.get('/:id', authenticateToken, async (req: AuthRequest, res) => {
               include: { 
                 product: true,
                 steps: {
-                  where: { operation: { isSterileOperation: true } },
                   include: { operation: true }
                 }
               }
@@ -92,6 +95,19 @@ router.get('/:id', authenticateToken, async (req: AuthRequest, res) => {
     });
 
     if (!process) return res.status(404).json({ error: 'Steril işlem listesi bulunamadı' });
+
+    // Diagnostic Logging
+    console.log(`[SterileProcess GET] Process: ${process.id}, Items: ${process.items.length}`);
+    process.items.forEach((item: any) => {
+       const sterileCount = item.productionOrder?.steps?.filter((s: any) => s.operation?.isSterileOperation).length || 0;
+       console.log(`  Lot: ${item.productionOrder?.lotNumber}, Total Steps: ${item.productionOrder?.steps?.length || 0}, Sterile Steps: ${sterileCount}`);
+       item.productionOrder?.steps?.forEach((s: any) => {
+         if (s.operation?.isSterileOperation) {
+            console.log(`    Sterile Step found: ${s.operation?.name}, Status: ${s.status}, OpID: ${s.operationId}`);
+         }
+       });
+    });
+
     res.json(process);
   } catch (error) {
     res.status(500).json({ error: 'Steril işlem listesi getirilemedi' });
@@ -150,19 +166,12 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
           }))
         });
 
-        // 4. If completed, update production orders and their steps
+        // 4. If completed, update sterilizationDate on production orders ONLY.
+        // Step signatures are applied exclusively by real users through the production order form.
         if (status === 'Completed') {
           await tx.productionOrder.updateMany({
             where: { id: { in: orderIds }, companyId },
             data: { sterilizationDate: new Date() }
-          });
-
-          await tx.productionOrderStep.updateMany({
-            where: {
-              productionOrderId: { in: orderIds },
-              operation: { isSterileOperation: true }
-            },
-            data: { status: 'completed' }
           });
         }
       }
@@ -217,19 +226,12 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res) => {
           }))
         });
 
-        // If completed, update production orders and their steps
+        // If completed, update sterilizationDate on production orders ONLY.
+        // Step signatures are applied exclusively by real users through the production order form.
         if (status === 'Completed') {
           await tx.productionOrder.updateMany({
             where: { id: { in: orderIds }, companyId },
             data: { sterilizationDate: now }
-          });
-
-          await tx.productionOrderStep.updateMany({
-            where: {
-              productionOrderId: { in: orderIds },
-              operation: { isSterileOperation: true }
-            },
-            data: { status: 'completed' }
           });
         }
       }

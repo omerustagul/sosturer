@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../../lib/api';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   createColumnHelper,
   flexRender,
@@ -83,6 +83,8 @@ const columnHelper = createColumnHelper<RecordType>();
 
 export function RecordsList() {
   const navigate = useNavigate();
+  const { workCenterSlug } = useParams<{ workCenterSlug: string }>();
+  const [activeWorkCenter, setActiveWorkCenter] = useState<any>(null);
   const [data, setData] = useState<RecordType[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -167,8 +169,26 @@ export function RecordsList() {
   const fetchData = async () => {
     setLoading(true);
     try {
+      // If we have a slug, first find the work center ID
+      let deptId = '';
+      if (workCenterSlug) {
+        const depts = await api.get('/departments');
+        const found = (Array.isArray(depts) ? depts : []).find((d: any) => d.productionRecordSlug === workCenterSlug);
+        if (found) {
+          setActiveWorkCenter(found);
+          deptId = found.id;
+        }
+      } else {
+        setActiveWorkCenter(null);
+      }
+
+      const params = new URLSearchParams();
+      if (deptId) params.append('departmentId', deptId);
+      if (filters.startDate) params.append('startDate', filters.startDate);
+      if (filters.endDate) params.append('endDate', filters.endDate);
+
       const [recordsRes, machinesRes, operatorsRes, productsRes, shiftsRes] = await Promise.all([
-        api.get('/production-records'),
+        api.get(`/production-records?${params.toString()}`),
         api.get('/machines'),
         api.get('/operators'),
         api.get('/products'),
@@ -215,7 +235,7 @@ export function RecordsList() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [workCenterSlug]);
 
   const exportExcelData = async () => {
     try {
@@ -962,9 +982,14 @@ export function RecordsList() {
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6">
         <div>
           <h2 className="text-2xl font-black text-theme-main tracking-tight flex items-center gap-2">
-            <Activity className="w-8 h-8 bg-theme-primary/10 text-theme-primary rounded-lg p-2" /> Üretim Kayıtları
+            <Activity className="w-8 h-8 bg-theme-primary/10 text-theme-primary rounded-lg p-2" /> 
+            {activeWorkCenter ? `${activeWorkCenter.productionRecordSidebarName || activeWorkCenter.name} Üretim Kayıtları` : 'Üretim Kayıtları'}
           </h2>
-          <p className="text-theme-muted text-xs mt-0.5 font-medium">Günlük üretim verileri, OEE analizleri ve makine performansları.</p>
+          <p className="text-theme-muted text-xs mt-0.5 font-medium">
+            {activeWorkCenter 
+              ? `${activeWorkCenter.name} iş merkezine ait üretim verileri ve performans analizleri.` 
+              : 'Günlük üretim verileri, OEE analizleri ve makine performansları.'}
+          </p>
         </div>
         <div className="flex items-center gap-4 w-full lg:w-auto">
           <div className="relative group flex-1 lg:w-72">
@@ -1340,12 +1365,12 @@ export function RecordsList() {
             <button
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
-              className="w-9 h-9 p-2 rounded-xl bg-theme-base border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+              className="w-9 h-9 p-2 rounded-xl bg-theme-base border border-theme-border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
             >
               <ChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
             </button>
 
-            <div className="flex items-center gap-2 px-4 py-2 bg-theme-base border rounded-2xl">
+            <div className="flex items-center gap-2 px-4 py-2 bg-theme-base border border-theme-border rounded-xl">
               <span className="text-theme-primary font-black text-sm min-w-[20px] text-center">
                 {table.getState().pagination.pageIndex + 1}
               </span>
@@ -1358,7 +1383,7 @@ export function RecordsList() {
             <button
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
-              className="w-9 h-9 p-2 rounded-xl bg-theme-base border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+              className="w-9 h-9 p-2 rounded-xl bg-theme-base border border-theme-border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
             >
               <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
             </button>

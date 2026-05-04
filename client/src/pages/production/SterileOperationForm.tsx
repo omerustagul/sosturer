@@ -20,6 +20,13 @@ interface SterileOperationFormProps {
   processTypes: any[];
 }
 
+const sterileStatusOptions = [
+  { id: 'Draft', label: 'Bekliyor' },
+  { id: 'InProcess', label: 'Steril İşlemde' },
+  { id: 'Checking', label: 'Kontrol Ediliyor' },
+  { id: 'Completed', label: 'Onaylandı' }
+];
+
 export function SterileOperationForm({ process, onClose, onSave, processTypes }: SterileOperationFormProps) {
   const { user } = useAuthStore();
   const [loading, setLoading] = useState(false);
@@ -105,9 +112,40 @@ export function SterileOperationForm({ process, onClose, onSave, processTypes }:
 
     setLoading(true);
     try {
+      if (isComplete) {
+        console.log('[SterileOperationForm] Validating approval for items:', formData.items.length);
+        // Validation: All items must be signed
+        const unsignedItems = formData.items.filter((item: any) => {
+          const allSteps = item.productionOrder?.steps || [];
+          const sterileSteps = allSteps.filter((s: any) => s.operation?.isSterileOperation) || [];
+
+          // Debugging log for the user
+          console.log(`[SterileCheck] Lot: ${item.productionOrder?.lotNumber}, Total Steps: ${allSteps.length}, Sterile Steps Count: ${sterileSteps.length}`);
+          allSteps.forEach((s: any, idx: number) => {
+            console.log(`  Step ${idx + 1}: ${s.operation?.name} (Sterile: ${s.operation?.isSterileOperation}), Status: ${s.status}, Operator: ${s.operatorId}`);
+          });
+
+          const isSigned = sterileSteps.length > 0 && sterileSteps.every((s: any) =>
+            s.status === 'completed' || (s.operatorId && s.operatorId !== '')
+          );
+
+          if (!isSigned) {
+            console.warn(`[SterileCheck] Lot ${item.productionOrder?.lotNumber} is NOT signed!`);
+          }
+          return !isSigned;
+        });
+
+        if (unsignedItems.length > 0) {
+          const lotNumbers = unsignedItems.map((i: any) => i.productionOrder?.lotNumber).join(', ');
+          notify.error('Hata', `Şu lotların sterilizasyon operasyonları henüz imzalanmamış: ${lotNumbers}`);
+          setLoading(false);
+          return;
+        }
+      }
+
       const payload = {
         ...formData,
-        status: isComplete ? 'Completed' : 'Draft'
+        status: isComplete ? 'Completed' : formData.status
       };
 
       if (process?.id) {
@@ -116,7 +154,7 @@ export function SterileOperationForm({ process, onClose, onSave, processTypes }:
         await api.post('/sterile-processes', payload);
       }
 
-      notify.success('Başarılı', isComplete ? 'İşlem tamamlandı ve lotlar sterilize edildi.' : 'Kayıt taslak olarak saklandı.');
+      notify.success('Başarılı', isComplete ? 'İşlem tamamlandı ve lotlar sterilize edildi.' : 'Kayıt güncellendi.');
       onSave();
     } catch (error: any) {
       notify.error('Hata', error.message || 'İşlem sırasında bir hata oluştu.');
@@ -181,7 +219,7 @@ export function SterileOperationForm({ process, onClose, onSave, processTypes }:
                 <Info className="w-3.5 h-3.5" /> Genel Bilgiler
               </h4>
 
-              <div className="grid grid-cols-1 gap-3">
+              <div className="grid grid-cols-1 gap-2">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">İşlem Türü</label>
                   <CustomSelect
@@ -214,6 +252,17 @@ export function SterileOperationForm({ process, onClose, onSave, processTypes }:
                     onChange={(val) => setFormData({ ...formData, personnelName: val })}
                     placeholder="Personel Seçin..."
                     searchable={true}
+                    variant="inline"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-theme-muted uppercase tracking-wider ml-1">İşlem Durumu</label>
+                  <CustomSelect
+                    options={sterileStatusOptions}
+                    value={formData.status}
+                    onChange={(val) => setFormData({ ...formData, status: val })}
+                    placeholder="Durum Seçin..."
                     variant="inline"
                   />
                 </div>
@@ -298,7 +347,7 @@ export function SterileOperationForm({ process, onClose, onSave, processTypes }:
                 ) : eligibleLots.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center opacity-30">
                     <Package className="w-8 h-8 mb-2" />
-                    <p className="text-[10px] font-black uppercase">Uygun lot bulunamadı</p>
+                    <p className="text-[12px] font-black">Uygun lot bulunamadı</p>
                   </div>
                 ) : (
                   <div className="space-y-1">
@@ -341,7 +390,7 @@ export function SterileOperationForm({ process, onClose, onSave, processTypes }:
                 {formData.items.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center opacity-30">
                     <AlertCircle className="w-8 h-8 mb-2" />
-                    <p className="text-[10px] font-black uppercase">Lot seçimi yapın</p>
+                    <p className="text-[12px] font-black">Lot seçimi yapın</p>
                   </div>
                 ) : (
                   <div className="space-y-1.5">
@@ -363,6 +412,26 @@ export function SterileOperationForm({ process, onClose, onSave, processTypes }:
                           <span className="text-[10px] font-black text-theme-muted">
                             {item.productionOrder?.productionQty} {item.productionOrder?.product?.unitOfMeasure}
                           </span>
+
+                          {/* Sterile Sign Status Indicator */}
+                          {(() => {
+                            const sterileSteps = item.productionOrder?.steps?.filter((s: any) => s.operation?.isSterileOperation) || [];
+                            const isSigned = sterileSteps.length > 0 && sterileSteps.every((s: any) =>
+                              s.status === 'completed' || (s.operatorId && s.operatorId !== '')
+                            );
+
+                            return (
+                              <div className={cn(
+                                "px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-tighter border shrink-0",
+                                isSigned
+                                  ? "bg-theme-success/10 text-theme-success border-theme-success/20"
+                                  : "bg-theme-danger/10 text-theme-danger border-theme-danger/20"
+                              )}>
+                                {sterileSteps.length === 0 ? 'STERİL OPER. YOK' : isSigned ? 'STERİL OLDU' : 'STERİL EDİLMEDİ'}
+                              </div>
+                            );
+                          })()}
+
                           <button
                             type="button"
                             onClick={() => removeItem(item.productionOrderId)}
@@ -401,14 +470,14 @@ export function SterileOperationForm({ process, onClose, onSave, processTypes }:
               disabled={loading}
               className="flex-1 sm:flex-none px-8 py-3 bg-theme-base border border-theme text-theme-main rounded-xl font-black tracking-widest text-[10px] hover:bg-theme-surface transition-all flex items-center justify-center gap-2 uppercase active:scale-95 disabled:opacity-50"
             >
-              <Save className="w-4 h-4" /> TASLAK SAKLA
+              <Save className="w-4 h-4" /> Listeyi Güncelle
             </button>
             <button
-              onClick={(e) => handleSave(e, true)}
+              onClick={(e) => handleSave(e, formData.status === 'Completed')}
               disabled={loading || formData.items.length === 0}
               className="flex-1 sm:flex-none px-10 py-3 bg-theme-primary text-white rounded-xl font-black tracking-widest text-[10px] shadow-xl shadow-theme-primary/30 hover:bg-theme-primary-hover transition-all flex items-center justify-center gap-2 uppercase active:scale-95 disabled:opacity-50"
             >
-              {loading ? <Loading size="sm" /> : <><CheckCircle2 className="w-4 h-4 mb-0.5" /> LİSTEYİ TAMAMLA</>}
+              {loading ? <Loading size="sm" /> : <><CheckCircle2 className="w-4 h-4 mb-0.5" /> {formData.status === 'Completed' ? 'LİSTEYİ ONAYLA' : 'DEĞİŞİKLİKLERİ KAYDET'}</>}
             </button>
           </div>
         </div>

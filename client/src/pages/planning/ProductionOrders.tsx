@@ -420,7 +420,7 @@ export function ProductionOrders() {
                     </div>
                   </th>
                   <th className="px-3 py-4 text-center">No</th>
-                  <th className="px-3 py-4">Tarih</th>
+                  <th className="px-3 py-4">Oluşturma Tarih</th>
                   <th className="px-3 py-4">Lot Numarası</th>
                   <th className="px-3 py-4">Tip</th>
                   <th className="px-3 py-4">Durum</th>
@@ -453,7 +453,7 @@ export function ProductionOrders() {
                         </div>
                       </td>
                       <td className="px-3 py-4 text-center w-16">
-                        <div className="rounded-xl bg-theme-primary/10 flex items-center justify-center p-2 shrink-0 border border-theme-primary/20">
+                        <div className="w-8 h-8 rounded-xl bg-theme-primary/10 flex items-center justify-center shrink-0 border border-theme-primary/20">
                           <span className="text-xs font-black text-theme-primary">{order.recordNumber}</span>
                         </div>
                       </td>
@@ -489,7 +489,7 @@ export function ProductionOrders() {
                             <div className="flex items-center gap-2">
                               <span className="text-sm font-black text-theme-primary truncate block">{order.productCodeSnap || order.product.productCode}</span>
                               {order.product.isSterileProduct && (
-                                <span className="bg-theme-success/10 text-theme-success text-[8px] font-black px-1.5 py-0.5 rounded border border-theme-success/20 animate-pulse">STERİL</span>
+                                <span className="bg-theme-success/10 text-theme-success text-[8px] font-black px-1.5 py-0.5 rounded border border-theme-success/20 animate-pulse">STERİL ÜRETİM</span>
                               )}
                             </div>
                           </Tooltip>
@@ -530,24 +530,24 @@ export function ProductionOrders() {
                         <div className="flex items-center justify-end gap-1">
                           <button
                             onClick={() => toggleStar(order.id, order.isStarred)}
-                            className="p-2.5 rounded-xl transition-all bg-theme-yellow/10 hover:bg-theme-yellow/40 active:bg-theme-yellow/40 border border-theme-yellow/30 text-theme-yellow hover:text-theme-yellow group/star shadow-md shadow-theme-yellow/20 hover:scale-95"
+                            className="w-8 h-8 flex items-center justify-center rounded-xl transition-all bg-theme-main/5 hover:bg-theme-yellow/20 active:bg-theme-yellow/20 border border-theme-main/10 hover:border-theme-yellow/30 text-theme-main hover:text-theme-yellow group/star shadow-md shadow-theme-main/20 hover:shadow-theme-yellow/30 hover:scale-95"
                             title={order.isStarred ? "Yıldızı Kaldır" : "Yıldızla"}
                           >
                             <Star className={`w-4 h-4 transition-all ${order.isStarred ? 'text-amber-400 fill-amber-400' : 'group-hover/star:fill-amber-400/20'}`} />
                           </button>
                           <button
                             onClick={() => handleDelete(order.id)}
-                            className="p-2.5 rounded-xl transition-all bg-theme-danger/10 hover:bg-theme-danger border border-theme-danger/30 text-theme-danger hover:text-theme-surface shadow-md shadow-theme-danger/20 hover:scale-95"
+                            className="w-8 h-8 flex items-center justify-center rounded-xl transition-all bg-theme-danger/10 hover:bg-theme-danger border border-theme-danger/30 text-theme-danger hover:text-theme-surface shadow-md shadow-theme-danger/20 hover:scale-95"
                             title="Sil"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => navigate(`/production-orders/${order.lotNumber}`)}
-                            className="p-2.5 bg-theme-primary/10 hover:bg-theme-primary border border-theme-primary/30 text-theme-primary hover:text-theme-surface rounded-xl transition-all shadow-md shadow-theme-primary/20 hover:scale-95"
+                            className="w-8 h-8 flex items-center justify-center rounded-xl transition-all bg-theme-primary/10 hover:bg-theme-primary border border-theme-primary/30 text-theme-primary hover:text-theme-surface shadow-md shadow-theme-primary/20 hover:scale-95"
                             title="Düzenle / Detay"
                           >
-                            <Pencil className="w-4 h-4" />
+                            <Pencil className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </td>

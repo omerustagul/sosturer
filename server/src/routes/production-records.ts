@@ -60,6 +60,7 @@ router.get('/', authenticateToken, async (req: AuthRequest, res) => {
     const operatorId = (q.operatorId ?? q.operator_id) as string | undefined;
     const productId = (q.productId ?? q.product_id) as string | undefined;
     const shiftId = (q.shiftId ?? q.shift_id) as string | undefined;
+    const departmentId = (q.departmentId ?? q.department_id) as string | undefined;
 
     const where: any = { companyId };
 
@@ -81,6 +82,7 @@ router.get('/', authenticateToken, async (req: AuthRequest, res) => {
     if (operatorId) where.operatorId = operatorId;
     if (productId) where.productId = productId;
     if (shiftId) where.shiftId = shiftId;
+    if (departmentId) where.departmentId = departmentId;
 
     const records = await prisma.productionRecord.findMany({
       where,
@@ -140,7 +142,11 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
 
     const isDowntime = !productId || !operatorId || (producedQuantity === 0 && cycleTimeSeconds === 0);
 
-    const shift = await prisma.shift.findFirst({ where: { id: shiftId, companyId } });
+    const [shift, machine] = await Promise.all([
+      prisma.shift.findFirst({ where: { id: shiftId, companyId } }),
+      prisma.machine.findUnique({ where: { id: machineId } })
+    ]);
+
     if (!shift) return res.status(400).json({ error: 'Selected shift not found' });
 
     // For downtime records, OEE is 0% across the board
@@ -174,6 +180,7 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
         oee: oeeResult.oee,
         defectQuantity: isDowntime ? 0 : defectQuantity,
         plannedQuantity: oeeResult.plannedQuantity,
+        departmentId: req.body.departmentId || machine?.departmentId,
         notes
       },
     });
@@ -223,7 +230,11 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res) => {
     const targetDate = productionDate ? new Date(productionDate) : existing.productionDate;
     const targetMachineId = machineId || existing.machineId;
 
-    const shift = await prisma.shift.findFirst({ where: { id: targetShiftId, companyId } });
+    const [shift, machine] = await Promise.all([
+      prisma.shift.findFirst({ where: { id: targetShiftId, companyId } }),
+      prisma.machine.findUnique({ where: { id: targetMachineId } })
+    ]);
+
     if (!shift) return res.status(400).json({ error: 'Shift not found' });
 
     const hasEffectiveDurationInput = Object.prototype.hasOwnProperty.call(req.body, 'effectiveDurationMinutes');
@@ -258,6 +269,7 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res) => {
         plannedDurationMinutes: hasEffectiveDurationInput
           ? (oeeResult.plannedDurationMinutes ?? null)
           : undefined,
+        departmentId: req.body.departmentId || machine?.departmentId,
         availability: oeeResult.availability,
         performance: oeeResult.performance,
         quality: oeeResult.quality,
