@@ -625,13 +625,13 @@ export default function CompanyUsers() {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="flex-1 px-6 py-4 border border-theme text-theme-dim font-black rounded-2xl hover:bg-theme-surface hover:text-theme-main transition-all text-[10px] tracking-widest uppercase"
+                  className="flex-1 px-6 py-4 border border-theme text-theme-dim font-black rounded-2xl hover:bg-theme-danger/10 hover:border-theme-danger/20 hover:text-theme-danger active:bg-theme-danger/20 transition-all text-xs uppercase"
                 >
                   İPTAL
                 </button>
                 <button
                   type="submit"
-                  className="flex-[2] px-10 py-4 bg-theme-primary hover:bg-theme-primary-hover text-white font-black rounded-2xl shadow-xl shadow-theme-primary/20 transition-all active:scale-95 border border-theme-primary/20 text-[10px] tracking-[0.2em] uppercase"
+                  className="flex-[2] px-10 py-4 bg-theme-primary hover:bg-theme-primary-hover text-white font-black rounded-2xl shadow-xl shadow-theme-primary/20 transition-all active:scale-95 border border-theme-primary/20 text-xs uppercase"
                 >
                   {modalMode === 'create' ? 'KULLANICIYI OLUŞTUR' : 'GÜNCELLEMELERİ KAYDET'}
                 </button>

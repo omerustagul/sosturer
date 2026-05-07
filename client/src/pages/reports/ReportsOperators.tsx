@@ -326,7 +326,7 @@ export function ReportsOperators() {
                 <button
                   onClick={() => setCurrentPage(prev => Math.min(pageCount - 1, prev + 1))}
                   disabled={currentPage >= pageCount - 1}
-                  className="w-9 h-9 p-2 rounded-xl bg-theme-base border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
+                  className="w-9 h-9 p-2 rounded-xl bg-theme-base border border-theme-border text-theme-dim hover:text-theme-main hover:bg-theme-surface disabled:opacity-20 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg group"
                 >
                   <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
                 </button>

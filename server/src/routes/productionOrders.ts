@@ -117,8 +117,10 @@ async function syncProductionOrderStock(tx: any, id: string, companyId: string, 
       if (status === 'completed' && component.warehouseId) {
         await tx.stockLevel.upsert({
           where: {
-            productId_warehouseId_lotNumber: {
+            productId_toolTypeId_equipmentTypeId_warehouseId_lotNumber: {
               productId: component.componentProductId,
+              toolTypeId: null,
+              equipmentTypeId: null,
               warehouseId: component.warehouseId,
               lotNumber: component.lotNumber || ""
             }
@@ -151,8 +153,10 @@ async function syncProductionOrderStock(tx: any, id: string, companyId: string, 
       // UPSERT stock level for final product
       await tx.stockLevel.upsert({
         where: {
-          productId_warehouseId_lotNumber: {
+          productId_toolTypeId_equipmentTypeId_warehouseId_lotNumber: {
             productId: order.productId,
+            toolTypeId: null,
+            equipmentTypeId: null,
             warehouseId: order.targetWarehouseId,
             lotNumber: order.lotNumber
           }
@@ -685,7 +689,8 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res) => {
                   });
 
                   if (!sterileItem) {
-                    throw new Error(`Ürün steril edilmedi! Lot ${currentOrder?.lotNumber} henüz bir steril listesine eklenmemiş. Lütfen önce steril listesini oluşturun.`);
+                    const lotNo = currentOrder?.lotNumber || 'Bilinmiyor';
+                    throw new Error(`Ürün steril edilmedi! Lot ${lotNo} henüz bir steril listesine eklenmemiş. Lütfen önce steril listesini oluşturun.`);
                   }
                 }
               }
@@ -708,7 +713,7 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res) => {
                   sampleQty: Number(step.sampleQty || 0),
                   conditionalQty: Number(step.conditionalQty || 0),
                   startTime: step.startTime ? new Date(step.startTime) : null,
-                  endTime: step.endTime ? new Date(step.endTime) : null,
+                  endTime: step.endTime ? new Date(step.endTime) : (isNewSignature ? new Date() : null),
                 }
               });
             } else {

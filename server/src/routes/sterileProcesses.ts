@@ -45,11 +45,6 @@ router.get('/eligible-lots', authenticateToken, async (req: AuthRequest, res) =>
         companyId,
         status: 'active',
         product: { isSterileProduct: true },
-        steps: {
-          some: {
-            operation: { isSterileOperation: true }
-          }
-        },
         sterileProcessItems: {
           none: {
             process: {
@@ -61,11 +56,19 @@ router.get('/eligible-lots', authenticateToken, async (req: AuthRequest, res) =>
       include: {
         product: { select: { productCode: true, productName: true, unitOfMeasure: true } },
         steps: {
-          include: { operation: true }
+          include: { operation: true },
+          orderBy: { sequence: 'asc' }
         }
       }
     });
-    res.json(orders);
+
+    // Filter orders where the CURRENT pending step is a sterile operation
+    const eligibleOrders = orders.filter(order => {
+      const currentStep = order.steps.find(s => s.status !== 'completed');
+      return currentStep?.operation?.isSterileOperation;
+    });
+
+    res.json(eligibleOrders);
   } catch (error) {
     res.status(500).json({ error: 'Uygun lotlar getirilemedi' });
   }

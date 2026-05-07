@@ -151,7 +151,7 @@ export function SterileOperations() {
           </div>
         </div>
 
-        <div className="overflow-x-auto min-h-[100px]">
+        <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead className="bg-theme-base/40 border-b border-theme">
               <tr className="text-[10px] font-black text-theme-muted">
@@ -213,17 +213,25 @@ export function SterileOperations() {
                         <div className="w-8 h-8 rounded-xl bg-theme-base border border-theme flex items-center justify-center shadow-inner group-hover:border-theme-primary/30 transition-colors">
                           <User className="w-4 h-4 text-theme-dim group-hover:text-theme-primary transition-colors" />
                         </div>
-                        <span className="text-xs font-bold text-theme-main uppercase tracking-tight">{process.personnelName || '-'}</span>
+                        <span className="text-xs font-bold text-theme-main">{process.personnelName || '-'}</span>
                       </div>
                     </td>
                     <td className="px-4 py-5">
-                      <div className="flex flex-wrap gap-2 max-w-[320px]">
-                        {process.items?.map((item: any, idx: number) => (
-                          <div key={idx} className="flex flex-col px-2.5 py-1.5 rounded-xl bg-theme-base/60 border border-theme shadow-sm hover:border-theme-primary/30 transition-colors">
-                            <span className="text-[10px] font-black text-theme-primary uppercase leading-none mb-1">{item.productionOrder?.lotNumber}</span>
-                            <span className="text-[9px] font-bold text-theme-muted truncate max-w-[140px] uppercase">{item.productionOrder?.product?.productName}</span>
+                      <div className="flex items-center gap-1.5">
+                        {process.items?.[0] && (
+                          <div className="flex flex-col px-3 py-1.5 rounded-xl bg-theme-base/50 border border-theme hover:border-theme-primary/40 transition-all shadow-sm">
+                            <span className="text-[10px] font-black text-theme-primary uppercase leading-none mb-0.5">{process.items[0].productionOrder?.lotNumber}</span>
+                            <span className="text-[8px] font-bold text-theme-muted truncate max-w-[120px] uppercase opacity-70">{process.items[0].productionOrder?.product?.productName}</span>
                           </div>
-                        ))}
+                        )}
+                        {(process.items?.length || 0) > 1 && (
+                          <div
+                            className="h-8 min-w-[32px] px-2 flex items-center justify-center rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-500 font-black text-[10px] shadow-sm shadow-blue-500/5 animate-in zoom-in-95 duration-300"
+                            title={process.items.slice(1).map((i: any) => i.productionOrder?.lotNumber).join('\n')}
+                          >
+                            +{process.items.length - 1}
+                          </div>
+                        )}
                       </div>
                     </td>
                     <td className="px-4 py-5">

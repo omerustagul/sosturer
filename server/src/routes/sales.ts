@@ -131,8 +131,10 @@ router.put('/orders/:id/status', authenticateToken, async (req: AuthRequest, res
             // Decrement stock (lotsuz for now as sales order items don't have lot)
             await tx.stockLevel.upsert({
               where: {
-                productId_warehouseId_lotNumber: {
+                productId_toolTypeId_equipmentTypeId_warehouseId_lotNumber: {
                   productId: item.productId,
+                  toolTypeId: null,
+                  equipmentTypeId: null,
                   warehouseId: warehouseId,
                   lotNumber: ""
                 }

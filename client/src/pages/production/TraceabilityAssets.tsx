@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { format } from 'date-fns';
-import { Activity, Building2, CalendarClock, ExternalLink, FileText, History, RefreshCw, Save, Search, Trash2, UploadCloud, Wrench, X, ChevronLeft } from 'lucide-react';
+import { Activity, Building2, CalendarClock, ExternalLink, FileText, History, RefreshCw, Save, Search, Trash2, UploadCloud, Wrench, X, ChevronLeft, Edit2 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { CustomSelect } from '../../components/common/CustomSelect';
 import { Loading } from '../../components/common/Loading';
@@ -245,7 +245,7 @@ function AssetList({ kind }: { kind: AssetKind }) {
                     </td>
                     <td className="px-6 py-5"><OperationStatusBadge status={latest?.operationStatus || 'none'} /></td>
                     <td className="px-6 py-5 text-center">
-                      <button className="p-2 rounded-lg bg-theme-primary/10 text-theme-primary hover:bg-theme-primary/20 transition-all"><ExternalLink size={14} /></button>
+                      <button className="p-2 rounded-lg bg-theme-primary/10 text-theme-primary hover:bg-theme-primary/20 transition-all"><Edit2 size={14} /></button>
                     </td>
                   </tr>
                 );
@@ -682,7 +682,7 @@ function StatCard({ icon: Icon, label, value, color }: any) {
           <Icon className={`${color} w-5 h-5`} />
         </div>
       </div>
-      <p className="text-[10px] font-black text-theme-dim mb-2 opacity-60">{label}</p>
+      <p className="text-[12px] font-black text-theme-dim mb-2 opacity-60">{label}</p>
       <p className="text-xl font-black text-theme-main tracking-tight leading-none truncate">{value}</p>
     </div>
   );

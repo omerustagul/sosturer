@@ -449,7 +449,7 @@ export function RecordsList() {
                 options={(meta?.operators || []).map((o: any) => ({ id: o.id, label: o.fullName, subLabel: o.employeeId }))}
                 value={localChanges?.[id]?.operatorId ?? info.getValue()}
                 onChange={(val) => meta?.updateLocalChange(id, 'operatorId', val)}
-                className="w-32" />
+                className="w-40" />
             </div>
           );
         }
@@ -466,7 +466,7 @@ export function RecordsList() {
         }
         return (
           <div className="flex items-center gap-2">
-            <span className="text-theme-main font-bold truncate max-w-[100px]">{operatorName}</span>
+            <span className="text-theme-main font-bold truncate max-w-[180px]" title={operatorName}>{operatorName}</span>
           </div>
         );
       },

@@ -71,6 +71,10 @@ export function ProductionOrderForm() {
   const [bulkSigningSteps, setBulkSigningSteps] = useState<any[]>([]);
   const [isBulkSignMode, setIsBulkSignMode] = useState(false);
   const [selectedStepIndices, setSelectedStepIndices] = useState<number[]>([]);
+  
+  const firstBulkIdx = bulkSigningSteps.length > 0 ? Math.min(...bulkSigningSteps) : null;
+  const referenceIdx = signingStep ? signingStep.index : firstBulkIdx;
+  const prevMax = Number(referenceIdx === 0 ? formData.quantity : (steps[(referenceIdx || 0) - 1]?.approvedQty || 0));
 
   // Duplicate Modal State
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
@@ -346,6 +350,11 @@ export function ProductionOrderForm() {
   };
 
   const executeStepSign = async () => {
+    if (!signFormData.operatorId || signFormData.operatorId === '') {
+      showAlert('Lütfen işlemi gerçekleştiren personeli (operatörü) seçin!', 'EKSİK BİLGİ', 'warning');
+      return;
+    }
+
     const newSteps = [...steps];
     const opName = operators.find(o => o.id === signFormData.operatorId)?.fullName || authUser?.fullName;
 
@@ -701,7 +710,8 @@ export function ProductionOrderForm() {
   if (loading) return <div className="h-screen flex items-center justify-center"><Loading size="lg" /></div>;
 
   return (
-    <div className="min-h-screen pb-20 space-y-8 animate-in fade-in duration-500">
+    <>
+      <div className="min-h-screen pb-20 space-y-8 animate-in fade-in duration-500">
       {/* Header Bar */}
       <div className="h-20 bg-theme-surface/80 backdrop-blur-[5px] border-b border-theme px-6 sticky top-0 z-40 flex items-center justify-between">
         <div className="flex items-center justify-center gap-2">
@@ -807,6 +817,7 @@ export function ProductionOrderForm() {
               </div>
             </div>
           </div>
+        </div>
 
           {/* Configuration Card */}
           <div className="lg:col-span-9">
@@ -935,10 +946,9 @@ export function ProductionOrderForm() {
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          </div>
         </div>
+      </div>
+    </div>
 
         {/* Bottom Row: Full Width Tabs and Details */}
         <div className="w-full space-y-6">
@@ -981,7 +991,7 @@ export function ProductionOrderForm() {
                     <p className="text-[10px] font-black text-theme-muted uppercase tracking-widest">OPERASYON VE PROSES AKIŞI</p>
                     <div className="flex items-center gap-3">
                       {isBulkSignMode ? (
-                        <>
+                        <div className="flex items-center gap-3">
                           <button
                             onClick={() => {
                               setIsBulkSignMode(false);
@@ -991,13 +1001,8 @@ export function ProductionOrderForm() {
                           >
                             VAZGEÇ
                           </button>
-                          <button
-                            onClick={handleBulkSignClick}
-                            className="h-9 px-4 bg-theme-success text-white rounded-xl font-black text-[10px] uppercase shadow-lg shadow-theme-success/20 flex items-center gap-2 active:scale-95"
-                          >
-                            <CheckCircle2 className="w-4 h-4" /> SEÇİLENLERİ İMZALA ({selectedStepIndices.length})
-                          </button>
-                        </>
+                          <span className="text-[10px] font-bold text-theme-muted italic">Aşağıdaki listeden imzalanacak operasyonları seçin</span>
+                        </div>
                       ) : (
                         !isCompleted && formData.status === 'active' && (
                           <button
@@ -1098,7 +1103,7 @@ export function ProductionOrderForm() {
                                 <div className="w-8 h-8 rounded-full bg-theme-base border-none flex items-center justify-center shrink-0">
                                   <UserCircle className={`w-5 h-5 ${isStepCompleted ? 'text-theme-primary' : 'opacity-20'}`} />
                                 </div>
-                                <div className="flex flex-col min-w-[120px] max-w-[150px]">
+                                <div className="flex flex-col min-w-[140px] max-w-[200px]">
                                   <span
                                     className={`truncate ${step.confirmedBy || step.operator?.fullName ? 'text-theme-main font-black' : 'italic text-theme-muted opacity-50'}`}
                                     title={step.confirmedBy || step.operator?.fullName || ''}
@@ -1140,7 +1145,7 @@ export function ProductionOrderForm() {
                                 {isPast && idx === activeStepIdx - 1 && !isCompleted && !isBulkSignMode && (
                                   <button
                                     onClick={() => handleStepRollback(step.id, idx)}
-                                    className="p-1.5 bg-theme-danger/10 border border-theme-danger/30 text-theme-danger hover:text-theme-base hover:bg-theme-danger hover:border-theme-danger transition-all rounded-xl shadow-sm" Geri Çek
+                                    className="p-1.5 bg-theme-danger/10 border border-theme-danger/30 text-theme-danger hover:text-theme-base hover:bg-theme-danger hover:border-theme-danger transition-all rounded-xl shadow-sm"
                                     title="İmzayı Geri Çek"
                                   >
                                     <Undo className="w-4 h-4" />
@@ -1509,12 +1514,12 @@ export function ProductionOrderForm() {
                         <div className="space-y-2">
                           <label className="text-[9px] font-black text-theme-muted uppercase">STERİL TARİHİ</label>
                           <input type="date" value={formData.sterilizationDate} disabled={isCompleted} onChange={(e) => setFormData({ ...formData, sterilizationDate: e.target.value })} className={`form-input ${isCompleted ? 'bg-theme-base/20 opacity-50' : ''}`} />
-                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              )}
+              </div>
+            )}
 
               {activeTab === 'events' && (
                 <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
@@ -1651,7 +1656,7 @@ export function ProductionOrderForm() {
                 </div>
               )}
 
-              {['orders', 'links'].includes(activeTab) && (
+              {(activeTab === 'orders' || activeTab === 'links') && (
                 <div className="flex flex-col items-center justify-center h-full text-center opacity-30 gap-6 grayscale">
                   <Workflow className="w-10 h-10 stroke-[0.5]" />
                   <div className="space-y-2">
@@ -1667,6 +1672,7 @@ export function ProductionOrderForm() {
           </div>
         </div>
       </div>
+    </div>
       {showSignModal && createPortal(
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-6 animate-in fade-in duration-300">
           <div className="absolute inset-0 bg-theme-surface/60 backdrop-blur-xs" onClick={() => setShowSignModal(false)} />
@@ -1751,95 +1757,86 @@ export function ProductionOrderForm() {
 
                 {/* Column 2: Quantities */}
                 <div className="p-4 bg-theme-base/10 rounded-2xl border border-theme space-y-4">
-                  {(() => {
-                    const firstBulkIdx = bulkSigningSteps.length > 0 ? Math.min(...bulkSigningSteps) : null;
-                    const referenceIdx = signingStep ? signingStep.index : firstBulkIdx;
-                    const prevMax = Number(referenceIdx === 0 ? formData.quantity : (steps[(referenceIdx || 0) - 1]?.approvedQty || 0));
-                    return (
-                      <>
-                        <div className="space-y-1 pb-4 border-b border-theme/50">
-                          <label className="text-[9px] font-black text-theme-muted uppercase tracking-widest">
-                            {signingStep?.index === 0 ? 'TOPLAM PERSONEL PLANLANAN' : 'ÖNCEKİ OPERASYONDAN GELEN'}
-                          </label>
-                          <div className="text-2xl font-black text-theme-primary">
-                            {prevMax} ADET
-                          </div>
-                        </div>
+                  <div className="space-y-1 pb-4 border-b border-theme/50">
+                    <label className="text-[9px] font-black text-theme-muted uppercase tracking-widest">
+                      {signingStep?.index === 0 ? 'TOPLAM PERSONEL PLANLANAN' : 'ÖNCEKİ OPERASYONDAN GELEN'}
+                    </label>
+                    <div className="text-2xl font-black text-theme-primary">
+                      {prevMax} ADET
+                    </div>
+                  </div>
 
-                        <div className="grid grid-cols-2 gap-4 pt-2">
-                          <div className="space-y-1">
-                            <label className="text-[9px] font-black text-theme-success uppercase tracking-widest">KABUL ADETİ</label>
-                            <input
-                              type="number"
-                              value={signFormData.approvedQty}
-                              onChange={e => setSignFormData({ ...signFormData, approvedQty: Number(e.target.value) })}
-                              className="form-input h-12 p-2 text-lg font-black border-theme-success/30 focus:border-theme-success bg-theme-success/5"
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="text-[9px] font-black text-theme-danger uppercase tracking-widest">RED ADETİ</label>
-                            <input
-                              type="number"
-                              min="0"
-                              value={signFormData.rejectedQty}
-                              onChange={e => {
-                                const val = Number(e.target.value);
-                                const others = Number(signFormData.reworkQty || 0) + Number(signFormData.sampleQty || 0) + Number(signFormData.conditionalQty || 0);
-                                const newApproved = Math.max(0, prevMax - (val + others));
-                                setSignFormData({ ...signFormData, rejectedQty: val, approvedQty: newApproved });
-                              }}
-                              className="form-input h-12 p-2 text-lg font-black border-theme-danger/30 focus:border-theme-danger bg-theme-danger/5"
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="text-[9px] font-black text-theme-warning uppercase tracking-widest">TEKRAR İŞLEM</label>
-                            <input
-                              type="number"
-                              min="0"
-                              value={signFormData.reworkQty}
-                              onChange={e => {
-                                const val = Number(e.target.value);
-                                const others = Number(signFormData.rejectedQty || 0) + Number(signFormData.sampleQty || 0) + Number(signFormData.conditionalQty || 0);
-                                const newApproved = Math.max(0, prevMax - (val + others));
-                                setSignFormData({ ...signFormData, reworkQty: val, approvedQty: newApproved });
-                              }}
-                              className="form-input h-12 p-2 text-lg font-black border-theme-warning/30 focus:border-theme-warning bg-theme-warning/5"
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="text-[9px] font-black text-theme-info uppercase tracking-widest">NUMUNE ADETİ</label>
-                            <input
-                              type="number"
-                              min="0"
-                              value={signFormData.sampleQty}
-                              onChange={e => {
-                                const val = Number(e.target.value);
-                                const others = Number(signFormData.rejectedQty || 0) + Number(signFormData.reworkQty || 0) + Number(signFormData.conditionalQty || 0);
-                                const newApproved = Math.max(0, prevMax - (val + others));
-                                setSignFormData({ ...signFormData, sampleQty: val, approvedQty: newApproved });
-                              }}
-                              className="form-input h-12 p-2 text-lg font-black border-theme-info/30 focus:border-theme-info bg-theme-info/5"
-                            />
-                          </div>
-                          <div className="col-span-2 space-y-1">
-                            <label className="text-[9px] font-black text-theme-dim uppercase tracking-widest">ŞARTLI KABUL</label>
-                            <input
-                              type="number"
-                              min="0"
-                              value={signFormData.conditionalQty}
-                              onChange={e => {
-                                const val = Number(e.target.value);
-                                const others = Number(signFormData.rejectedQty || 0) + Number(signFormData.reworkQty || 0) + Number(signFormData.sampleQty || 0);
-                                const newApproved = Math.max(0, prevMax - (val + others));
-                                setSignFormData({ ...signFormData, conditionalQty: val, approvedQty: newApproved });
-                              }}
-                              className="form-input h-12 p-2 text-lg font-black border-theme-dim/30 bg-theme-base/20"
-                            />
-                          </div>
-                        </div>
-                      </>
-                    );
-                  })()}
+                  <div className="grid grid-cols-2 gap-4 pt-2">
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black text-theme-success uppercase tracking-widest">KABUL ADETİ</label>
+                      <input
+                        type="number"
+                        value={signFormData.approvedQty}
+                        onChange={e => setSignFormData({ ...signFormData, approvedQty: Number(e.target.value) })}
+                        className="form-input h-12 p-2 text-lg font-black border-theme-success/30 focus:border-theme-success bg-theme-success/5"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black text-theme-danger uppercase tracking-widest">RED ADETİ</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={signFormData.rejectedQty}
+                        onChange={e => {
+                          const val = Number(e.target.value);
+                          const others = Number(signFormData.reworkQty || 0) + Number(signFormData.sampleQty || 0) + Number(signFormData.conditionalQty || 0);
+                          const newApproved = Math.max(0, prevMax - (val + others));
+                          setSignFormData({ ...signFormData, rejectedQty: val, approvedQty: newApproved });
+                        }}
+                        className="form-input h-12 p-2 text-lg font-black border-theme-danger/30 focus:border-theme-danger bg-theme-danger/5"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black text-theme-warning uppercase tracking-widest">TEKRAR İŞLEM</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={signFormData.reworkQty}
+                        onChange={e => {
+                          const val = Number(e.target.value);
+                          const others = Number(signFormData.rejectedQty || 0) + Number(signFormData.sampleQty || 0) + Number(signFormData.conditionalQty || 0);
+                          const newApproved = Math.max(0, prevMax - (val + others));
+                          setSignFormData({ ...signFormData, reworkQty: val, approvedQty: newApproved });
+                        }}
+                        className="form-input h-12 p-2 text-lg font-black border-theme-warning/30 focus:border-theme-warning bg-theme-warning/5"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black text-theme-info uppercase tracking-widest">NUMUNE ADETİ</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={signFormData.sampleQty}
+                        onChange={e => {
+                          const val = Number(e.target.value);
+                          const others = Number(signFormData.rejectedQty || 0) + Number(signFormData.reworkQty || 0) + Number(signFormData.conditionalQty || 0);
+                          const newApproved = Math.max(0, prevMax - (val + others));
+                          setSignFormData({ ...signFormData, sampleQty: val, approvedQty: newApproved });
+                        }}
+                        className="form-input h-12 p-2 text-lg font-black border-theme-info/30 focus:border-theme-info bg-theme-info/5"
+                      />
+                    </div>
+                    <div className="col-span-2 space-y-1">
+                      <label className="text-[9px] font-black text-theme-dim uppercase tracking-widest">ŞARTLI KABUL</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={signFormData.conditionalQty}
+                        onChange={e => {
+                          const val = Number(e.target.value);
+                          const others = Number(signFormData.rejectedQty || 0) + Number(signFormData.reworkQty || 0) + Number(signFormData.sampleQty || 0);
+                          const newApproved = Math.max(0, prevMax - (val + others));
+                          setSignFormData({ ...signFormData, conditionalQty: val, approvedQty: newApproved });
+                        }}
+                        className="form-input h-12 p-2 text-lg font-black border-theme-dim/30 bg-theme-base/20"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -2072,7 +2069,6 @@ export function ProductionOrderForm() {
                 </div>
               </div>
             </div>
-
             {/* Footer */}
             <div className="p-4 bg-theme-base/20 border-t border-theme flex justify-end">
               <button
@@ -2173,6 +2169,47 @@ export function ProductionOrderForm() {
         </div>,
         document.body
       )}
-    </div>
+      {/* Floating Bulk Sign Bar */}
+      {isBulkSignMode && selectedStepIndices.length > 0 && createPortal(
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[1000] w-fit animate-in slide-in-from-bottom-10 fade-in duration-500">
+          <div className="modern-glass-card p-3 bg-theme-surface/90 backdrop-blur-xl border border-theme-success/30 flex items-center gap-6 shadow-[0_20px_50px_rgba(0,0,0,0.3)] ring-1 ring-white/10">
+            {/* Selection Count Info */}
+            <div className="flex items-center gap-3 border-r border-theme-border/20 pr-6">
+              <div className="w-10 h-10 bg-theme-success rounded-xl flex items-center justify-center font-black text-white text-sm shadow-xl shadow-theme-success/30 animate-pulse">
+                {selectedStepIndices.length}
+              </div>
+              <div className="whitespace-nowrap">
+                <p className="text-[10px] font-black text-theme-success uppercase leading-none mb-1">TOPLU İMZA</p>
+                <p className="text-theme-main font-semibold text-[12px]">Seçilen Operasyon</p>
+              </div>
+            </div>
+
+            {/* Action Buttons Group */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleBulkSignClick}
+                className="h-11 px-6 bg-theme-success text-white rounded-xl font-black text-[11px] uppercase shadow-lg shadow-theme-success/20 flex items-center gap-2 active:scale-95 hover:scale-103 transition-all"
+              >
+                <CheckCircle2 className="w-4 h-4" /> SEÇİLENLERİ İMZALA
+              </button>
+              
+              <div className="w-px h-8 bg-theme-border/10 mx-2" />
+              
+              <button
+                onClick={() => {
+                  setIsBulkSignMode(false);
+                  setSelectedStepIndices([]);
+                }}
+                className="h-11 px-4 bg-theme-danger/5 hover:bg-theme-danger/10 border border-theme-danger/10 text-theme-danger rounded-xl font-black text-[11px] uppercase flex items-center gap-2 active:scale-95 transition-all"
+              >
+                <X className="w-4 h-4" /> İPTAL
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+      </div>
+    </>
   );
 }

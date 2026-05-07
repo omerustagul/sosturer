@@ -3,7 +3,8 @@ import { createPortal } from 'react-dom';
 import { api } from '../../lib/api';
 import {
   DiamondPlus, Plus, Search, Calendar, Package,
-  Hash, Pencil, Star, Trash2, Filter, Check, Download, RotateCcw, Minus
+  Hash, Pencil, Star, Trash2, Filter, Check, Download, RotateCcw, Minus,
+  Edit2
 } from 'lucide-react';
 import { Loading } from '../../components/common/Loading';
 import { CustomSelect } from '../../components/common/CustomSelect';
@@ -202,7 +203,7 @@ export function ProductionOrders() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-2xl font-black text-theme-main tracking-tight uppercase">ÜRETİM EMİRLERİ</h1>
-          <p className="text-xs font-bold text-theme-muted uppercase tracking-widest mt-1">Aktif ve planlanan üretim süreçleri</p>
+          <p className="text-xs font-bold text-theme-muted mt-0.5">Aktif ve planlanan üretim süreçleri</p>
         </div>
         <button
           onClick={() => navigate('/production-orders/new')}
@@ -433,9 +434,11 @@ export function ProductionOrders() {
               </thead>
               <tbody className="divide-y divide-theme">
                 {filteredOrders.map((order) => {
+                  const completedSteps = order.steps.filter((s: any) => s.status === 'completed');
                   const currentStep = order.steps.find((s: any) => s.status !== 'completed') || order.steps[order.steps.length - 1];
-                  const progress = (order.steps.filter((s: any) => s.status === 'completed').length / order.steps.length) * 100;
-                  const acceptedQuantity = currentStep?.approvedQty || 0;
+                  const lastCompletedStep = completedSteps[completedSteps.length - 1];
+                  const progress = (completedSteps.length / order.steps.length) * 100;
+                  const acceptedQuantity = lastCompletedStep ? (lastCompletedStep.approvedQty || 0) : 0;
                   const isSelected = selectedRows.includes(order.id);
 
                   return (
@@ -523,7 +526,7 @@ export function ProductionOrders() {
                       </td>
                       <td className="px-3 py-4 text-center">
                         <span className={`text-sm font-black ${order.status === 'completed' ? 'text-theme-primary' : 'text-theme-success'}`}>
-                          {acceptedQuantity || '-'}
+                          {order.status === 'planned' ? '-' : acceptedQuantity}
                         </span>
                       </td>
                       <td className="px-3 py-4 text-center" onClick={(e) => e.stopPropagation()}>
@@ -547,7 +550,7 @@ export function ProductionOrders() {
                             className="w-8 h-8 flex items-center justify-center rounded-xl transition-all bg-theme-primary/10 hover:bg-theme-primary border border-theme-primary/30 text-theme-primary hover:text-theme-surface shadow-md shadow-theme-primary/20 hover:scale-95"
                             title="Düzenle / Detay"
                           >
-                            <Pencil className="w-3.5 h-3.5" />
+                            <Edit2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </td>
