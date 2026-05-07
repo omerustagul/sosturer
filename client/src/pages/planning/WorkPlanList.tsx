@@ -107,7 +107,7 @@ export function WorkPlanList() {
           </div>
         </div>
 
-        <div className="overflow-x-auto relative min-h-[400px]">
+        <div className="overflow-x-auto relative">
           {loading ? (
             <div className="absolute inset-0 flex items-center justify-center bg-theme-surface/50 backdrop-blur-sm z-10">
               <Loading size="lg" />
@@ -178,9 +178,9 @@ export function WorkPlanList() {
                 )) : (
                   <tr>
                     <td colSpan={6} className="px-6 py-20 text-center">
-                      <div className="flex flex-col items-center justify-center opacity-20">
+                      <div className="flex flex-col items-center gap-4 p-16 opacity-20">
                         <ClipboardList className="w-10 h-10 mb-2" />
-                        <p className="font-black text-md">Hali hazırda bir plan bulunamadı.</p>
+                        <p className="font-black text-sm">Hali hazırda bir plan bulunamadı.</p>
                       </div>
                     </td>
                   </tr>

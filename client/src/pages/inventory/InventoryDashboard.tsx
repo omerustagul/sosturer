@@ -274,7 +274,7 @@ export function InventoryDashboard() {
               ))}
               {filteredLevels.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-20 text-center opacity-30 font-bold text-sm">
+                  <td colSpan={5} className="h-20 p-16 text-center opacity-30 font-bold text-sm">
                     Stok kaydı bulunamadı.
                   </td>
                 </tr>

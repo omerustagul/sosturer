@@ -71,7 +71,7 @@ export function ProductionOrderForm() {
   const [bulkSigningSteps, setBulkSigningSteps] = useState<any[]>([]);
   const [isBulkSignMode, setIsBulkSignMode] = useState(false);
   const [selectedStepIndices, setSelectedStepIndices] = useState<number[]>([]);
-  
+
   const firstBulkIdx = bulkSigningSteps.length > 0 ? Math.min(...bulkSigningSteps) : null;
   const referenceIdx = signingStep ? signingStep.index : firstBulkIdx;
   const prevMax = Number(referenceIdx === 0 ? formData.quantity : (steps[(referenceIdx || 0) - 1]?.approvedQty || 0));
@@ -156,7 +156,7 @@ export function ProductionOrderForm() {
       const [pRes, wRes, oRes, sRes, erRes, rRes] = await Promise.all([
         api.get('/products'),
         api.get('/inventory/warehouses'),
-        api.get('/operators'),
+        api.get('/operators?is_operator=true'),
         api.get('/shifts'),
         api.get('/production-event-reasons'),
         api.get('/production-routes')
@@ -712,112 +712,112 @@ export function ProductionOrderForm() {
   return (
     <>
       <div className="min-h-screen pb-20 space-y-8 animate-in fade-in duration-500">
-      {/* Header Bar */}
-      <div className="h-20 bg-theme-surface/80 backdrop-blur-[5px] border-b border-theme px-6 sticky top-0 z-40 flex items-center justify-between">
-        <div className="flex items-center justify-center gap-2">
-          <button onClick={() => navigate('/production-orders')} className="p-1 border border-theme rounded-xl hover:bg-theme-main/5 text-theme-muted transition-all">
-            <ChevronLeft className="w-6 h-6" />
-          </button>
-          <div>
-            <h2 className="flex items-center justify-center text-xl font-bold text-theme-main flex items-center gap-2">
-              {isEditing ? `Üretim Emri No: ${formData.lotNumber}` : 'Yeni Üretim Emri Oluştur'}
-            </h2>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {isEditing && (
-            <div className="flex items-center gap-2">
-              {formData.status === 'planned' && (
-                <button
-                  onClick={() => setShowDuplicateModal(true)}
-                  className="h-10 px-4 py-2 bg-theme-surface border border-theme text-theme-muted hover:text-theme-primary hover:border-theme-primary/30 rounded-xl font-black text-[10px] uppercase transition-all flex items-center gap-2 active:scale-95"
-                  title="Üretim Emrini Çoğalt"
-                >
-                  <CopyPlus className="w-4 h-4" /> TOPLU ÇOĞALT
-                </button>
-              )}
-              {formData.status === 'planned' && (
-                <button
-                  onClick={() => handleStatusChange('active')}
-                  className="h-10 px-6 py-2 bg-theme-warning text-white rounded-xl font-black text-[10px] uppercase shadow-xl shadow-theme-warning/20 hover:bg-theme-warning-hover transition-all flex items-center gap-2 active:scale-95"
-                >
-                  <Play className="w-4 h-4 fill-white" /> ÜRETİM EMRİNİ BAŞLAT
-                </button>
-              )}
-              {formData.status === 'active' && (
-                <>
-                  <button
-                    onClick={() => handleStatusChange('planned')}
-                    className="h-10 px-4 py-2 bg-theme-surface text-theme-muted rounded-xl font-black text-[10px] uppercase border border-theme hover:bg-theme-main/5 transition-all flex items-center gap-2 active:scale-95"
-                    title="Hazır Durumuna Geri Çek"
-                  >
-                    <RotateCcw className="w-4 h-4" /> GERİ ÇEK
-                  </button>
-                  <button
-                    onClick={() => handleStatusChange('completed')}
-                    className="h-10 px-6 py-2 bg-theme-success text-white rounded-xl font-black text-[10px] uppercase shadow-xl shadow-theme-success/20 hover:bg-theme-success-hover transition-all flex items-center gap-2 active:scale-95"
-                  >
-                    <CheckCircle2 className="w-4 h-4" /> ÜRETİM EMRİNİ BİTİR
-                  </button>
-                </>
-              )}
-              {formData.status === 'completed' && (
-                <button
-                  onClick={() => handleStatusChange('active')}
-                  className="h-10 px-4 py-2 bg-theme-surface text-theme-muted rounded-xl font-black text-[10px] uppercase border border-theme hover:bg-theme-main/5 transition-all flex items-center gap-2 active:scale-95"
-                  title="Başladı Durumuna Geri Çek"
-                >
-                  <RotateCcw className="w-4 h-4" /> BAŞLADIYA ÇEK
-                </button>
-              )}
-            </div>
-          )}
-
-          {(!isCompleted || isEditing) && (
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="h-10 px-4 py-2 bg-theme-primary text-white rounded-xl font-black text-xs shadow-xl shadow-theme-primary/20 hover:bg-theme-primary-hover transition-all flex items-center gap-3 active:scale-95 disabled:opacity-50"
-            >
-              {saving ? <Loading size="sm" /> : <>{isEditing ? <Save className="w-4 h-4" /> : <Plus className="w-4 h-4" />}{isEditing ? 'KAYDET' : 'OLUŞTUR'}</>}
+        {/* Header Bar */}
+        <div className="h-20 bg-theme-surface/80 backdrop-blur-[5px] border-b border-theme px-6 sticky top-0 z-40 flex items-center justify-between">
+          <div className="flex items-center justify-center gap-2">
+            <button onClick={() => navigate('/production-orders')} className="p-1 border border-theme rounded-xl hover:bg-theme-main/5 text-theme-muted transition-all">
+              <ChevronLeft className="w-6 h-6" />
             </button>
-          )}
-        </div>
-      </div>
+            <div>
+              <h2 className="flex items-center justify-center text-xl font-bold text-theme-main flex items-center gap-2">
+                {isEditing ? `Üretim Emri No: ${formData.lotNumber}` : 'Yeni Üretim Emri Oluştur'}
+              </h2>
+            </div>
+          </div>
 
-      <div className="mx-auto px-6 space-y-6">
-        {/* Top Row: Core Info & Classification */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Summary Card */}
-          <div className="lg:col-span-3 space-y-6">
-            <div className="modern-glass-card p-3 bg-theme-base/20 border-theme-primary/10 shadow-inner h-full flex flex-col justify-center">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-black text-theme-muted uppercase ml-1">Özet Bilgi</span>
-                <div className={`w-2 h-2 rounded-full animate-pulse shadow-lg ${formData.status === 'active' ? 'bg-theme-success shadow-theme-success/50' : formData.status === 'completed' ? 'bg-theme-primary shadow-theme-primary/50' : 'bg-theme-warning shadow-theme-warning/50'}`} />
+          <div className="flex items-center gap-2">
+            {isEditing && (
+              <div className="flex items-center gap-2">
+                {formData.status === 'planned' && (
+                  <button
+                    onClick={() => setShowDuplicateModal(true)}
+                    className="h-10 px-4 py-2 bg-theme-surface border border-theme text-theme-muted hover:text-theme-primary hover:border-theme-primary/30 rounded-xl font-black text-[10px] uppercase transition-all flex items-center gap-2 active:scale-95"
+                    title="Üretim Emrini Çoğalt"
+                  >
+                    <CopyPlus className="w-4 h-4" /> TOPLU ÇOĞALT
+                  </button>
+                )}
+                {formData.status === 'planned' && (
+                  <button
+                    onClick={() => handleStatusChange('active')}
+                    className="h-10 px-6 py-2 bg-theme-warning text-white rounded-xl font-black text-[10px] uppercase shadow-xl shadow-theme-warning/20 hover:bg-theme-warning-hover transition-all flex items-center gap-2 active:scale-95"
+                  >
+                    <Play className="w-4 h-4 fill-white" /> ÜRETİM EMRİNİ BAŞLAT
+                  </button>
+                )}
+                {formData.status === 'active' && (
+                  <>
+                    <button
+                      onClick={() => handleStatusChange('planned')}
+                      className="h-10 px-4 py-2 bg-theme-surface text-theme-muted rounded-xl font-black text-[10px] uppercase border border-theme hover:bg-theme-main/5 transition-all flex items-center gap-2 active:scale-95"
+                      title="Hazır Durumuna Geri Çek"
+                    >
+                      <RotateCcw className="w-4 h-4" /> GERİ ÇEK
+                    </button>
+                    <button
+                      onClick={() => handleStatusChange('completed')}
+                      className="h-10 px-6 py-2 bg-theme-success text-white rounded-xl font-black text-[10px] uppercase shadow-xl shadow-theme-success/20 hover:bg-theme-success-hover transition-all flex items-center gap-2 active:scale-95"
+                    >
+                      <CheckCircle2 className="w-4 h-4" /> ÜRETİM EMRİNİ BİTİR
+                    </button>
+                  </>
+                )}
+                {formData.status === 'completed' && (
+                  <button
+                    onClick={() => handleStatusChange('active')}
+                    className="h-10 px-4 py-2 bg-theme-surface text-theme-muted rounded-xl font-black text-[10px] uppercase border border-theme hover:bg-theme-main/5 transition-all flex items-center gap-2 active:scale-95"
+                    title="Başladı Durumuna Geri Çek"
+                  >
+                    <RotateCcw className="w-4 h-4" /> BAŞLADIYA ÇEK
+                  </button>
+                )}
               </div>
-              <div className="grid grid-cols-1 gap-2">
-                <div className="p-2 rounded-xl bg-theme-card border border-theme-border/50 flex flex-col gap-1 shadow-md shadow-theme-main/5">
-                  <span className="text-[8px] font-black text-theme-muted uppercase tracking-widest">GÜNCEL DURUM</span>
-                  <span className={`text-[11px] font-black uppercase tracking-wider ${formData.status === 'active' ? 'text-theme-success' : formData.status === 'completed' ? 'text-theme-primary' : 'text-theme-warning'}`}>
-                    {formData.status === 'planned' ? 'Planlandı' :
-                      formData.status === 'active' ? 'Devam Ediyor' :
-                        formData.status === 'completed' ? 'Tamamlandı' :
-                          formData.status === 'cancelled' ? 'İptal Edildi' : formData.status}
-                  </span>
+            )}
+
+            {(!isCompleted || isEditing) && (
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="h-10 px-4 py-2 bg-theme-primary text-white rounded-xl font-black text-xs shadow-xl shadow-theme-primary/20 hover:bg-theme-primary-hover transition-all flex items-center gap-3 active:scale-95 disabled:opacity-50"
+              >
+                {saving ? <Loading size="sm" /> : <>{isEditing ? <Save className="w-4 h-4" /> : <Plus className="w-4 h-4" />}{isEditing ? 'KAYDET' : 'OLUŞTUR'}</>}
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="mx-auto px-6 space-y-6">
+          {/* Top Row: Core Info & Classification */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Summary Card */}
+            <div className="lg:col-span-3 space-y-6">
+              <div className="modern-glass-card p-3 bg-theme-base/20 border-theme-primary/10 shadow-inner h-full flex flex-col justify-center">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] font-black text-theme-muted uppercase ml-1">Özet Bilgi</span>
+                  <div className={`w-2 h-2 rounded-full animate-pulse shadow-lg ${formData.status === 'active' ? 'bg-theme-success shadow-theme-success/50' : formData.status === 'completed' ? 'bg-theme-primary shadow-theme-primary/50' : 'bg-theme-warning shadow-theme-warning/50'}`} />
                 </div>
-                <div className="p-2 rounded-xl bg-theme-card border border-theme-border/50 flex flex-col gap-1 shadow-md shadow-theme-main/5">
-                  <span className="text-[8px] font-black text-theme-muted uppercase tracking-widest">ÜRÜN BİLGİSİ</span>
-                  <span className="text-[11px] font-black text-theme-dim uppercase tracking-wider">{formData.productCodeSnap || products.find(p => p.id === formData.productId)?.productCode || 'Seçilmedi'}</span>
-                </div>
-                <div className="p-2 rounded-xl bg-theme-card border border-theme-border/50 flex flex-col gap-1 shadow-md shadow-theme-main/5">
-                  <span className="text-[8px] font-black text-theme-muted uppercase tracking-widest">İŞ EMRİ TİPİ</span>
-                  <span className="text-[11px] font-black text-theme-dim uppercase tracking-wider">{formData.type} Üretim</span>
+                <div className="grid grid-cols-1 gap-2">
+                  <div className="p-2 rounded-xl bg-theme-card border border-theme-border/50 flex flex-col gap-1 shadow-md shadow-theme-main/5">
+                    <span className="text-[8px] font-black text-theme-muted uppercase tracking-widest">GÜNCEL DURUM</span>
+                    <span className={`text-[11px] font-black uppercase tracking-wider ${formData.status === 'active' ? 'text-theme-success' : formData.status === 'completed' ? 'text-theme-primary' : 'text-theme-warning'}`}>
+                      {formData.status === 'planned' ? 'Planlandı' :
+                        formData.status === 'active' ? 'Devam Ediyor' :
+                          formData.status === 'completed' ? 'Tamamlandı' :
+                            formData.status === 'cancelled' ? 'İptal Edildi' : formData.status}
+                    </span>
+                  </div>
+                  <div className="p-2 rounded-xl bg-theme-card border border-theme-border/50 flex flex-col gap-1 shadow-md shadow-theme-main/5">
+                    <span className="text-[8px] font-black text-theme-muted uppercase tracking-widest">ÜRÜN BİLGİSİ</span>
+                    <span className="text-[11px] font-black text-theme-dim uppercase tracking-wider">{formData.productCodeSnap || products.find(p => p.id === formData.productId)?.productCode || 'Seçilmedi'}</span>
+                  </div>
+                  <div className="p-2 rounded-xl bg-theme-card border border-theme-border/50 flex flex-col gap-1 shadow-md shadow-theme-main/5">
+                    <span className="text-[8px] font-black text-theme-muted uppercase tracking-widest">İŞ EMRİ TİPİ</span>
+                    <span className="text-[11px] font-black text-theme-dim uppercase tracking-wider">{formData.type} Üretim</span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
           {/* Configuration Card */}
           <div className="lg:col-span-9">
@@ -946,733 +946,733 @@ export function ProductionOrderForm() {
                     </div>
                   </div>
                 </div>
-        </div>
-      </div>
-    </div>
-
-        {/* Bottom Row: Full Width Tabs and Details */}
-        <div className="w-full space-y-6">
-          <div className="modern-glass-card overflow-hidden p-0 flex flex-col min-h-[450px]">
-            {/* Tabs Header */}
-            <div className="bg-theme-base/20 border-b border-theme px-6 overflow-x-auto">
-              <div className="flex justify-between items-center w-full gap-4 pt-6 py-4 px-4">
-                {[
-                  { id: 'operations', label: 'OPERASYONLAR', icon: Workflow },
-                  { id: 'components', label: 'BİLEŞENLER', icon: Boxes },
-                  { id: 'events', label: 'OLAYLAR', icon: AlertTriangle },
-                  { id: 'machines', label: 'MAKİNE BİLGİSİ', icon: Cpu },
-                  { id: 'orders', label: 'SİPARİŞLER', icon: ShoppingBag },
-                  { id: 'links', label: 'BAĞLI EMİRLER', icon: Link2 },
-                  { id: 'notes', label: 'NOTLAR', icon: ClipboardList },
-                  { id: 'dates', label: 'TARİHLER', icon: Calendar },
-                ].map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id as TabType)}
-                    className={`
-                      flex items-center gap-2 pb-2 border-b-2 transition-all whitespace-nowrap
-                      ${activeTab === tab.id
-                        ? 'border-theme-primary text-theme-primary font-black'
-                        : 'border-transparent text-theme-muted hover:text-theme-dim font-bold'}
-                      text-[10px] uppercase tracking-[0.05em] mt-1
-                    `}
-                  >
-                    <tab.icon className={`w-3.5 h-3.5 mb-0.25 ${activeTab === tab.id ? 'opacity-100' : 'opacity-80'}`} />
-                    {tab.label}
-                  </button>
-                ))}
               </div>
             </div>
+          </div>
 
-            <div className="flex-1 p-6">
-              {activeTab === 'operations' && (
-                <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-                  <div className="flex justify-between items-center px-2">
-                    <p className="text-[10px] font-black text-theme-muted uppercase tracking-widest">OPERASYON VE PROSES AKIŞI</p>
-                    <div className="flex items-center gap-3">
-                      {isBulkSignMode ? (
-                        <div className="flex items-center gap-3">
-                          <button
-                            onClick={() => {
-                              setIsBulkSignMode(false);
-                              setSelectedStepIndices([]);
-                            }}
-                            className="text-[10px] font-black text-theme-danger uppercase hover:underline"
-                          >
-                            VAZGEÇ
-                          </button>
-                          <span className="text-[10px] font-bold text-theme-muted italic">Aşağıdaki listeden imzalanacak operasyonları seçin</span>
-                        </div>
-                      ) : (
-                        !isCompleted && formData.status === 'active' && (
-                          <button
-                            onClick={() => setIsBulkSignMode(true)}
-                            className="h-9 px-4 bg-theme-base border border-theme text-theme-muted hover:text-theme-primary hover:border-theme-primary/30 rounded-xl font-black text-[10px] uppercase transition-all flex items-center gap-2"
-                          >
-                            <Layers className="w-4 h-4" /> TOPLU İMZALAMA
-                          </button>
-                        )
-                      )}
-                    </div>
-                  </div>
-                  <table className="w-full text-left">
-                    <thead>
-                      <tr className="border-b border-theme text-[9px] font-black text-theme-muted bg-theme-base/10">
-                        <th className="px-2 py-3 text-center">Sıra</th>
-                        {isBulkSignMode && <th className="px-2 py-3 text-center w-10">SEÇ</th>}
-                        <th className="px-2 py-3">Proses Kodu</th>
-                        <th className="px-2 py-3">Operasyon Adı</th>
-                        <th className="px-2 py-3">Kabul Adeti</th>
-                        <th className="px-2 py-3">Durum</th>
-                        <th className="px-2 py-3">Onaylayan</th>
-                        <th className="px-2 py-3 text-center">İşlem</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-theme">
-                      {steps.map((step, idx) => {
-                        const isStepCompleted = step.status === 'completed';
-                        const isCurrent = idx === activeStepIdx;
-                        const isFuture = idx > activeStepIdx;
-                        const isPast = idx < activeStepIdx;
-
-                        // User requirement: "completed steps are bright but buttons dimmed"
-                        // "Current step is bright and buttons colorful"
-                        // "Future steps are passive/transparent"
-                        const rowOpacity = isFuture ? 'opacity-30' : 'opacity-100';
-
-                        return (
-                          <tr
-                            key={idx}
-                            className={`transition-all duration-300 border-b border-theme/50 ${isCurrent ? 'bg-theme-primary/[0.03] shadow-inner' : ''}`}
-                          >
-                            <td className={`px-2 py-4 font-black text-center ${rowOpacity}`}>
-                              <div className={`w-6 h-6 rounded-lg flex items-center justify-center mx-auto text-[10px] ${isStepCompleted ? 'bg-theme-success text-white' : isCurrent ? 'bg-theme-primary text-white animate-pulse' : 'bg-theme-base border border-theme text-theme-muted'}`}>
-                                {isStepCompleted ? <Check className="w-3 h-3" /> : step.sequence}
-                              </div>
-                            </td>
-                            {isBulkSignMode && (
-                              <td className="px-2 py-4 text-center">
-                                <input
-                                  type="checkbox"
-                                  checked={selectedStepIndices.includes(idx)}
-                                  disabled={isStepCompleted || idx < activeStepIdx}
-                                  onChange={(e) => {
-                                    if (e.target.checked) {
-                                      // Range selection logic
-                                      const newIndices = [];
-                                      for (let i = activeStepIdx; i <= idx; i++) {
-                                        if (steps[i].status !== 'completed') newIndices.push(i);
-                                      }
-                                      setSelectedStepIndices(Array.from(new Set([...selectedStepIndices, ...newIndices])));
-                                    } else {
-                                      setSelectedStepIndices(selectedStepIndices.filter(i => i < idx));
-                                    }
-                                  }}
-                                  className="w-4.5 h-4.5 rounded-2xl border border-theme text-theme-primary focus:ring-theme-primary bg-theme-base transition-all"
-                                />
-                              </td>
-                            )}
-                            <td className={`px-2 py-4 text-[12px] font-bold text-theme-main ${rowOpacity}`}>{step.operation?.code}</td>
-                            <td className={`px-2 py-4 text-[12px] font-bold text-theme-dim ${rowOpacity}`}>
-                              <div className="flex flex-col">
-                                <span className="text-[12px]">{step.operation?.name}</span>
-                                {isCurrent && <span className="text-[9px] text-theme-primary animate-pulse font-black mt-1">AKTİF OPERASYON</span>}
-                              </div>
-                            </td>
-                            <td className={`px-2 py-4 ${rowOpacity}`}>
-                              <div className="flex flex-col gap-1">
-                                <span className={`text-[11px] font-black ${isStepCompleted ? 'text-theme-success' : isCurrent ? 'text-theme-primary' : 'text-theme-muted'}`}>
-                                  {isStepCompleted ? `${Number(step.approvedQty || 0)} ADET` : 'BEKLİYOR'}
-                                </span>
-                                {isStepCompleted && Number(step.rejectedQty || 0) > 0 && (
-                                  <span className="text-[9px] font-bold text-theme-danger">-{step.rejectedQty} RED</span>
-                                )}
-                              </div>
-                            </td>
-                            <td className={`px-2 py-4 ${rowOpacity}`}>
-                              <div className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider shadow-sm border
-                                ${isStepCompleted ? 'bg-theme-success/10 text-theme-success border-theme-success/20' :
-                                  isCurrent ? 'bg-theme-primary/10 text-theme-primary border-theme-primary/20 animate-pulse' :
-                                    'bg-theme-base/50 text-theme-muted border-theme/50'}`}>
-                                <div className={`w-1.5 h-1.5 rounded-full ${isStepCompleted ? 'bg-theme-success' : isCurrent ? 'bg-theme-primary animate-ping' : 'bg-theme-muted'}`} />
-                                {isStepCompleted ? 'TAMAMLANDI' : isCurrent ? 'SIRADAKİ' : 'BEKLİYOR'}
-                              </div>
-                            </td>
-                            <td className={`px-2 py-4 ${rowOpacity}`}>
-                              <div className="flex items-center gap-2 text-[10px] font-bold">
-                                <div className="w-8 h-8 rounded-full bg-theme-base border-none flex items-center justify-center shrink-0">
-                                  <UserCircle className={`w-5 h-5 ${isStepCompleted ? 'text-theme-primary' : 'opacity-20'}`} />
-                                </div>
-                                <div className="flex flex-col min-w-[140px] max-w-[200px]">
-                                  <span
-                                    className={`truncate ${step.confirmedBy || step.operator?.fullName ? 'text-theme-main font-black' : 'italic text-theme-muted opacity-50'}`}
-                                    title={step.confirmedBy || step.operator?.fullName || ''}
-                                  >
-                                    {step.confirmedBy || step.operator?.fullName || (isStepCompleted ? 'Atanmamış' : 'Personel Bekleniyor')}
-                                  </span>
-                                  {isStepCompleted && step.endTime && (
-                                    <span className="text-[8px] font-bold text-theme-muted/70 mt-0.5 flex items-center gap-1">
-                                      {new Date(step.endTime).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                                    </span>
-                                  )}
-                                  {isStepCompleted && (step.shift?.shiftName || step.workType) && (
-                                    <div className="flex items-center gap-1 mt-0.5">
-                                      {step.shift?.shiftName && (
-                                        <span className="text-[8px] text-theme-primary font-black uppercase tracking-tighter ring-1 ring-theme-primary/20 px-1 rounded bg-theme-primary/5">
-                                          {step.shift.shiftName}
-                                        </span>
-                                      )}
-                                      {step.workType && (
-                                        <span className="text-[8px] text-theme-muted font-bold uppercase tracking-tighter ring-1 ring-theme/20 px-1 rounded bg-theme-base/50">
-                                          {step.workType}
-                                        </span>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </td>
-                            <td className={`px-2 py-4 text-right ${rowOpacity}`}>
-                              <div className="flex items-center justify-end gap-2">
-                                {isCurrent && !isCompleted && !isBulkSignMode && formData.status === 'active' && (
-                                  <button
-                                    onClick={() => handleStepSign(step, idx)}
-                                    className="h-8 px-3 bg-theme-primary text-white rounded-xl font-black text-[10px] uppercase shadow-lg shadow-theme-primary/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
-                                  >
-                                    <Signature className="w-4 h-4" /> İMZALA
-                                  </button>
-                                )}
-                                {isPast && idx === activeStepIdx - 1 && !isCompleted && !isBulkSignMode && (
-                                  <button
-                                    onClick={() => handleStepRollback(step.id, idx)}
-                                    className="p-1.5 bg-theme-danger/10 border border-theme-danger/30 text-theme-danger hover:text-theme-base hover:bg-theme-danger hover:border-theme-danger transition-all rounded-xl shadow-sm"
-                                    title="İmzayı Geri Çek"
-                                  >
-                                    <Undo className="w-4 h-4" />
-                                  </button>
-                                )}
-                                {isPast && (idx !== activeStepIdx - 1 || isCompleted || isBulkSignMode) && (
-                                  <div className="p-2.5 opacity-10 cursor-not-allowed">
-                                    <CheckCircle2 className="w-4 h-4 text-theme-success" />
-                                  </div>
-                                )}
-                                {isFuture && (
-                                  <div className="p-2.5 opacity-5">
-                                    <DiamondPlus className="w-4 h-4" />
-                                  </div>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+          {/* Bottom Row: Full Width Tabs and Details */}
+          <div className="w-full space-y-6">
+            <div className="modern-glass-card overflow-hidden p-0 flex flex-col min-h-[450px]">
+              {/* Tabs Header */}
+              <div className="bg-theme-base/20 border-b border-theme px-6 overflow-x-auto">
+                <div className="flex justify-between items-center w-full gap-4 pt-6 py-4 px-4">
+                  {[
+                    { id: 'operations', label: 'OPERASYONLAR', icon: Workflow },
+                    { id: 'components', label: 'BİLEŞENLER', icon: Boxes },
+                    { id: 'events', label: 'OLAYLAR', icon: AlertTriangle },
+                    { id: 'machines', label: 'MAKİNE BİLGİSİ', icon: Cpu },
+                    { id: 'orders', label: 'SİPARİŞLER', icon: ShoppingBag },
+                    { id: 'links', label: 'BAĞLI EMİRLER', icon: Link2 },
+                    { id: 'notes', label: 'NOTLAR', icon: ClipboardList },
+                    { id: 'dates', label: 'TARİHLER', icon: Calendar },
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id as TabType)}
+                      className={`
+                      flex items-center gap-2 pb-2 border-b-2 transition-all whitespace-nowrap
+                      ${activeTab === tab.id
+                          ? 'border-theme-primary text-theme-primary font-black'
+                          : 'border-transparent text-theme-muted hover:text-theme-dim font-bold'}
+                      text-[10px] uppercase tracking-[0.05em] mt-1
+                    `}
+                    >
+                      <tab.icon className={`w-3.5 h-3.5 mb-0.25 ${activeTab === tab.id ? 'opacity-100' : 'opacity-80'}`} />
+                      {tab.label}
+                    </button>
+                  ))}
                 </div>
-              )}
+              </div>
 
-              {activeTab === 'components' && (
-                <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-                  <div className="flex justify-between items-center mb-4">
-                    <p className="text-[10px] font-black text-theme-muted uppercase">HAMMADDE VE BİLEŞEN LİSTESİ</p>
-                    {!isCompleted && (
-                      <button onClick={addComponent} className="btn-secondary h-10 px-4 py-2 flex items-center gap-2 text-[10px] font-black bg-theme-primary/10 rounded-xl text-theme-primary border border-theme-primary/20 shadow-lg shadow-theme-primary/10 hover:scale-103">
-                        <Plus className="w-3.5 h-3.5" /> BİLEŞEN EKLE
-                      </button>
-                    )}
-                  </div>
-                  <div className="border border-theme rounded-xl overflow-x-auto">
-                    <table className="w-full min-w-[1000px]">
-                      <thead className="bg-theme-base/10">
-                        <tr className="text-[9px] font-black text-theme-muted">
-                          <th className="px-1 py-3 w-12">Bileşen Ürün</th>
-                          <th className="px-1 py-3 w-12">Depo</th>
-                          <th className="px-1 py-3 w-12">Giriş Numarası</th>
-                          <th className="px-1 py-3 w-6">Tipi</th>
-                          <th className="px-1 py-3 w-24">Miktar</th>
-                          <th className="px-1 py-3 w-36">Notlar</th>
-                          <th className="px-1 py-3 w-20">Sil</th>
+              <div className="flex-1 p-6">
+                {activeTab === 'operations' && (
+                  <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+                    <div className="flex justify-between items-center px-2">
+                      <p className="text-[10px] font-black text-theme-muted uppercase tracking-widest">OPERASYON VE PROSES AKIŞI</p>
+                      <div className="flex items-center gap-3">
+                        {isBulkSignMode ? (
+                          <div className="flex items-center gap-3">
+                            <button
+                              onClick={() => {
+                                setIsBulkSignMode(false);
+                                setSelectedStepIndices([]);
+                              }}
+                              className="text-[10px] font-black text-theme-danger uppercase hover:underline"
+                            >
+                              VAZGEÇ
+                            </button>
+                            <span className="text-[10px] font-bold text-theme-muted italic">Aşağıdaki listeden imzalanacak operasyonları seçin</span>
+                          </div>
+                        ) : (
+                          !isCompleted && formData.status === 'active' && (
+                            <button
+                              onClick={() => setIsBulkSignMode(true)}
+                              className="h-9 px-4 bg-theme-base border border-theme text-theme-muted hover:text-theme-primary hover:border-theme-primary/30 rounded-xl font-black text-[10px] uppercase transition-all flex items-center gap-2"
+                            >
+                              <Layers className="w-4 h-4" /> TOPLU İMZALAMA
+                            </button>
+                          )
+                        )}
+                      </div>
+                    </div>
+                    <table className="w-full text-left">
+                      <thead>
+                        <tr className="border-b border-theme text-[9px] font-black text-theme-muted bg-theme-base/10">
+                          <th className="px-2 py-3 text-center">Sıra</th>
+                          {isBulkSignMode && <th className="px-2 py-3 text-center w-10">SEÇ</th>}
+                          <th className="px-2 py-3">Proses Kodu</th>
+                          <th className="px-2 py-3">Operasyon Adı</th>
+                          <th className="px-2 py-3">Kabul Adeti</th>
+                          <th className="px-2 py-3">Durum</th>
+                          <th className="px-2 py-3">Onaylayan</th>
+                          <th className="px-2 py-3 text-center">İşlem</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-theme">
-                        {components.map((c, i) => (
-                          <tr key={i}>
-                            <td className="px-1 py-3">
-                              <CustomSelect
-                                options={products.map(p => ({ id: p.id, label: p.productCode, subLabel: p.productName }))}
-                                value={c.componentProductId}
-                                disabled={isCompleted}
-                                onChange={(v) => {
-                                  const nc = [...components];
-                                  nc[i].componentProductId = v;
-                                  setComponents(nc);
-                                  // Fetch lots if warehouse already selected
-                                  if (nc[i].warehouseId) fetchLotsForRow(i, v, nc[i].warehouseId);
-                                }}
-                              />
-                            </td>
-                            <td className="px-1 py-3 w-24">
-                              <CustomSelect
-                                options={warehouses.map(w => ({ id: w.id, label: w.name }))}
-                                value={c.warehouseId}
-                                disabled={isCompleted}
-                                onChange={(v) => {
-                                  const nc = [...components];
-                                  nc[i].warehouseId = v;
-                                  setComponents(nc);
-                                  // Fetch lots for this product in this warehouse
-                                  if (nc[i].componentProductId) fetchLotsForRow(i, nc[i].componentProductId, v);
-                                }}
-                                placeholder="Depo..."
-                              />
-                            </td>
-                            <td className="px-1 py-3 w-12">
-                              <CustomSelect
-                                options={rowLots[i] || []}
-                                value={c.lotNumber}
-                                onChange={(v) => {
-                                  const nc = [...components];
-                                  nc[i].lotNumber = v;
-                                  setComponents(nc);
-                                }}
-                                placeholder={!c.componentProductId || !c.warehouseId ? "Ürün/Depo seçin" : "Lot Seçin"}
-                                disabled={isCompleted || !c.componentProductId || !c.warehouseId}
-                                className={showValidation && errors[`component_lot_${i}`] ? 'border-theme-danger rounded-xl shadow-sm shadow-theme-danger/20' : ''}
-                              />
-                            </td>
-                            <td className="px-1 py-3 w-6">
-                              <CustomSelect
-                                options={[
-                                  { id: 'UNIT', label: 'Birim Miktar' },
-                                  { id: 'UNIT_CONSUMPTION', label: 'Birim Sarfiyat' },
-                                  { id: 'FIXED', label: 'Sabit Miktar' }
-                                ]}
-                                value={c.consumptionType}
-                                disabled={isCompleted}
-                                onChange={(v) => {
-                                  const nc = [...components];
-                                  nc[i].consumptionType = v;
-                                  setComponents(nc);
-                                }}
-                              />
-                            </td>
-                            <td className="px-1 py-3 w-24">
-                              <div className="flex gap-2 items-center">
-                                {c.consumptionType === 'UNIT' && (
-                                  <div className="flex items-center gap-1">
-                                    <input
-                                      type="number"
-                                      value={c.unitQuantity || ''}
-                                      placeholder="Birim"
-                                      disabled={isCompleted || !c.lotNumber}
-                                      onChange={(e) => {
-                                        const val = Number(e.target.value);
-                                        const nc = [...components];
-                                        nc[i].unitQuantity = val;
-                                        nc[i].quantity = val * (formData.quantity || 0);
-                                        setComponents(nc);
-                                        const lot = (rowLots[i] || []).find((l: any) => l.id === c.lotNumber);
-                                        if (lot) {
-                                          const stockUnit = products.find(p => p.id === c.componentProductId)?.unitOfMeasure || '';
-                                          const reqConverted = convertToStockUnit(nc[i].quantity, c.unit || '', stockUnit);
-                                          if (reqConverted > lot.availableQty) {
-                                            showAlert(`"${c.componentProduct?.name}" için yeterli stok yok! Mevcut: ${lot.availableQty} ${stockUnit}`, 'STOK YETERSİZ', 'warning');
-                                          }
-                                        }
-                                      }}
-                                      className={`form-input text-xs text-right w-14 border-theme-primary/30 bg-theme-primary/5 ${(!c.lotNumber || isCompleted) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                    />
-                                    <span className="text-[10px] text-theme-muted">x</span>
-                                  </div>
-                                )}
-                                <div className="flex flex-col items-center min-w-[64px]">
+                        {steps.map((step, idx) => {
+                          const isStepCompleted = step.status === 'completed';
+                          const isCurrent = idx === activeStepIdx;
+                          const isFuture = idx > activeStepIdx;
+                          const isPast = idx < activeStepIdx;
+
+                          // User requirement: "completed steps are bright but buttons dimmed"
+                          // "Current step is bright and buttons colorful"
+                          // "Future steps are passive/transparent"
+                          const rowOpacity = isFuture ? 'opacity-30' : 'opacity-100';
+
+                          return (
+                            <tr
+                              key={idx}
+                              className={`transition-all duration-300 border-b border-theme/50 ${isCurrent ? 'bg-theme-primary/[0.03] shadow-inner' : ''}`}
+                            >
+                              <td className={`px-2 py-4 font-black text-center ${rowOpacity}`}>
+                                <div className={`w-6 h-6 rounded-lg flex items-center justify-center mx-auto text-[10px] ${isStepCompleted ? 'bg-theme-success text-white' : isCurrent ? 'bg-theme-primary text-white animate-pulse' : 'bg-theme-base border border-theme text-theme-muted'}`}>
+                                  {isStepCompleted ? <Check className="w-3 h-3" /> : step.sequence}
+                                </div>
+                              </td>
+                              {isBulkSignMode && (
+                                <td className="px-2 py-4 text-center">
                                   <input
-                                    type="number"
-                                    value={c.quantity}
-                                    min="1"
-                                    disabled={isCompleted || c.consumptionType === 'UNIT_CONSUMPTION' || !c.lotNumber}
+                                    type="checkbox"
+                                    checked={selectedStepIndices.includes(idx)}
+                                    disabled={isStepCompleted || idx < activeStepIdx}
                                     onChange={(e) => {
-                                      let val = Number(e.target.value);
-                                      const lot = (rowLots[i] || []).find((l: any) => l.id === c.lotNumber);
-                                      if (lot) {
-                                        const stockUnit = products.find(p => p.id === c.componentProductId)?.unitOfMeasure || '';
-                                        const converted = convertToStockUnit(val, c.unit || '', stockUnit);
-                                        if (converted > lot.availableQty) {
-                                          val = lot.availableQty; // clamp to max available in same unit first — approximate
-                                          showAlert(`"${c.componentProduct?.name}" için maksimum stok ${lot.availableQty} ${stockUnit} seçilebilir.`, 'STOK SINIRI', 'warning');
+                                      if (e.target.checked) {
+                                        // Range selection logic
+                                        const newIndices = [];
+                                        for (let i = activeStepIdx; i <= idx; i++) {
+                                          if (steps[i].status !== 'completed') newIndices.push(i);
                                         }
+                                        setSelectedStepIndices(Array.from(new Set([...selectedStepIndices, ...newIndices])));
+                                      } else {
+                                        setSelectedStepIndices(selectedStepIndices.filter(i => i < idx));
                                       }
-                                      if (val < 1) val = 1;
-                                      const nc = [...components];
-                                      nc[i].quantity = val;
-                                      setComponents(nc);
                                     }}
-                                    className={`form-input text-xs text-right w-20 ${(isCompleted || c.consumptionType === 'UNIT_CONSUMPTION' || !c.lotNumber) ? 'bg-theme-base/5 opacity-50 cursor-not-allowed' : ''} ${c.consumptionType === 'UNIT' ? 'font-bold text-theme-primary bg-theme-primary/5' : ''} ${showValidation && errors[`component_qty_${i}`] ? 'border-theme-danger rounded-xl shadow-sm shadow-theme-danger/20' : ''}`}
+                                    className="w-4.5 h-4.5 rounded-2xl border border-theme text-theme-primary focus:ring-theme-primary bg-theme-base transition-all"
                                   />
-                                  {c.consumptionType === 'UNIT_CONSUMPTION' && (
-                                    <div className="mt-1 whitespace-nowrap">
-                                      <span className="text-[8px] font-black text-theme-primary bg-theme-primary/10 px-1.5 py-0.5 rounded-md border border-theme-primary/20 shadow-sm">
-                                        {(c.quantity / (formData.quantity || 1)).toFixed(3)} g/adet
-                                      </span>
-                                    </div>
-                                  )}
-                                  {showValidation && !c.lotNumber && !isCompleted && (
-                                    <div className="absolute inset-0 flex items-center justify-center bg-theme-danger/5 backdrop-blur-[1px] pointer-events-none rounded-lg border border-theme-danger/20">
-                                      <span className="text-[10px] font-black text-theme-danger animate-pulse tracking-tighter">LOT SEÇİN</span>
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="w-full h-10">
-                                  <CustomSelect
-                                    variant="inline"
-                                    options={[
-                                      { id: 'ADET', label: 'Adet' },
-                                      { id: 'GR', label: 'Gram' },
-                                      { id: 'KG', label: 'Kilogram' },
-                                      { id: 'MM', label: 'Milimetre' },
-                                      { id: 'CM', label: 'Santimetre' },
-                                      { id: 'M', label: 'Metre' },
-                                      { id: 'KASA', label: 'Kasa' },
-                                      { id: 'CUVAL', label: 'Çuval' },
-                                      { id: 'KOLI', label: 'Koli' },
-                                      { id: 'KUTU', label: 'Kutu' },
-                                    ]}
-                                    value={c.unit || 'PCS'}
-                                    disabled={isCompleted}
-                                    onChange={(v) => {
-                                      const nc = [...components];
-                                      nc[i].unit = v;
-                                      setComponents(nc);
-                                    }}
-                                  />
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-1 py-3 w-36">
-                              <input
-                                value={c.notes}
-                                disabled={isCompleted}
-                                onChange={(e) => {
-                                  const nc = [...components];
-                                  nc[i].notes = e.target.value;
-                                  setComponents(nc);
-                                }}
-                                className={`form-input w-36 text-xs ${isCompleted ? 'bg-theme-base/20 opacity-50' : ''}`}
-                              />
-                            </td>
-                            <td className="px-1 py-3 text-center">
-                              {!isCompleted && (
-                                <button onClick={() => setComponents(components.filter((_, idx) => idx !== i))} className="p-1.5 bg-theme-danger/5 border border-theme-danger/10 text-theme-danger hover:bg-theme-danger hover:text-theme-surface rounded-lg">
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
+                                </td>
                               )}
-                            </td>
-                          </tr>
-                        ))}
+                              <td className={`px-2 py-4 text-[12px] font-bold text-theme-main ${rowOpacity}`}>{step.operation?.code}</td>
+                              <td className={`px-2 py-4 text-[12px] font-bold text-theme-dim ${rowOpacity}`}>
+                                <div className="flex flex-col">
+                                  <span className="text-[12px]">{step.operation?.name}</span>
+                                  {isCurrent && <span className="text-[9px] text-theme-primary animate-pulse font-black mt-1">AKTİF OPERASYON</span>}
+                                </div>
+                              </td>
+                              <td className={`px-2 py-4 ${rowOpacity}`}>
+                                <div className="flex flex-col gap-1">
+                                  <span className={`text-[11px] font-black ${isStepCompleted ? 'text-theme-success' : isCurrent ? 'text-theme-primary' : 'text-theme-muted'}`}>
+                                    {isStepCompleted ? `${Number(step.approvedQty || 0)} ADET` : 'BEKLİYOR'}
+                                  </span>
+                                  {isStepCompleted && Number(step.rejectedQty || 0) > 0 && (
+                                    <span className="text-[9px] font-bold text-theme-danger">-{step.rejectedQty} RED</span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className={`px-2 py-4 ${rowOpacity}`}>
+                                <div className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider shadow-sm border
+                                ${isStepCompleted ? 'bg-theme-success/10 text-theme-success border-theme-success/20' :
+                                    isCurrent ? 'bg-theme-primary/10 text-theme-primary border-theme-primary/20 animate-pulse' :
+                                      'bg-theme-base/50 text-theme-muted border-theme/50'}`}>
+                                  <div className={`w-1.5 h-1.5 rounded-full ${isStepCompleted ? 'bg-theme-success' : isCurrent ? 'bg-theme-primary animate-ping' : 'bg-theme-muted'}`} />
+                                  {isStepCompleted ? 'TAMAMLANDI' : isCurrent ? 'SIRADAKİ' : 'BEKLİYOR'}
+                                </div>
+                              </td>
+                              <td className={`px-2 py-4 ${rowOpacity}`}>
+                                <div className="flex items-center gap-2 text-[10px] font-bold">
+                                  <div className="w-8 h-8 rounded-full bg-theme-base border-none flex items-center justify-center shrink-0">
+                                    <UserCircle className={`w-5 h-5 ${isStepCompleted ? 'text-theme-primary' : 'opacity-20'}`} />
+                                  </div>
+                                  <div className="flex flex-col min-w-[140px] max-w-[200px]">
+                                    <span
+                                      className={`truncate ${step.confirmedBy || step.operator?.fullName ? 'text-theme-main font-black' : 'italic text-theme-muted opacity-50'}`}
+                                      title={step.confirmedBy || step.operator?.fullName || ''}
+                                    >
+                                      {step.confirmedBy || step.operator?.fullName || (isStepCompleted ? 'Atanmamış' : 'Personel Bekleniyor')}
+                                    </span>
+                                    {isStepCompleted && step.endTime && (
+                                      <span className="text-[8px] font-bold text-theme-muted/70 mt-0.5 flex items-center gap-1">
+                                        {new Date(step.endTime).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                                      </span>
+                                    )}
+                                    {isStepCompleted && (step.shift?.shiftName || step.workType) && (
+                                      <div className="flex items-center gap-1 mt-0.5">
+                                        {step.shift?.shiftName && (
+                                          <span className="text-[8px] text-theme-primary font-black uppercase tracking-tighter ring-1 ring-theme-primary/20 px-1 rounded bg-theme-primary/5">
+                                            {step.shift.shiftName}
+                                          </span>
+                                        )}
+                                        {step.workType && (
+                                          <span className="text-[8px] text-theme-muted font-bold uppercase tracking-tighter ring-1 ring-theme/20 px-1 rounded bg-theme-base/50">
+                                            {step.workType}
+                                          </span>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </td>
+                              <td className={`px-2 py-4 text-right ${rowOpacity}`}>
+                                <div className="flex items-center justify-end gap-2">
+                                  {isCurrent && !isCompleted && !isBulkSignMode && formData.status === 'active' && (
+                                    <button
+                                      onClick={() => handleStepSign(step, idx)}
+                                      className="h-8 px-3 bg-theme-primary text-white rounded-xl font-black text-[10px] uppercase shadow-lg shadow-theme-primary/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+                                    >
+                                      <Signature className="w-4 h-4" /> İMZALA
+                                    </button>
+                                  )}
+                                  {isPast && idx === activeStepIdx - 1 && !isCompleted && !isBulkSignMode && (
+                                    <button
+                                      onClick={() => handleStepRollback(step.id, idx)}
+                                      className="p-1.5 bg-theme-danger/10 border border-theme-danger/30 text-theme-danger hover:text-theme-base hover:bg-theme-danger hover:border-theme-danger transition-all rounded-xl shadow-sm"
+                                      title="İmzayı Geri Çek"
+                                    >
+                                      <Undo className="w-4 h-4" />
+                                    </button>
+                                  )}
+                                  {isPast && (idx !== activeStepIdx - 1 || isCompleted || isBulkSignMode) && (
+                                    <div className="p-2.5 opacity-10 cursor-not-allowed">
+                                      <CheckCircle2 className="w-4 h-4 text-theme-success" />
+                                    </div>
+                                  )}
+                                  {isFuture && (
+                                    <div className="p-2.5 opacity-5">
+                                      <DiamondPlus className="w-4 h-4" />
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
-                </div>
-              )}
+                )}
 
-              {activeTab === 'machines' && (
-                <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-                  <div className="flex justify-between items-center mb-4">
-                    <p className="text-[10px] font-black text-theme-muted uppercase">ATANMIŞ MAKİNE VE TEZGAH BİLGİSİ</p>
-                  </div>
-                  <div className="grid grid-cols-1 gap-4">
-                    {(assignedMachines.length > 0 ? assignedMachines : [{ machineId: '', unitTimeSeconds: 60 }]).slice(0, 1).map((m, i) => {
-                      const product = products.find(p => p.id === formData.productId);
-                      const machineOptions = product?.defaultMachines?.map((dm: any) => ({
-                        id: dm.machineId,
-                        label: dm.machine?.code || 'Makine',
-                        subLabel: dm.machine?.name || '',
-                        defaultTime: dm.unitTimeSeconds
-                      })) || [];
-
-                      return (
-                        <div key={i} className="flex items-center gap-4 p-4 border border-theme rounded-2xl bg-theme-base/5 hover:bg-theme-main/5 transition-all group shadow-sm">
-                          <div className="w-12 h-12 rounded-xl bg-theme-primary/10 flex items-center justify-center shrink-0 shadow-inner">
-                            <Cpu className="w-6 h-6 text-theme-primary" />
-                          </div>
-
-                          <div className="flex-1 grid grid-cols-12 gap-6 items-center">
-                            <div className="col-span-12 lg:col-span-2">
-                              <label className="text-[11px] font-black text-theme-muted mb-1.5 block">Makine Seçimi</label>
-                              <CustomSelect
-                                options={machineOptions}
-                                value={m.machineId}
-                                disabled={isCompleted || !formData.productId}
-                                onChange={(v) => {
-                                  const nm = [...assignedMachines];
-                                  if (nm.length === 0) nm.push({ machineId: '', unitTimeSeconds: 60 });
-                                  nm[0].machineId = v;
-                                  // Auto-fill unit time from the selected default machine
-                                  const dm = machineOptions.find((o: any) => o.id === v);
-                                  if (dm) nm[0].unitTimeSeconds = dm.defaultTime;
-                                  setAssignedMachines(nm);
-                                }}
-                                placeholder={!formData.productId ? "Önce Ürün Seçin" : "Makine Seçin..."}
-                                className={showValidation && errors.machineId ? 'border-1 border-theme-danger rounded-[10px] shadow-sm shadow-theme-danger/20' : ''}
-                              />
-                            </div>
-
-                            <div className="col-span-12 lg:col-span-2">
-                              <label className="text-[11px] font-black text-theme-muted mb-1.5 block">Birim Süre (sn)</label>
-                              <div className="flex items-center justify-between gap-4 bg-theme-base/30 h-10 px-4 py-2 rounded-xl border border-theme/50">
-                                <div className="flex items-center gap-2 shrink-0">
-                                  <Clock className="w-4 h-4 text-theme-primary/60" />
+                {activeTab === 'components' && (
+                  <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+                    <div className="flex justify-between items-center mb-4">
+                      <p className="text-[10px] font-black text-theme-muted uppercase">HAMMADDE VE BİLEŞEN LİSTESİ</p>
+                      {!isCompleted && (
+                        <button onClick={addComponent} className="btn-secondary h-10 px-4 py-2 flex items-center gap-2 text-[10px] font-black bg-theme-primary/10 rounded-xl text-theme-primary border border-theme-primary/20 shadow-lg shadow-theme-primary/10 hover:scale-103">
+                          <Plus className="w-3.5 h-3.5" /> BİLEŞEN EKLE
+                        </button>
+                      )}
+                    </div>
+                    <div className="border border-theme rounded-xl overflow-x-auto">
+                      <table className="w-full min-w-[1000px]">
+                        <thead className="bg-theme-base/10">
+                          <tr className="text-[9px] font-black text-theme-muted">
+                            <th className="px-1 py-3 w-12">Bileşen Ürün</th>
+                            <th className="px-1 py-3 w-12">Depo</th>
+                            <th className="px-1 py-3 w-12">Giriş Numarası</th>
+                            <th className="px-1 py-3 w-6">Tipi</th>
+                            <th className="px-1 py-3 w-24">Miktar</th>
+                            <th className="px-1 py-3 w-36">Notlar</th>
+                            <th className="px-1 py-3 w-20">Sil</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-theme">
+                          {components.map((c, i) => (
+                            <tr key={i}>
+                              <td className="px-1 py-3">
+                                <CustomSelect
+                                  options={products.map(p => ({ id: p.id, label: p.productCode, subLabel: p.productName }))}
+                                  value={c.componentProductId}
+                                  disabled={isCompleted}
+                                  onChange={(v) => {
+                                    const nc = [...components];
+                                    nc[i].componentProductId = v;
+                                    setComponents(nc);
+                                    // Fetch lots if warehouse already selected
+                                    if (nc[i].warehouseId) fetchLotsForRow(i, v, nc[i].warehouseId);
+                                  }}
+                                />
+                              </td>
+                              <td className="px-1 py-3 w-24">
+                                <CustomSelect
+                                  options={warehouses.map(w => ({ id: w.id, label: w.name }))}
+                                  value={c.warehouseId}
+                                  disabled={isCompleted}
+                                  onChange={(v) => {
+                                    const nc = [...components];
+                                    nc[i].warehouseId = v;
+                                    setComponents(nc);
+                                    // Fetch lots for this product in this warehouse
+                                    if (nc[i].componentProductId) fetchLotsForRow(i, nc[i].componentProductId, v);
+                                  }}
+                                  placeholder="Depo..."
+                                />
+                              </td>
+                              <td className="px-1 py-3 w-12">
+                                <CustomSelect
+                                  options={rowLots[i] || []}
+                                  value={c.lotNumber}
+                                  onChange={(v) => {
+                                    const nc = [...components];
+                                    nc[i].lotNumber = v;
+                                    setComponents(nc);
+                                  }}
+                                  placeholder={!c.componentProductId || !c.warehouseId ? "Ürün/Depo seçin" : "Lot Seçin"}
+                                  disabled={isCompleted || !c.componentProductId || !c.warehouseId}
+                                  className={showValidation && errors[`component_lot_${i}`] ? 'border-theme-danger rounded-xl shadow-sm shadow-theme-danger/20' : ''}
+                                />
+                              </td>
+                              <td className="px-1 py-3 w-6">
+                                <CustomSelect
+                                  options={[
+                                    { id: 'UNIT', label: 'Birim Miktar' },
+                                    { id: 'UNIT_CONSUMPTION', label: 'Birim Sarfiyat' },
+                                    { id: 'FIXED', label: 'Sabit Miktar' }
+                                  ]}
+                                  value={c.consumptionType}
+                                  disabled={isCompleted}
+                                  onChange={(v) => {
+                                    const nc = [...components];
+                                    nc[i].consumptionType = v;
+                                    setComponents(nc);
+                                  }}
+                                />
+                              </td>
+                              <td className="px-1 py-3 w-24">
+                                <div className="flex gap-2 items-center">
+                                  {c.consumptionType === 'UNIT' && (
+                                    <div className="flex items-center gap-1">
+                                      <input
+                                        type="number"
+                                        value={c.unitQuantity || ''}
+                                        placeholder="Birim"
+                                        disabled={isCompleted || !c.lotNumber}
+                                        onChange={(e) => {
+                                          const val = Number(e.target.value);
+                                          const nc = [...components];
+                                          nc[i].unitQuantity = val;
+                                          nc[i].quantity = val * (formData.quantity || 0);
+                                          setComponents(nc);
+                                          const lot = (rowLots[i] || []).find((l: any) => l.id === c.lotNumber);
+                                          if (lot) {
+                                            const stockUnit = products.find(p => p.id === c.componentProductId)?.unitOfMeasure || '';
+                                            const reqConverted = convertToStockUnit(nc[i].quantity, c.unit || '', stockUnit);
+                                            if (reqConverted > lot.availableQty) {
+                                              showAlert(`"${c.componentProduct?.name}" için yeterli stok yok! Mevcut: ${lot.availableQty} ${stockUnit}`, 'STOK YETERSİZ', 'warning');
+                                            }
+                                          }
+                                        }}
+                                        className={`form-input text-xs text-right w-14 border-theme-primary/30 bg-theme-primary/5 ${(!c.lotNumber || isCompleted) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                      />
+                                      <span className="text-[10px] text-theme-muted">x</span>
+                                    </div>
+                                  )}
+                                  <div className="flex flex-col items-center min-w-[64px]">
+                                    <input
+                                      type="number"
+                                      value={c.quantity}
+                                      min="1"
+                                      disabled={isCompleted || c.consumptionType === 'UNIT_CONSUMPTION' || !c.lotNumber}
+                                      onChange={(e) => {
+                                        let val = Number(e.target.value);
+                                        const lot = (rowLots[i] || []).find((l: any) => l.id === c.lotNumber);
+                                        if (lot) {
+                                          const stockUnit = products.find(p => p.id === c.componentProductId)?.unitOfMeasure || '';
+                                          const converted = convertToStockUnit(val, c.unit || '', stockUnit);
+                                          if (converted > lot.availableQty) {
+                                            val = lot.availableQty; // clamp to max available in same unit first — approximate
+                                            showAlert(`"${c.componentProduct?.name}" için maksimum stok ${lot.availableQty} ${stockUnit} seçilebilir.`, 'STOK SINIRI', 'warning');
+                                          }
+                                        }
+                                        if (val < 1) val = 1;
+                                        const nc = [...components];
+                                        nc[i].quantity = val;
+                                        setComponents(nc);
+                                      }}
+                                      className={`form-input text-xs text-right w-20 ${(isCompleted || c.consumptionType === 'UNIT_CONSUMPTION' || !c.lotNumber) ? 'bg-theme-base/5 opacity-50 cursor-not-allowed' : ''} ${c.consumptionType === 'UNIT' ? 'font-bold text-theme-primary bg-theme-primary/5' : ''} ${showValidation && errors[`component_qty_${i}`] ? 'border-theme-danger rounded-xl shadow-sm shadow-theme-danger/20' : ''}`}
+                                    />
+                                    {c.consumptionType === 'UNIT_CONSUMPTION' && (
+                                      <div className="mt-1 whitespace-nowrap">
+                                        <span className="text-[8px] font-black text-theme-primary bg-theme-primary/10 px-1.5 py-0.5 rounded-md border border-theme-primary/20 shadow-sm">
+                                          {(c.quantity / (formData.quantity || 1)).toFixed(3)} g/adet
+                                        </span>
+                                      </div>
+                                    )}
+                                    {showValidation && !c.lotNumber && !isCompleted && (
+                                      <div className="absolute inset-0 flex items-center justify-center bg-theme-danger/5 backdrop-blur-[1px] pointer-events-none rounded-lg border border-theme-danger/20">
+                                        <span className="text-[10px] font-black text-theme-danger animate-pulse tracking-tighter">LOT SEÇİN</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="w-full h-10">
+                                    <CustomSelect
+                                      variant="inline"
+                                      options={[
+                                        { id: 'ADET', label: 'Adet' },
+                                        { id: 'GR', label: 'Gram' },
+                                        { id: 'KG', label: 'Kilogram' },
+                                        { id: 'MM', label: 'Milimetre' },
+                                        { id: 'CM', label: 'Santimetre' },
+                                        { id: 'M', label: 'Metre' },
+                                        { id: 'KASA', label: 'Kasa' },
+                                        { id: 'CUVAL', label: 'Çuval' },
+                                        { id: 'KOLI', label: 'Koli' },
+                                        { id: 'KUTU', label: 'Kutu' },
+                                      ]}
+                                      value={c.unit || 'PCS'}
+                                      disabled={isCompleted}
+                                      onChange={(v) => {
+                                        const nc = [...components];
+                                        nc[i].unit = v;
+                                        setComponents(nc);
+                                      }}
+                                    />
+                                  </div>
                                 </div>
+                              </td>
+                              <td className="px-1 py-3 w-36">
                                 <input
-                                  type="number"
-                                  value={m.unitTimeSeconds}
+                                  value={c.notes}
                                   disabled={isCompleted}
                                   onChange={(e) => {
+                                    const nc = [...components];
+                                    nc[i].notes = e.target.value;
+                                    setComponents(nc);
+                                  }}
+                                  className={`form-input w-36 text-xs ${isCompleted ? 'bg-theme-base/20 opacity-50' : ''}`}
+                                />
+                              </td>
+                              <td className="px-1 py-3 text-center">
+                                {!isCompleted && (
+                                  <button onClick={() => setComponents(components.filter((_, idx) => idx !== i))} className="p-1.5 bg-theme-danger/5 border border-theme-danger/10 text-theme-danger hover:bg-theme-danger hover:text-theme-surface rounded-lg">
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'machines' && (
+                  <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+                    <div className="flex justify-between items-center mb-4">
+                      <p className="text-[10px] font-black text-theme-muted uppercase">ATANMIŞ MAKİNE VE TEZGAH BİLGİSİ</p>
+                    </div>
+                    <div className="grid grid-cols-1 gap-4">
+                      {(assignedMachines.length > 0 ? assignedMachines : [{ machineId: '', unitTimeSeconds: 60 }]).slice(0, 1).map((m, i) => {
+                        const product = products.find(p => p.id === formData.productId);
+                        const machineOptions = product?.defaultMachines?.map((dm: any) => ({
+                          id: dm.machineId,
+                          label: dm.machine?.code || 'Makine',
+                          subLabel: dm.machine?.name || '',
+                          defaultTime: dm.unitTimeSeconds
+                        })) || [];
+
+                        return (
+                          <div key={i} className="flex items-center gap-4 p-4 border border-theme rounded-2xl bg-theme-base/5 hover:bg-theme-main/5 transition-all group shadow-sm">
+                            <div className="w-12 h-12 rounded-xl bg-theme-primary/10 flex items-center justify-center shrink-0 shadow-inner">
+                              <Cpu className="w-6 h-6 text-theme-primary" />
+                            </div>
+
+                            <div className="flex-1 grid grid-cols-12 gap-6 items-center">
+                              <div className="col-span-12 lg:col-span-2">
+                                <label className="text-[11px] font-black text-theme-muted mb-1.5 block">Makine Seçimi</label>
+                                <CustomSelect
+                                  options={machineOptions}
+                                  value={m.machineId}
+                                  disabled={isCompleted || !formData.productId}
+                                  onChange={(v) => {
                                     const nm = [...assignedMachines];
                                     if (nm.length === 0) nm.push({ machineId: '', unitTimeSeconds: 60 });
-                                    nm[0].unitTimeSeconds = e.target.value;
+                                    nm[0].machineId = v;
+                                    // Auto-fill unit time from the selected default machine
+                                    const dm = machineOptions.find((o: any) => o.id === v);
+                                    if (dm) nm[0].unitTimeSeconds = dm.defaultTime;
                                     setAssignedMachines(nm);
                                   }}
-                                  className={`form-input h-8 text-xs text-right font-black w-24 bg-transparent border-none focus:ring-0 p-0 ${isCompleted ? 'opacity-50' : ''}`}
+                                  placeholder={!formData.productId ? "Önce Ürün Seçin" : "Makine Seçin..."}
+                                  className={showValidation && errors.machineId ? 'border-1 border-theme-danger rounded-[10px] shadow-sm shadow-theme-danger/20' : ''}
                                 />
                               </div>
+
+                              <div className="col-span-12 lg:col-span-2">
+                                <label className="text-[11px] font-black text-theme-muted mb-1.5 block">Birim Süre (sn)</label>
+                                <div className="flex items-center justify-between gap-4 bg-theme-base/30 h-10 px-4 py-2 rounded-xl border border-theme/50">
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    <Clock className="w-4 h-4 text-theme-primary/60" />
+                                  </div>
+                                  <input
+                                    type="number"
+                                    value={m.unitTimeSeconds}
+                                    disabled={isCompleted}
+                                    onChange={(e) => {
+                                      const nm = [...assignedMachines];
+                                      if (nm.length === 0) nm.push({ machineId: '', unitTimeSeconds: 60 });
+                                      nm[0].unitTimeSeconds = e.target.value;
+                                      setAssignedMachines(nm);
+                                    }}
+                                    className={`form-input h-8 text-xs text-right font-black w-24 bg-transparent border-none focus:ring-0 p-0 ${isCompleted ? 'opacity-50' : ''}`}
+                                  />
+                                </div>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'notes' && (
-                <div className="space-y-6 animate-in slide-in-from-right-4 duration-300 h-full flex flex-col">
-                  <p className="text-[10px] font-black text-theme-muted">ÜRETİM EMRİ ÖZEL NOTLARI</p>
-                  <textarea
-                    value={formData.notes}
-                    disabled={isCompleted}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    className={`form-input flex-1 min-h-[300px] py-6 px-6 text-sm leading-relaxed ${isCompleted ? 'bg-theme-base/20 opacity-50' : ''}`}
-                    placeholder="Üretim emri hakkında özel notlarınızı buraya yazabilirsiniz..."
-                  />
-                </div>
-              )}
-
-              {activeTab === 'dates' && (
-                <div className="space-y-8 animate-in slide-in-from-right-4 duration-300">
-                  <p className="text-[10px] font-black text-theme-muted uppercase tracking-widest flex items-center gap-2">
-                    <History className="w-4 h-4 text-theme-primary" /> ZAMAN ÇİZELGESİ VE KRİTİK TARİHLER
-                  </p>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    <div className="space-y-3 p-3 border border-theme rounded-2xl bg-theme-base/5">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-theme-primary/10 flex items-center justify-center">
-                          <Calendar className="w-5 h-5 text-theme-primary" />
-                        </div>
-                        <span className="text-xs font-black uppercase tracking-widest">PLANLAMA</span>
-                      </div>
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <label className="text-[9px] font-black text-theme-muted uppercase">BAŞLAMA TARİHİ</label>
-                          <input type="date" value={formData.startDate} disabled={isCompleted} onChange={(e) => setFormData({ ...formData, startDate: e.target.value })} className={`form-input ${isCompleted ? 'bg-theme-base/20 opacity-50' : ''}`} />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-[9px] font-black text-theme-muted uppercase">BİTİŞ TARİHİ</label>
-                          <input type="date" value={formData.endDate} disabled={isCompleted} onChange={(e) => setFormData({ ...formData, endDate: e.target.value })} className={`form-input ${isCompleted ? 'bg-theme-base/20 opacity-50' : ''}`} />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-3 p-3 border border-theme rounded-2xl bg-theme-warning/5 border-theme-warning/20">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-theme-warning/10 flex items-center justify-center">
-                          <AlertTriangle className="w-5 h-5 text-theme-warning" />
-                        </div>
-                        <span className="text-xs font-black uppercase tracking-widest text-theme-warning">ÜRETİM / SKT</span>
-                      </div>
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <label className="text-[9px] font-black text-theme-muted uppercase">ÜRETİM TARİHİ</label>
-                          <input type="date" value={formData.productionDate} disabled={isCompleted} onChange={(e) => setFormData({ ...formData, productionDate: e.target.value })} className={`form-input ${isCompleted ? 'bg-theme-base/20 opacity-50' : ''}`} />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-[9px] font-black text-theme-muted uppercase">SON KULLANMA TARİHİ</label>
-                          <input type="date" value={formData.expiryDate} disabled={isCompleted} onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })} className={`form-input ${isCompleted ? 'bg-theme-base/20 opacity-50' : ''}`} />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-3 p-3 border border-theme rounded-2xl bg-theme-secondary/5 border-theme-secondary/20">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-theme-secondary/10 flex items-center justify-center">
-                          <CheckCircle2 className="w-5 h-5 text-theme-secondary" />
-                        </div>
-                        <span className="text-xs font-black uppercase tracking-widest text-theme-secondary">STERİLİZASYON</span>
-                      </div>
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <label className="text-[9px] font-black text-theme-muted uppercase">STERİL TARİHİ</label>
-                          <input type="date" value={formData.sterilizationDate} disabled={isCompleted} onChange={(e) => setFormData({ ...formData, sterilizationDate: e.target.value })} className={`form-input ${isCompleted ? 'bg-theme-base/20 opacity-50' : ''}`} />
-                      </div>
+                        );
+                      })}
                     </div>
                   </div>
-                </div>
-              </div>
-            )}
+                )}
 
-              {activeTab === 'events' && (
-                <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-black text-theme-muted uppercase">OLAY VE UYGUNSUZLUK KAYITLARI</p>
-                      <p className="text-[10px] font-bold text-theme-dim">Red, numune ve şartlı kabul gibi durumlar için zorunlu olay kayıtları.</p>
-                    </div>
-                    {!isCompleted && (
-                      <button
-                        onClick={() => {
-                          setEventFormData({
-                            stepId: '',
-                            type: '',
-                            quantity: 0,
-                            operatorId: operators.find(o => o.fullName === authUser?.fullName)?.id || '',
-                            reasonId: '',
-                            warehouseId: '',
-                            description: '',
-                            createdAt: new Date().toISOString().slice(0, 16)
-                          });
-                          setShowEventModal(true);
-                        }}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-theme-primary text-white rounded-xl hover:bg-theme-primary-hover transition-all text-[11px] font-black uppercase tracking-widest shadow-lg shadow-theme-primary/20 group"
-                      >
-                        <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform" />
-                        YENİ OLAY EKLE
-                      </button>
-                    )}
+                {activeTab === 'notes' && (
+                  <div className="space-y-6 animate-in slide-in-from-right-4 duration-300 h-full flex flex-col">
+                    <p className="text-[10px] font-black text-theme-muted">ÜRETİM EMRİ ÖZEL NOTLARI</p>
+                    <textarea
+                      value={formData.notes}
+                      disabled={isCompleted}
+                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                      className={`form-input flex-1 min-h-[300px] py-6 px-6 text-sm leading-relaxed ${isCompleted ? 'bg-theme-base/20 opacity-50' : ''}`}
+                      placeholder="Üretim emri hakkında özel notlarınızı buraya yazabilirsiniz..."
+                    />
                   </div>
+                )}
 
-                  <div className="space-y-4">
-                    {orderEvents.length === 0 ? (
-                      <div className="p-16 border-2 border-dashed border-theme rounded-3xl flex flex-col items-center justify-center gap-4 text-theme-muted bg-theme-base/5">
-                        <div className="w-16 h-16 rounded-full bg-theme-base/10 flex items-center justify-center">
-                          <AlertTriangle className="w-8 h-8 opacity-20" />
+                {activeTab === 'dates' && (
+                  <div className="space-y-8 animate-in slide-in-from-right-4 duration-300">
+                    <p className="text-[10px] font-black text-theme-muted uppercase tracking-widest flex items-center gap-2">
+                      <History className="w-4 h-4 text-theme-primary" /> ZAMAN ÇİZELGESİ VE KRİTİK TARİHLER
+                    </p>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                      <div className="space-y-3 p-3 border border-theme rounded-2xl bg-theme-base/5">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-theme-primary/10 flex items-center justify-center">
+                            <Calendar className="w-5 h-5 text-theme-primary" />
+                          </div>
+                          <span className="text-xs font-black uppercase tracking-widest">PLANLAMA</span>
                         </div>
-                        <div className="text-center space-y-1">
-                          <p className="font-black text-xs uppercase tracking-widest">Henüz Olay Kaydı Yok</p>
-                          <p className="text-[10px] font-bold opacity-60">Üretim sırasında oluşan aksaklıkları buradan raporlayabilirsiniz.</p>
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <label className="text-[9px] font-black text-theme-muted uppercase">BAŞLAMA TARİHİ</label>
+                            <input type="date" value={formData.startDate} disabled={isCompleted} onChange={(e) => setFormData({ ...formData, startDate: e.target.value })} className={`form-input ${isCompleted ? 'bg-theme-base/20 opacity-50' : ''}`} />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[9px] font-black text-theme-muted uppercase">BİTİŞ TARİHİ</label>
+                            <input type="date" value={formData.endDate} disabled={isCompleted} onChange={(e) => setFormData({ ...formData, endDate: e.target.value })} className={`form-input ${isCompleted ? 'bg-theme-base/20 opacity-50' : ''}`} />
+                          </div>
                         </div>
                       </div>
-                    ) : (
-                      <div className="grid grid-cols-1 gap-3">
-                        {orderEvents.map((evt: any) => (
-                          <div key={evt.id} className="group relative p-4 border border-theme rounded-2xl bg-theme-base/10 hover:bg-theme-main/5 transition-all flex items-center justify-between overflow-hidden">
-                            <div className={`absolute left-0 top-0 bottom-0 w-1 ${evt.type === 'RED' ? 'bg-rose-500' :
-                              evt.type === 'NUMUNE' ? 'bg-amber-500' :
-                                evt.type === 'TEKRAR_ISLEM' ? 'bg-indigo-500' : 'bg-emerald-500'
-                              }`} />
-                            <div className="flex items-center gap-4">
-                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${evt.type === 'RED' ? 'bg-rose-500/10 text-rose-500' :
-                                evt.type === 'NUMUNE' ? 'bg-amber-500/10 text-amber-500' :
-                                  evt.type === 'TEKRAR_ISLEM' ? 'bg-indigo-500/10 text-indigo-500' : 'bg-emerald-500/10 text-emerald-500'
-                                }`}>
-                                {evt.type === 'RED' ? <Trash2 className="w-5 h-5" /> :
-                                  evt.type === 'NUMUNE' ? <ShoppingBag className="w-5 h-5" /> :
-                                    evt.type === 'TEKRAR_ISLEM' ? <RotateCcw className="w-5 h-5" /> : <CheckCircle2 className="w-5 h-5" />}
-                              </div>
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <span className={`text-[10px] font-black uppercase tracking-widest ${evt.type === 'RED' ? 'text-rose-500' :
-                                    evt.type === 'NUMUNE' ? 'text-amber-500' :
-                                      evt.type === 'TEKRAR_ISLEM' ? 'text-indigo-500' : 'text-emerald-500'
-                                    }`}>{evt.type?.replace('_', ' ')}</span>
-                                  <span className="w-1 h-1 rounded-full bg-theme-muted/30" />
-                                  <span className="text-[10px] font-black text-theme-main uppercase tracking-tighter opacity-80">{evt.step?.operation?.name || 'GENEL'}</span>
+
+                      <div className="space-y-3 p-3 border border-theme rounded-2xl bg-theme-warning/5 border-theme-warning/20">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-theme-warning/10 flex items-center justify-center">
+                            <AlertTriangle className="w-5 h-5 text-theme-warning" />
+                          </div>
+                          <span className="text-xs font-black uppercase tracking-widest text-theme-warning">ÜRETİM / SKT</span>
+                        </div>
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <label className="text-[9px] font-black text-theme-muted uppercase">ÜRETİM TARİHİ</label>
+                            <input type="date" value={formData.productionDate} disabled={isCompleted} onChange={(e) => setFormData({ ...formData, productionDate: e.target.value })} className={`form-input ${isCompleted ? 'bg-theme-base/20 opacity-50' : ''}`} />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[9px] font-black text-theme-muted uppercase">SON KULLANMA TARİHİ</label>
+                            <input type="date" value={formData.expiryDate} disabled={isCompleted} onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })} className={`form-input ${isCompleted ? 'bg-theme-base/20 opacity-50' : ''}`} />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3 p-3 border border-theme rounded-2xl bg-theme-secondary/5 border-theme-secondary/20">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-theme-secondary/10 flex items-center justify-center">
+                            <CheckCircle2 className="w-5 h-5 text-theme-secondary" />
+                          </div>
+                          <span className="text-xs font-black uppercase tracking-widest text-theme-secondary">STERİLİZASYON</span>
+                        </div>
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <label className="text-[9px] font-black text-theme-muted uppercase">STERİL TARİHİ</label>
+                            <input type="date" value={formData.sterilizationDate} disabled={isCompleted} onChange={(e) => setFormData({ ...formData, sterilizationDate: e.target.value })} className={`form-input ${isCompleted ? 'bg-theme-base/20 opacity-50' : ''}`} />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'events' && (
+                  <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-black text-theme-muted uppercase">OLAY VE UYGUNSUZLUK KAYITLARI</p>
+                        <p className="text-[10px] font-bold text-theme-dim">Red, numune ve şartlı kabul gibi durumlar için zorunlu olay kayıtları.</p>
+                      </div>
+                      {!isCompleted && (
+                        <button
+                          onClick={() => {
+                            setEventFormData({
+                              stepId: '',
+                              type: '',
+                              quantity: 0,
+                              operatorId: operators.find(o => o.fullName === authUser?.fullName)?.id || '',
+                              reasonId: '',
+                              warehouseId: '',
+                              description: '',
+                              createdAt: new Date().toISOString().slice(0, 16)
+                            });
+                            setShowEventModal(true);
+                          }}
+                          className="flex items-center gap-2 px-5 py-2.5 bg-theme-primary text-white rounded-xl hover:bg-theme-primary-hover transition-all text-[11px] font-black uppercase tracking-widest shadow-lg shadow-theme-primary/20 group"
+                        >
+                          <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform" />
+                          YENİ OLAY EKLE
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="space-y-4">
+                      {orderEvents.length === 0 ? (
+                        <div className="p-16 border-2 border-dashed border-theme rounded-3xl flex flex-col items-center justify-center gap-4 text-theme-muted bg-theme-base/5">
+                          <div className="w-16 h-16 rounded-full bg-theme-base/10 flex items-center justify-center">
+                            <AlertTriangle className="w-8 h-8 opacity-20" />
+                          </div>
+                          <div className="text-center space-y-1">
+                            <p className="font-black text-xs uppercase tracking-widest">Henüz Olay Kaydı Yok</p>
+                            <p className="text-[10px] font-bold opacity-60">Üretim sırasında oluşan aksaklıkları buradan raporlayabilirsiniz.</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 gap-3">
+                          {orderEvents.map((evt: any) => (
+                            <div key={evt.id} className="group relative p-4 border border-theme rounded-2xl bg-theme-base/10 hover:bg-theme-main/5 transition-all flex items-center justify-between overflow-hidden">
+                              <div className={`absolute left-0 top-0 bottom-0 w-1 ${evt.type === 'RED' ? 'bg-rose-500' :
+                                evt.type === 'NUMUNE' ? 'bg-amber-500' :
+                                  evt.type === 'TEKRAR_ISLEM' ? 'bg-indigo-500' : 'bg-emerald-500'
+                                }`} />
+                              <div className="flex items-center gap-4">
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${evt.type === 'RED' ? 'bg-rose-500/10 text-rose-500' :
+                                  evt.type === 'NUMUNE' ? 'bg-amber-500/10 text-amber-500' :
+                                    evt.type === 'TEKRAR_ISLEM' ? 'bg-indigo-500/10 text-indigo-500' : 'bg-emerald-500/10 text-emerald-500'
+                                  }`}>
+                                  {evt.type === 'RED' ? <Trash2 className="w-5 h-5" /> :
+                                    evt.type === 'NUMUNE' ? <ShoppingBag className="w-5 h-5" /> :
+                                      evt.type === 'TEKRAR_ISLEM' ? <RotateCcw className="w-5 h-5" /> : <CheckCircle2 className="w-5 h-5" />}
                                 </div>
-                                <div className="flex items-center gap-2 mt-1">
-                                  <p className="text-[11px] font-bold text-theme-muted">
-                                    {evt.reason?.code ? `[${evt.reason.code}] ` : ''}
-                                    {evt.reason?.name || evt.description || 'Neden belirtilmemiş'}
-                                  </p>
-                                  {evt.operator && (
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <span className={`text-[10px] font-black uppercase tracking-widest ${evt.type === 'RED' ? 'text-rose-500' :
+                                      evt.type === 'NUMUNE' ? 'text-amber-500' :
+                                        evt.type === 'TEKRAR_ISLEM' ? 'text-indigo-500' : 'text-emerald-500'
+                                      }`}>{evt.type?.replace('_', ' ')}</span>
+                                    <span className="w-1 h-1 rounded-full bg-theme-muted/30" />
+                                    <span className="text-[10px] font-black text-theme-main uppercase tracking-tighter opacity-80">{evt.step?.operation?.name || 'GENEL'}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <p className="text-[11px] font-bold text-theme-muted">
+                                      {evt.reason?.code ? `[${evt.reason.code}] ` : ''}
+                                      {evt.reason?.name || evt.description || 'Neden belirtilmemiş'}
+                                    </p>
+                                    {evt.operator && (
+                                      <>
+                                        <span className="w-1 h-1 rounded-full bg-theme-muted/30" />
+                                        <span className="text-[10px] font-bold text-theme-dim">PERSONEL: {evt.operator.fullName}</span>
+                                      </>
+                                    )}
+                                    {evt.warehouse && (
+                                      <span className="text-[9px] font-black px-2 py-0.5 bg-theme-primary/10 text-theme-primary rounded-md uppercase">{evt.warehouse.name}</span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-6">
+                                <div className="flex flex-col items-end gap-1">
+                                  <span className="text-sm font-black text-theme-main leading-none">{evt.quantity} {evt.step?.product?.unitOfMeasure || 'ADET'}</span>
+                                  <span className="text-[9px] font-bold text-theme-muted opacity-40 uppercase">{new Date(evt.createdAt).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={() => setSelectedEvent(evt)}
+                                    className="px-3 py-1.5 bg-theme-base/20 border border-theme hover:bg-theme-main/5 text-theme-muted text-[9px] font-black uppercase rounded-lg transition-all"
+                                  >
+                                    DETAY
+                                  </button>
+                                  {!isCompleted && (
                                     <>
-                                      <span className="w-1 h-1 rounded-full bg-theme-muted/30" />
-                                      <span className="text-[10px] font-bold text-theme-dim">PERSONEL: {evt.operator.fullName}</span>
+                                      <button
+                                        onClick={() => {
+                                          setEventFormData({
+                                            id: evt.id,
+                                            stepId: evt.stepId,
+                                            type: evt.type,
+                                            quantity: evt.quantity,
+                                            operatorId: evt.operatorId,
+                                            reasonId: evt.reasonId,
+                                            warehouseId: evt.warehouseId || '',
+                                            description: evt.description || '',
+                                            createdAt: new Date(evt.createdAt).toISOString().slice(0, 16)
+                                          });
+                                          setShowEventModal(true);
+                                        }}
+                                        className="px-3 py-1.5 bg-theme-primary/10 border border-theme-primary/30 hover:bg-theme-primary/20 text-theme-primary text-[9px] font-black uppercase rounded-lg transition-all"
+                                      >
+                                        DÜZENLE
+                                      </button>
+                                      <button
+                                        onClick={() => handleEventDelete(evt.id)}
+                                        className="p-1.5 bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500/20 text-rose-500 rounded-lg transition-all"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
                                     </>
                                   )}
-                                  {evt.warehouse && (
-                                    <span className="text-[9px] font-black px-2 py-0.5 bg-theme-primary/10 text-theme-primary rounded-md uppercase">{evt.warehouse.name}</span>
-                                  )}
                                 </div>
                               </div>
                             </div>
-                            <div className="flex items-center gap-6">
-                              <div className="flex flex-col items-end gap-1">
-                                <span className="text-sm font-black text-theme-main leading-none">{evt.quantity} {evt.step?.product?.unitOfMeasure || 'ADET'}</span>
-                                <span className="text-[9px] font-bold text-theme-muted opacity-40 uppercase">{new Date(evt.createdAt).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <button
-                                  onClick={() => setSelectedEvent(evt)}
-                                  className="px-3 py-1.5 bg-theme-base/20 border border-theme hover:bg-theme-main/5 text-theme-muted text-[9px] font-black uppercase rounded-lg transition-all"
-                                >
-                                  DETAY
-                                </button>
-                                {!isCompleted && (
-                                  <>
-                                    <button
-                                      onClick={() => {
-                                        setEventFormData({
-                                          id: evt.id,
-                                          stepId: evt.stepId,
-                                          type: evt.type,
-                                          quantity: evt.quantity,
-                                          operatorId: evt.operatorId,
-                                          reasonId: evt.reasonId,
-                                          warehouseId: evt.warehouseId || '',
-                                          description: evt.description || '',
-                                          createdAt: new Date(evt.createdAt).toISOString().slice(0, 16)
-                                        });
-                                        setShowEventModal(true);
-                                      }}
-                                      className="px-3 py-1.5 bg-theme-primary/10 border border-theme-primary/30 hover:bg-theme-primary/20 text-theme-primary text-[9px] font-black uppercase rounded-lg transition-all"
-                                    >
-                                      DÜZENLE
-                                    </button>
-                                    <button
-                                      onClick={() => handleEventDelete(evt.id)}
-                                      className="p-1.5 bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500/20 text-rose-500 rounded-lg transition-all"
-                                    >
-                                      <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {(activeTab === 'orders' || activeTab === 'links') && (
-                <div className="flex flex-col items-center justify-center h-full text-center opacity-30 gap-6 grayscale">
-                  <Workflow className="w-10 h-10 stroke-[0.5]" />
-                  <div className="space-y-2">
-                    <h4 className="text-md font-black uppercase text-theme-dim">MODÜL YÜKLENİYOR</h4>
-                    <p className="text-xs font-bold max-w-sm mx-auto leading-relaxed">
-                      {activeTab === 'orders' && 'Satış siparişleri ile üretim emri eşleşmeleri bu bölümde listelenir.'}
-                      {activeTab === 'links' && 'Parçalı üretim veya ilişkili üretim emirleri arasındaki hiyerarşik bağlar burada yönetilir.'}
-                    </p>
+                {(activeTab === 'orders' || activeTab === 'links') && (
+                  <div className="flex flex-col items-center justify-center h-full text-center opacity-30 gap-6 grayscale">
+                    <Workflow className="w-10 h-10 stroke-[0.5]" />
+                    <div className="space-y-2">
+                      <h4 className="text-md font-black text-theme-dim">Yükleniyor...</h4>
+                      <p className="text-xs font-bold max-w-sm mx-auto leading-relaxed">
+                        {activeTab === 'orders' && 'Satış siparişleri ile üretim emri eşleşmeleri bu bölümde listelenir.'}
+                        {activeTab === 'links' && 'Parçalı üretim veya ilişkili üretim emirleri arasındaki hiyerarşik bağlar burada yönetilir.'}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
       {showSignModal && createPortal(
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-6 animate-in fade-in duration-300">
           <div className="absolute inset-0 bg-theme-surface/60 backdrop-blur-xs" onClick={() => setShowSignModal(false)} />
@@ -2192,9 +2192,9 @@ export function ProductionOrderForm() {
               >
                 <CheckCircle2 className="w-4 h-4" /> SEÇİLENLERİ İMZALA
               </button>
-              
+
               <div className="w-px h-8 bg-theme-border/10 mx-2" />
-              
+
               <button
                 onClick={() => {
                   setIsBulkSignMode(false);
@@ -2209,7 +2209,7 @@ export function ProductionOrderForm() {
         </div>,
         document.body
       )}
-      </div>
+    </div >
     </>
   );
 }

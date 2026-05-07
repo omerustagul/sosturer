@@ -6,7 +6,7 @@ import {
   Factory, Users, Clock, Package,
   Plus, Trash2, Edit, FileUp, Download, UploadCloud,
   CheckCircle2, AlertCircle, List, ChevronLeft, ChevronRight, Search, Info, Settings, LayoutGrid,
-  Warehouse, Building2, Workflow, Map, Layers, Handshake, Filter, RotateCcw, ClipboardList, X, Activity, Wrench, ShieldCheck
+  Warehouse, Building2, Workflow, Map, Layers, Handshake, Filter, RotateCcw, ClipboardList, X, Activity, Wrench, ShieldCheck, UserCheck, Laptop
 } from 'lucide-react';
 import { Loading } from '../components/common/Loading';
 import { CustomSelect } from '../components/common/CustomSelect';
@@ -19,9 +19,9 @@ import { RecipeModal } from '../components/planning/RecipeModal';
 import { RecipeDetailModal } from '../components/planning/RecipeDetailModal';
 import { notify } from '../store/notificationStore';
 
-type TabType = 'machines' | 'personnel' | 'shifts' | 'products' | 'firms' | 'work-centers' | 'stations' | 'warehouses' | 'department-roles' | 'import' | 'operations' | 'routes' | 'event-reasons' | 'event-groups' | 'plan-types' | 'consumption-types' | 'measurement-tools' | 'equipment' | 'measurement-methods' | 'sterile-process-types';
+type TabType = 'machines' | 'personnel' | 'shifts' | 'products' | 'firms' | 'work-centers' | 'stations' | 'warehouses' | 'department-roles' | 'import' | 'operations' | 'routes' | 'event-reasons' | 'event-groups' | 'plan-types' | 'consumption-types' | 'measurement-tools' | 'equipment' | 'measurement-methods' | 'sterile-process-types' | 'operators' | 'downtime-reasons';
 
-const simpleDefinitionTabs = ['consumption-types', 'measurement-tools', 'equipment', 'measurement-methods', 'plan-types', 'sterile-process-types'];
+const simpleDefinitionTabs = ['consumption-types', 'measurement-tools', 'equipment', 'measurement-methods', 'plan-types', 'sterile-process-types', 'downtime-reasons'];
 
 
 export function Definitions() {
@@ -31,22 +31,30 @@ export function Definitions() {
 
   const tabs = [
     { id: '_group_base', label: 'TEMEL TANIMLAR', isGroupHeader: true, icon: LayoutGrid },
-    { id: 'machines', label: 'Makineler', icon: Factory, indent: true },
     { id: 'personnel', label: 'Personeller', icon: Users, indent: true },
     { id: 'shifts', label: 'Vardiyalar', icon: Clock, indent: true },
-    { id: 'products', label: 'Stok Kartları', icon: Package, indent: true },
     { id: 'firms', label: 'Firmalar', icon: Handshake, indent: true },
+    { id: 'operators', label: 'Operatörler', icon: UserCheck, indent: true },
+
+    { id: '_group_devices', label: 'CİHAZLAR', isGroupHeader: true, icon: Laptop },
+    { id: 'machines', label: 'Makineler', icon: Factory, indent: true },
+    { id: 'measurement-tools', label: 'Ölçüm Araçları', icon: Activity, indent: true },
+    { id: 'equipment', label: 'Ekipmanlar', icon: Wrench, indent: true },
+
+    { id: '_group_products', label: 'ÜRÜNLER', isGroupHeader: true, icon: Package },
+    { id: 'products', label: 'Stok Kartları', icon: Package, indent: true },
+
     { id: '_group_departments', label: 'DEPARTMANLAR', isGroupHeader: true, icon: LayoutGrid },
     { id: 'work-centers', label: 'İş Merkezleri', icon: Building2, indent: true },
     { id: 'stations', label: 'İstasyonlar', icon: List, indent: true },
     { id: 'warehouses', label: 'Depolar', icon: Warehouse, indent: true },
     { id: 'department-roles', label: 'Roller / Görevler', icon: Settings, indent: true },
+
     { id: '_group_production', label: 'ÜRETİM TANIMLARI', isGroupHeader: true, icon: LayoutGrid },
     { id: 'operations', label: 'Operasyonlar', icon: Workflow, indent: true },
     { id: 'routes', label: 'Reçeteler', icon: Map, indent: true },
+    { id: 'downtime-reasons', label: 'Duruş Sebepleri', icon: AlertCircle, indent: true },
     { id: 'consumption-types', label: 'Tüketim Tipleri', icon: ClipboardList, indent: true },
-    { id: 'measurement-tools', label: 'Ölçüm Aracı Türleri', icon: Activity, indent: true },
-    { id: 'equipment', label: 'Ekipmanlar', icon: Wrench, indent: true },
     { id: 'event-groups', label: 'Olay Grupları', icon: Layers, indent: true },
     { id: 'event-reasons', label: 'Olay Sebepleri', icon: AlertCircle, indent: true },
     { id: 'plan-types', label: 'Planlama Türleri', icon: ClipboardList, indent: true },
@@ -57,7 +65,7 @@ export function Definitions() {
     { id: 'import', label: 'Veri Aktarımı', icon: FileUp, indent: true }
   ];
 
-  const [activeTab, setActiveTab] = useState<TabType>((tab as TabType) || (location.state as any)?.activeTab || 'machines');
+  const [activeTab, setActiveTab] = useState<TabType>((tab as TabType) || (location.state as any)?.activeTab || 'personnel');
   const [data, setData] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
   const [roles, setRoles] = useState<any[]>([]);
@@ -145,7 +153,7 @@ export function Definitions() {
   // const API_URL = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3005/api`;
 
   const getEndpoint = () => {
-    if (activeTab === 'personnel') return '/operators';
+    if (activeTab === 'personnel' || activeTab === 'operators') return '/operators';
     if (activeTab === 'work-centers') return '/departments';
     if (activeTab === 'warehouses') return '/inventory/warehouses';
     if (activeTab === 'routes') return '/production-routes';
@@ -153,6 +161,7 @@ export function Definitions() {
     if (activeTab === 'stations') return '/stations';
     if (activeTab === 'event-groups') return '/production-event-groups';
     if (activeTab === 'event-reasons') return '/production-event-reasons';
+    if (activeTab === 'downtime-reasons') return '/downtime-reasons';
     if (activeTab === 'plan-types') return '/work-plan-types';
     if (activeTab === 'consumption-types') return '/consumption-types';
     if (activeTab === 'measurement-tools') return '/measurement-tools';
@@ -611,6 +620,28 @@ export function Definitions() {
     });
   };
 
+  const handleToggleOperator = (item: any) => {
+    const newVal = !item.isOperator;
+    const actionText = newVal ? 'OPERATÖR YAP' : 'OPERATÖRÜ KALDIR';
+
+    setConfirmModal({
+      isOpen: true,
+      title: 'OPERATÖR DURUMU',
+      message: `Bu personeli ${newVal ? 'operatör olarak atamak' : 'operatörlükten çıkarmak'} istediğinize emin misiniz?`,
+      type: newVal ? 'info' : 'warning',
+      onConfirm: async () => {
+        try {
+          const { id, createdAt, updatedAt, unit, station, steps, department, role, company, statuses, methods, ...rest } = item;
+          await api.put(`/operators/${id}`, { ...rest, isOperator: newVal });
+          fetchData();
+          notify.success('Güncellendi', 'Operatör durumu başarıyla değiştirildi.');
+        } catch (e) {
+          notify.error('Hata', 'Güncelleme yapılırken bir hata oluştu.');
+        }
+      }
+    });
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -721,11 +752,29 @@ export function Definitions() {
 
 
   const tabLabel = () => {
-    if (activeTab === 'work-centers') return 'İŞ MERKEZLERİ';
-    if (activeTab === 'stations') return 'İSTASYONLAR';
-    if (activeTab === 'warehouses') return 'DEPOLAR';
-    const found = tabs.find(t => t.id === activeTab);
-    return (found?.label ?? '').toLocaleUpperCase('tr-TR');
+    switch (activeTab) {
+      case 'personnel': return 'PERSONELLER';
+      case 'operators': return 'OPERATÖRLER';
+      case 'shifts': return 'VARDİYALAR';
+      case 'products': return 'STOK KARTLARI';
+      case 'firms': return 'FİRMALAR';
+      case 'work-centers': return 'İŞ MERKEZLERİ';
+      case 'stations': return 'İSTASYONLAR';
+      case 'warehouses': return 'DEPOLAR';
+      case 'department-roles': return 'ROLLER / GÖREVLER';
+      case 'operations': return 'OPERASYONLAR';
+      case 'routes': return 'REÇETELER';
+      case 'event-groups': return 'OLAY GRUPLARI';
+      case 'event-reasons': return 'OLAY SEBEPLERİ';
+      case 'downtime-reasons': return 'DURUŞ SEBEPLERİ';
+      case 'plan-types': return 'PLANLAMA TÜRLERİ';
+      case 'consumption-types': return 'TÜKETİM TİPLERİ';
+      case 'measurement-tools': return 'ÖLÇÜM ARAÇLARI';
+      default: {
+        const found = tabs.find(t => t.id === activeTab);
+        return (found?.label ?? '').toLocaleUpperCase('tr-TR');
+      }
+    }
   };
 
   return (
@@ -1282,6 +1331,7 @@ export function Definitions() {
 
                           {activeTab === 'department-roles' && <SortHeader label="Departman Adı" sortKey="department.name" />}
 
+                          {(activeTab === 'personnel' || activeTab === 'operators') && <SortHeader label="Operatör Mü?" sortKey="isOperator" />}
                           {activeTab === 'personnel' && <SortHeader label="Departman" sortKey="department" />}
                           {activeTab === 'personnel' && <SortHeader label="Görev / Rol" sortKey="role" />}
                           {activeTab === 'personnel' && <SortHeader label="İşe Giriş" sortKey="hireDate" />}
@@ -1436,8 +1486,21 @@ export function Definitions() {
                                 </>
                               )}
 
-                              {activeTab === 'personnel' && (
-                                <>
+                               {(activeTab === 'personnel' || activeTab === 'operators') && (
+                                 <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap">
+                                   <button
+                                     onClick={(e) => {
+                                       e.stopPropagation();
+                                       handleToggleOperator(item);
+                                     }}
+                                     className={`px-3 py-1 rounded-full text-[10px] font-black transition-all ${item.isOperator ? 'bg-theme-primary text-white shadow-lg shadow-theme-primary/20' : 'bg-theme-base/50 text-theme-muted hover:text-theme-main border border-theme'}`}
+                                   >
+                                     {item.isOperator ? 'EVET' : 'HAYIR'}
+                                   </button>
+                                 </td>
+                               )}
+                               {activeTab === 'personnel' && (
+                                 <>
                                   <td className="px-2 py-3 border-b border-theme/30 text-theme-muted text-xs whitespace-nowrap">
                                     {isEditingRow ? (
                                       <CustomSelect variant="inline"
@@ -1543,6 +1606,7 @@ export function Definitions() {
                                           { id: 'general', label: 'Genel' },
                                           { id: 'supplier', label: 'Tedarikçi' },
                                           { id: 'customer', label: 'Müşteri' },
+                                          { id: 'dealer', label: 'Bayi' },
                                           { id: 'logistics', label: 'Lojistik' },
                                           { id: 'customs', label: 'Gümrük' },
                                           { id: 'consignment', label: 'Konsinye' }
@@ -1554,6 +1618,7 @@ export function Definitions() {
                                       general: 'Genel',
                                       supplier: 'Tedarikçi',
                                       customer: 'Müşteri',
+                                      dealer: 'Bayi',
                                       logistics: 'Lojistik',
                                       customs: 'Gümrük',
                                       consignment: 'Konsinye'
@@ -1908,6 +1973,7 @@ export function Definitions() {
                         'measurement-tools': 'Ölçüm Aracı Türü Tanımı',
                         'equipment': 'Ekipman Tanımı',
                         'consumption-types': 'Tüketim Tipi Tanımı',
+                        'downtime-reasons': 'Duruş Sebebi Tanımı',
                         'sterile-process-types': 'Steril İşlem Türü Tanımı'
                       };
                       return titles[activeTab] || 'Sistem Tanımı';
@@ -2167,6 +2233,7 @@ export function Definitions() {
                           { id: 'general', label: 'Genel' },
                           { id: 'supplier', label: 'Tedarikçi' },
                           { id: 'customer', label: 'Müşteri' },
+                          { id: 'dealer', label: 'Bayi' },
                           { id: 'logistics', label: 'Lojistik' },
                           { id: 'customs', label: 'Gümrük' },
                           { id: 'consignment', label: 'Konsinye' }

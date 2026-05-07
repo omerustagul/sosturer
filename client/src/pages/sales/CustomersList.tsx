@@ -106,9 +106,9 @@ export function CustomersList() {
           </div>
         ))}
         {customers.length === 0 && (
-          <div className="col-span-full py-32 text-center modern-glass-card opacity-20">
-            <Users size={48} className="mx-auto mb-4" />
-            <p className="text-sm font-black uppercase tracking-widest">HENÜZ MÜŞTERİ KAYDI BULUNMUYOR</p>
+          <div className="col-span-full p-16 text-center modern-glass-card opacity-20">
+            <Users size={36} className="mx-auto mb-4" />
+            <p className="text-sm font-black">Henüz müşteri kaydı bulunamadı</p>
           </div>
         )}
       </div>

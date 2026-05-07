@@ -138,8 +138,8 @@ export function ProductionPlanning() {
         {/* Left Column: Requirements & Status */}
         <div className="xl:col-span-1 space-y-6">
           <div className="modern-glass-card p-5 space-y-4 border-theme-primary/20">
-            <h3 className="text-xs font-black text-theme-primary uppercase tracking-[0.2em] flex items-center gap-2">
-              <Activity size={14} /> ÜRETİM İHTİYAÇLARI
+            <h3 className="text-xs font-black text-theme-primary flex items-center gap-2">
+              <Activity size={14} /> Üretim İhtiyaçları
             </h3>
             <div className="space-y-3 max-h-[400px] overflow-y-auto no-scrollbar pr-2">
               {requirements.filter(r => r.netRequirement > 0).map(req => (
@@ -163,7 +163,7 @@ export function ProductionPlanning() {
               {requirements.filter(r => r.netRequirement > 0).length === 0 && (
                 <div className="py-8 text-center opacity-30">
                   <Info size={24} className="mx-auto mb-2" />
-                  <p className="text-[10px] font-bold uppercase tracking-widest">Bekleyen ihtiyaç bulunamadı.</p>
+                  <p className="text-[11px] font-bold">Bekleyen ihtiyaç bulunamadı.</p>
                 </div>
               )}
             </div>
@@ -174,7 +174,7 @@ export function ProductionPlanning() {
         <div className="xl:col-span-3 space-y-6">
           <div className="modern-glass-card p-0 overflow-hidden">
             <div className="p-4 border-b border-theme bg-theme-surface/30 flex items-center justify-between">
-              <h3 className="text-xs font-black text-theme-main uppercase tracking-widest flex items-center gap-2">
+              <h3 className="text-xs font-black text-theme-primary flex items-center gap-2">
                 <Target size={14} className="text-theme-primary" /> Atanmış Planlar
               </h3>
               <span className="text-[10px] font-bold text-theme-dim px-2 py-1 bg-theme-base rounded-lg border border-theme">
@@ -228,10 +228,10 @@ export function ProductionPlanning() {
                 ))}
                 {plans.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="py-20 text-center opacity-30">
-                      <div className="flex flex-col items-center gap-4">
-                        <AlertCircle size={32} />
-                        <p className="text-xs font-black uppercase tracking-widest">Bu tarih için henüz planlama yapılmamış.</p>
+                    <td colSpan={5} className="py-20 text-center">
+                      <div className="flex flex-col items-center gap-1 p-16 opacity-20">
+                        <AlertCircle size={36} className="mb-1" />
+                        <p className="text-sm font-black">Bu tarih için henüz planlama yapılmamış.</p>
                       </div>
                     </td>
                   </tr>

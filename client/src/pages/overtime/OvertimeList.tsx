@@ -514,7 +514,7 @@ export function OvertimeList() {
   }, [selectedPlan]);
 
   return (
-    <div className="p-4 lg:p-6 mx-auto">
+    <div className="p-4 lg:p-6">
       {/* Header & Main Filters */}
       <div className="flex flex-col gap-6 mb-8">
         <div className="flex items-center justify-between">
@@ -626,12 +626,12 @@ export function OvertimeList() {
                     {selectedIds.size === filteredPlans.length && <Check className="w-3.5 h-3.5 text-white" />}
                   </div>
                 </th>
-                <th className="text-left py-2 px-3 text-[10px] font-black text-theme-dim uppercase tracking-[0.2em]">MESAI PLANI / VARDİYA</th>
-                <th className="text-left py-2 px-3 text-[10px] font-black text-theme-dim uppercase tracking-[0.2em]">TARİH ARALIĞI</th>
-                <th className="text-center py-2 px-3 text-[10px] font-black text-theme-dim uppercase tracking-[0.2em]">OPERATÖR</th>
-                <th className="text-center py-2 px-3 text-[10px] font-black text-theme-dim uppercase tracking-[0.2em]">ALAN/T.GAH</th>
-                <th className="text-center py-2 px-3 text-[10px] font-black text-theme-dim uppercase tracking-[0.2em]">DURUM</th>
-                <th className="text-right py-2 px-3 text-[10px] font-black text-theme-dim uppercase tracking-[0.2em]">AKSİYON</th>
+                <th className="text-left py-2 px-3 text-[10px] font-black text-theme-dim">Mesai Planı / Vardiya</th>
+                <th className="text-left py-2 px-3 text-[10px] font-black text-theme-dim">Tarih Aralığı</th>
+                <th className="text-center py-2 px-3 text-[10px] font-black text-theme-dim">Operatör</th>
+                <th className="text-center py-2 px-3 text-[10px] font-black text-theme-dim">Alan / T.Gah</th>
+                <th className="text-center py-2 px-3 text-[10px] font-black text-theme-dim">Durum</th>
+                <th className="text-right py-2 px-3 text-[10px] font-black text-theme-dim">Aksiyon</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-theme/10">
@@ -672,14 +672,14 @@ export function OvertimeList() {
                           <Clock size={16} />
                         </div>
                         <div>
-                          <p className="text-xs font-black text-theme-main group-hover:text-theme-primary transition-colors leading-tight">{plan.planName}</p>
+                          <p className="text-xs font-bold text-theme-main group-hover:text-theme-primary transition-colors leading-tight">{plan.planName}</p>
                           <p className="text-[10px] font-bold text-theme-dim opacity-60">{plan.shift?.shiftName || 'Vardiya Belirtilmedi'}</p>
                         </div>
                       </div>
                     </td>
                     <td className="py-2 px-3">
                       <div className="flex flex-col">
-                        <p className="text-xs font-black text-theme-main">
+                        <p className="text-xs font-bold text-theme-main">
                           {format(new Date(plan.startDate), 'd MMMM', { locale: tr })} — {format(new Date(plan.endDate), 'd MMMM', { locale: tr })}
                         </p>
                         <p className="text-[10px] font-bold text-theme-dim opacity-50 uppercase tracking-tighter">
@@ -714,7 +714,7 @@ export function OvertimeList() {
                         >
                           <Edit2 size={16} />
                         </button>
-                        <div className="w-40 h-9 flex items-center justify-center rounded-xl">
+                        <div className="w-full max-w-[180px] h-9 flex items-center justify-center rounded-xl">
                           <CustomSelect options={Object.entries(statusConfig).map(([val, cfg]) => ({
                             id: val,
                             label: cfg.label
@@ -785,7 +785,7 @@ export function OvertimeList() {
 
       {selectedPlan && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 lg:p-10 overflow-hidden bg-theme-base/10 backdrop-blur-xs animate-in fade-in duration-500">
-          <div className="relative w-full h-[85vh] max-w-6xl bg-theme-base border border-theme rounded-2xl shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)] flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-500 ring-1 ring-white/5">
+          <div className="relative w-full h-[85vh] bg-theme-base border border-theme rounded-2xl shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)] flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-500 ring-1 ring-white/5">
 
             {/* Modal Header */}
             <div className="p-3 pb-4 flex items-start justify-between">

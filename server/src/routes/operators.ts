@@ -10,8 +10,17 @@ router.get('/', async (req: AuthRequest, res) => {
     const companyId = getCompanyId(req);
     if (!companyId) return res.json([]);
 
+    const { is_operator } = req.query;
+    const where: any = { companyId };
+    
+    if (is_operator === 'true') {
+      where.isOperator = true;
+    } else if (is_operator === 'false') {
+      where.isOperator = false;
+    }
+
     const operators = await prisma.operator.findMany({
-      where: { companyId },
+      where,
       include: { 
         department: true,
         role: true 

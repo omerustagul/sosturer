@@ -40,6 +40,7 @@ model Company {
   customers               Customer[]
   departmentRoles         DepartmentRole[]
   departments             Department[]
+  downtimeReasons         DowntimeReason[]
   equipmentDevices        EquipmentDevice[]
   equipmentStatuses       EquipmentStatus[]
   equipmentTypes          EquipmentType[]
@@ -47,6 +48,7 @@ model Company {
   importHistory           ImportHistory[]
   locations               locations[]
   machines                Machine[]
+  machineDowntimes        MachineDowntime[]
   measurementDevices      MeasurementDevice[]
   measurementMethods      MeasurementMethod[]
   measurementToolStatuses MeasurementToolStatus[]
@@ -136,6 +138,7 @@ model Machine {
   orderSteps              ProductionOrderStep[]
   productionPlans         ProductionPlan[]
   productionRecords       ProductionRecord[]
+  machineDowntimes        MachineDowntime[]
 
   @@unique([companyId, code])
   @@map("machines")
@@ -151,6 +154,7 @@ model Operator {
   phone                 String?
   email                 String?
   status                String                 @default("active")
+  isOperator            Boolean                @default(false) @map("is_operator")
   hireDate              DateTime?              @map("hire_date")
   experienceYears       Int?                   @map("experience_years")
   certifications        String?
@@ -164,10 +168,50 @@ model Operator {
   productionOrderEvents ProductionOrderEvent[]
   orderSteps            ProductionOrderStep[]
   productionRecords     ProductionRecord[]
+  machineDowntimes      MachineDowntime[]
   users                 User[]
 
   @@unique([companyId, employeeId])
   @@map("operators")
+}
+
+model DowntimeReason {
+  id               String            @id @default(uuid())
+  companyId        String            @map("company_id")
+  code             String?
+  name             String
+  status           String            @default("active")
+  displayOrder     Int               @default(0) @map("display_order")
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+  company          Company           @relation(fields: [companyId], references: [id])
+  machineDowntimes MachineDowntime[]
+
+  @@unique([companyId, name])
+  @@map("downtime_reasons")
+}
+
+model MachineDowntime {
+  id                String           @id @default(uuid())
+  companyId         String           @map("company_id")
+  date              DateTime
+  machineId         String           @map("machine_id")
+  operatorId        String?          @map("operator_id")
+  shiftId           String?          @map("shift_id")
+  durationMinutes   Int              @map("duration_minutes")
+  reasonId          String           @map("reason_id")
+  productionOrderId String?          @map("production_order_id")
+  notes             String?
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+  company           Company          @relation(fields: [companyId], references: [id])
+  machine           Machine          @relation(fields: [machineId], references: [id])
+  operator          Operator?        @relation(fields: [operatorId], references: [id])
+  shift             Shift?           @relation(fields: [shiftId], references: [id])
+  reason            DowntimeReason   @relation(fields: [reasonId], references: [id])
+  productionOrder   ProductionOrder? @relation(fields: [productionOrderId], references: [id])
+
+  @@map("machine_downtimes")
 }
 
 model Shift {
@@ -187,6 +231,7 @@ model Shift {
   steps             ProductionOrderStep[]
   productionPlans   ProductionPlan[]
   productionRecords ProductionRecord[]
+  machineDowntimes  MachineDowntime[]
   company           Company               @relation(fields: [companyId], references: [id])
 
   @@unique([companyId, shiftCode])
@@ -866,6 +911,7 @@ model ProductionOrder {
   events                  ProductionOrderEvent[]
   machines                ProductionOrderMachine[]
   steps                   ProductionOrderStep[]
+  machineDowntimes        MachineDowntime[]
   company                 Company                       @relation(fields: [companyId], references: [id])
   parent                  ProductionOrder?              @relation("LinkedOrders", fields: [parentId], references: [id])
   children                ProductionOrder[]             @relation("LinkedOrders")

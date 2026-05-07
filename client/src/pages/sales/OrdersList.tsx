@@ -153,9 +153,9 @@ export function OrdersList() {
               {orders.length === 0 && (
                 <tr>
                   <td colSpan={5} className="px-8 py-32 text-center">
-                    <div className="flex flex-col items-center gap-4 opacity-10">
-                      <ShoppingCart size={48} />
-                      <p className="text-md font-black uppercase">Sipariş Bulunmuyor</p>
+                    <div className="flex flex-col items-center gap-4 p-16 opacity-20">
+                      <ShoppingCart size={36} />
+                      <p className="text-md font-black">Sipariş Bulunmuyor</p>
                     </div>
                   </td>
                 </tr>

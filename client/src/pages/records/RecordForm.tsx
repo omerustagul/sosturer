@@ -143,7 +143,7 @@ export function RecordForm() {
       try {
         const [mRes, oRes, sRes, pRes] = await Promise.all([
           api.get('/machines'),
-          api.get('/operators'),
+          api.get('/operators?is_operator=true'),
           api.get('/shifts'),
           api.get('/products'),
         ]);

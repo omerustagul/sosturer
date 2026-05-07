@@ -56,6 +56,7 @@ const EquipmentTracking = lazy(() => import('./pages/production/TraceabilityAsse
 const EquipmentDetail = lazy(() => import('./pages/production/TraceabilityAssets').then((m) => ({ default: m.EquipmentDetail })));
 const SterileOperations = lazy(() => import('./pages/production/SterileOperations').then((m) => ({ default: m.SterileOperations })));
 
+const MachineDowntimes = lazy(() => import('./pages/production/MachineDowntimes').then((m) => ({ default: m.MachineDowntimes })));
 const InventoryDashboard = lazy(() => import('./pages/inventory/InventoryDashboard').then((m) => ({ default: m.InventoryDashboard })));
 const StockMovements = lazy(() => import('./pages/inventory/StockMovements').then((m) => ({ default: m.StockMovements })));
 const StockVouchers = lazy(() => import('./pages/inventory/StockVouchers').then((m) => ({ default: m.StockVouchers })));
@@ -141,6 +142,7 @@ function App() {
                 <Route path="production-orders" element={<ProductionOrders />} />
                 <Route path="production-orders/new" element={<ProductionOrderForm />} />
                 <Route path="production-orders/:lotNumber" element={<ProductionOrderForm />} />
+                <Route path="production/machine-downtimes" element={<MachineDowntimes />} />
                 <Route path="production/consumption-transactions" element={<ConsumptionTransactions />} />
                 <Route path="production/consumption-transactions/new" element={<ConsumptionTransactionForm />} />
                 <Route path="production/consumption-transactions/:transactionNo" element={<ConsumptionTransactionForm />} />

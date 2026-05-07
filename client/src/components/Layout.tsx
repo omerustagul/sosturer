@@ -5,7 +5,8 @@ import {
   ChevronLeft, ChevronRight, ChevronUp, Package, FileUser, User, ShieldCheck, Factory,
   Bell, Building2, Warehouse, ShoppingCart, History, LayoutGrid, Boxes, GanttChart, Wrench, FileText,
   Moon, Sun, Activity, Menu, X, BookOpen, LayoutDashboard,
-  Database, Workflow, Map, Layers, Handshake, FileUp, Users, Clock, List, AlertCircle, ClipboardList, FolderKanban
+  Database, Workflow, Map, Layers, Handshake, FileUp, Users, Clock, List, AlertCircle, ClipboardList, FolderKanban,
+  UserCheck, Laptop
 } from 'lucide-react';
 import { useState, useEffect, useRef, memo, useMemo, useCallback } from 'react';
 import { useAuthStore } from '../store/authStore';
@@ -369,6 +370,7 @@ export function Layout() {
         icon: Factory, label: 'ÜRETİM', path: '/records_menu', isDropdown: true,
         children: [
           { icon: ListOrdered, label: 'Üretim Emirleri', path: '/production-orders' },
+          { icon: Clock, label: 'Makine Duruşları', path: '/production/machine-downtimes' },
           { icon: ClipboardList, label: 'Tüketim İşlemleri', path: '/production/consumption-transactions' },
           { icon: Activity, label: 'Ölçüm Cihazları', path: '/production/measurement-tools' },
           { icon: Wrench, label: 'Ekipmanlar', path: '/production/equipment' },
@@ -423,11 +425,24 @@ export function Layout() {
       {
         icon: Database, label: 'TEMEL TANIMLAR', path: '/definitions/base', isDropdown: true,
         children: [
-          { icon: Factory, label: 'Makineler', path: '/definitions/machines' },
           { icon: Users, label: 'Personeller', path: '/definitions/personnel' },
           { icon: Clock, label: 'Vardiyalar', path: '/definitions/shifts' },
-          { icon: Package, label: 'Stok Kartları', path: '/definitions/products' },
           { icon: Handshake, label: 'Firmalar', path: '/definitions/firms' },
+          { icon: UserCheck, label: 'Operatörler', path: '/definitions/operators' },
+        ]
+      },
+      {
+        icon: Laptop, label: 'CİHAZLAR', path: '/definitions/devices', isDropdown: true,
+        children: [
+          { icon: Factory, label: 'Makineler', path: '/definitions/machines' },
+          { icon: Activity, label: 'Ölçüm Araçları', path: '/definitions/measurement-tools' },
+          { icon: Wrench, label: 'Ekipmanlar', path: '/definitions/equipment' },
+        ]
+      },
+      {
+        icon: Package, label: 'ÜRÜNLER', path: '/definitions/products-menu', isDropdown: true,
+        children: [
+          { icon: Package, label: 'Stok Kartları', path: '/definitions/products' },
         ]
       },
       {
@@ -450,6 +465,7 @@ export function Layout() {
           { icon: Wrench, label: 'Ekipmanlar', path: '/definitions/equipment' },
           { icon: Layers, label: 'Olay Grupları', path: '/definitions/event-groups' },
           { icon: AlertCircle, label: 'Olay Sebepleri', path: '/definitions/event-reasons' },
+          { icon: Clock, label: 'Duruş Sebepleri', path: '/definitions/downtime-reasons' },
           { icon: ShieldCheck, label: 'Steril İşlem Türleri', path: '/definitions/sterile-process-types' },
         ]
       },
